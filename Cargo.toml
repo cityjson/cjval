@@ -1,0 +1,13 @@
+[package]
+name = "cjval"
+version = "0.1.0"
+authors = ["Hugo Ledoux <h.ledoux@tudelft.nl>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+jsonschema = "0.12"
+serde = "*"
+serde_json = "*"
+structopt = "0.3.23"
