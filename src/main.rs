@@ -20,25 +20,17 @@ fn main() {
     let v: CJValidator = CJValidator::from_str(&s1);
 
     let re = v.validate_schema();
-    println!("{:?}", re);
-}
 
-fn is_cityjson_file(j: &Value) -> bool {
-    if j["type"] == "CityJSON" {
-        true
-    } else {
-        false
+    match re {
+        Ok(()) => println!("VALID :)"),
+        Err(errs) => {
+            println!("==INVALID==");
+            for (i, e) in errs.iter().enumerate() {
+                println!("{}. {}", i + 1, e);
+            }
+        }
     }
-}
-
-fn get_version_cityjson(j: &Value) -> i8 {
-    if j["version"] == "1.1" {
-        11
-    } else if j["version"] == 1.0 {
-        10
-    } else {
-        -1
-    }
+    // println!("{:?}", re);
 }
 
 fn validate_no_duplicate_vertices(j: &Value) -> bool {

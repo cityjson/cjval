@@ -15,7 +15,7 @@ impl CJValidator {
         let j: Value = serde_json::from_str(&s).unwrap();
         let mut v = CJValidator {
             j: json!(null),
-            is_cityjson: None,
+            is_cityjson: Some(true),
             version: None,
             is_schema_valid: None,
         };
@@ -36,20 +36,21 @@ impl CJValidator {
         v
     }
 
-    pub fn validate_schema(&self) -> Result<(), String> {
+    pub fn validate_schema(&self) -> Result<(), Vec<String>> {
         if self.j.is_null() {
-            return Err("Not a valid JSON file".to_string());
+            return Err(vec!["Not a valid JSON file".to_string()]);
         }
         if self.is_cityjson.is_none() {
-            return Err("Not a CityJSON file".to_string());
+            println!("here");
+            return Err(vec!["Not a CityJSON file".to_string()]);
         }
         if self.version.is_none() {
-            return Err("Not a CityJSON file".to_string());
+            println!("here2");
+            return Err(vec!["Not a supported CityJSON version".to_string()]);
         }
         if (self.version.unwrap() < 10) || (self.version.unwrap() > 11) {
-            return Err("CityJSON version not supported".to_string());
+            return Err(vec!["CityJSON version not supported".to_string()]);
         }
-
         //-- fetch the correct schema
         let mut schema_str = include_str!("../schemas/10/cityjson.min.schema.json");
         if self.version.unwrap() == 11 {
@@ -62,15 +63,15 @@ impl CJValidator {
             .compile(&schema)
             .expect("A valid schema");
         let result = compiled.validate(&self.j);
-        let errors: String = String::new();
+        let mut ls_errors: Vec<String> = Vec::new();
         if let Err(errors) = result {
             for error in errors {
-                println!("Validation error: {}", error);
-                println!("Instance path: {}", error.instance_path);
+                let s: String = format!("{} [path:{}]", error, error.instance_path);
+                ls_errors.push(s);
             }
+            return Err(ls_errors);
         } else {
             return Ok(());
         }
-        Ok(())
     }
 }
