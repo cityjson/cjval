@@ -1,8 +1,10 @@
-use jsonschema::{Draft, JSONSchema};
+// use jsonschema::{Draft, JSONSchema};
 
 use serde_json::Value;
 use std::collections::HashMap;
 use structopt::StructOpt;
+
+use cjval::CJValidator;
 
 #[derive(StructOpt)]
 struct Cli {
@@ -15,36 +17,10 @@ fn main() {
 
     //-- fetch the CityJSON data file
     let s1 = std::fs::read_to_string(&args.cityjson_file).expect("Couldn't read CityJSON file");
-    let j = serde_json::from_str(&s1).unwrap();
+    let v: CJValidator = CJValidator::from_str(&s1);
 
-    //-- fetch the correct schema
-    let schema_str = include_str!("../schemas/cityjson.min.schema.json");
-    let schema = serde_json::from_str(schema_str).unwrap();
-    // if is_cityjson_file(&j) == false {
-    // println!("OUPSIE");
-    // }
-    let v = get_version_cityjson(&j);
-    if v == 10 {
-        println!("version {:?}", v);
-    } else if v == 11 {
-        println!("version {:?}", v);
-    } else {
-        println!("VERSION NOT SUPPORTED");
-    }
-
-    let compiled = JSONSchema::options()
-        .with_draft(Draft::Draft7)
-        .compile(&schema)
-        .expect("A valid schema");
-    let result = compiled.validate(&j);
-    if let Err(errors) = result {
-        for error in errors {
-            println!("Validation error: {}", error);
-            println!("Instance path: {}", error.instance_path);
-        }
-    } else {
-        println!("valid 👍");
-    }
+    let re = v.validate_schema();
+    println!("{:?}", re);
 }
 
 fn is_cityjson_file(j: &Value) -> bool {
