@@ -2,6 +2,7 @@ use jsonschema::{Draft, JSONSchema};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use serde_json::Value;
+use std::collections::HashMap;
 
 #[derive(Serialize, Deserialize, Debug)]
 struct VertexF {
@@ -16,9 +17,16 @@ struct VertexI {
     z: u32,
 }
 
+#[derive(Deserialize, Debug)]
+struct Doc {
+    #[serde(with = "::serde_with::rust::maps_duplicate_key_is_error")]
+    CityObjects: HashMap<String, Value>,
+}
+
 #[derive(Debug)]
 pub struct CJValidator {
     j: Value,
+    original_string: String,
     is_cityjson: Option<bool>,
     version: Option<i32>,
     is_schema_valid: Option<bool>,
@@ -27,8 +35,10 @@ pub struct CJValidator {
 impl CJValidator {
     pub fn from_str(s: &str) -> Self {
         let j: Value = serde_json::from_str(&s).unwrap();
+        let s2: String = s.to_string();
         let mut v = CJValidator {
             j: json!(null),
+            original_string: s2,
             is_cityjson: Some(true),
             version: None,
             is_schema_valid: None,
@@ -82,11 +92,15 @@ impl CJValidator {
                 let s: String = format!("{} [path:{}]", error, error.instance_path);
                 ls_errors.push(s);
             }
-            return ls_errors;
-        } else {
-            self.is_schema_valid = Some(true);
-            return vec![];
         }
+        //-- check for duplicate keys in CO object
+        let re: Result<Doc, _> = serde_json::from_str(&self.original_string);
+        if re.is_err() {
+            return vec!["Duplicate keys in 'CityObjects'".to_string()];
+        }
+        self.original_string = String::new(); //-- remove from memory the string
+        self.is_schema_valid = Some(true);
+        return ls_errors;
     }
 
     // parent_children_consistency
