@@ -17,6 +17,7 @@ struct VertexI {
     z: u32,
 }
 
+#[allow(non_snake_case)]
 #[derive(Deserialize, Debug)]
 struct Doc {
     #[serde(with = "::serde_with::rust::maps_duplicate_key_is_error")]
