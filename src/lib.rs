@@ -26,58 +26,46 @@ struct Doc {
 #[derive(Debug)]
 pub struct CJValidator {
     j: Value,
-    original_string: String,
-    is_cityjson: Option<bool>,
-    version: Option<i32>,
-    is_schema_valid: Option<bool>,
+    duplicate_keys: bool,
 }
 
 impl CJValidator {
-    pub fn from_str(s: &str) -> Self {
-        let j: Value = serde_json::from_str(&s).unwrap();
-        let s2: String = s.to_string();
+    pub fn from_str(s: &str) -> Result<Self, String> {
         let mut v = CJValidator {
             j: json!(null),
-            original_string: s2,
-            is_cityjson: Some(true),
-            version: None,
-            is_schema_valid: None,
+            duplicate_keys: false,
         };
-        if j.is_null() {
-            v.is_cityjson = Some(false);
-            return v;
+        let re: Result<Value, _> = serde_json::from_str(&s);
+        if re.is_err() {
+            // println!("errors: {:?}", re.as_ref().err().unwrap());
+            return Err(re.err().unwrap().to_string());
         }
-        if j["type"] != "CityJSON" {
-            v.is_cityjson = Some(false);
-        }
-        //-- which cityjson version
-        if j["version"] == "1.1" {
-            v.version = Some(11);
-        } else if j["version"] == 1.0 {
-            v.version = Some(10);
-        }
+        let j: Value = re.unwrap();
         v.j = j;
-        v
+        //-- check for duplicate keys in CO object
+        let re: Result<Doc, _> = serde_json::from_str(&s);
+        if re.is_err() {
+            v.duplicate_keys = true;
+        }
+        Ok(v)
     }
 
-    pub fn validate_schema(&mut self) -> Vec<String> {
-        self.is_schema_valid = Some(false);
+    pub fn validate_schema(&self) -> Vec<String> {
         if self.j.is_null() {
             return vec!["Not a valid JSON file".to_string()];
         }
-        if self.is_cityjson.is_none() {
-            println!("here");
-            return vec!["Not a CityJSON file".to_string()];
-        }
-        if self.version.is_none() {
-            return vec!["Not a supported CityJSON version (v1.0 && v1.1)".to_string()];
-        }
-        if (self.version.unwrap() < 10) || (self.version.unwrap() > 11) {
+        //-- which cityjson version
+        let version;
+        if self.j["version"] == "1.1" {
+            version = 11;
+        } else if self.j["version"] == 1.0 {
+            version = 10;
+        } else {
             return vec!["CityJSON version not supported".to_string()];
         }
         //-- fetch the correct schema
         let mut schema_str = include_str!("../schemas/10/cityjson.min.schema.json");
-        if self.version.unwrap() == 11 {
+        if version == 11 {
             schema_str = include_str!("../schemas/11/cityjson.min.schema.json");
         }
         let schema = serde_json::from_str(schema_str).unwrap();
@@ -93,21 +81,18 @@ impl CJValidator {
                 ls_errors.push(s);
             }
         }
-        //-- check for duplicate keys in CO object
-        let re: Result<Doc, _> = serde_json::from_str(&self.original_string);
-        if re.is_err() {
-            return vec!["Duplicate keys in 'CityObjects'".to_string()];
+        //-- duplicate keys
+        if ls_errors.is_empty() && self.duplicate_keys {
+            ls_errors.push("Duplicate keys in 'CityObjects'".to_string())
         }
-        self.original_string = String::new(); //-- remove from memory the string
-        self.is_schema_valid = Some(true);
         return ls_errors;
     }
 
     // parent_children_consistency
     pub fn parent_children_consistency(&self) -> Vec<String> {
-        if (self.is_schema_valid.is_none()) || (self.is_schema_valid.unwrap() != true) {
-            return vec!["This is not schema valid (or hasn't been tested yet).".to_string()];
-        }
+        // if (self.is_schema_valid.is_none()) || (self.is_schema_valid.unwrap() != true) {
+        //     return vec!["This is not schema valid (or hasn't been tested yet).".to_string()];
+        // }
         let mut ls_errors: Vec<String> = Vec::new();
         let cos = self.j.get("CityObjects").unwrap().as_object().unwrap();
         //-- do children have the parent too?
