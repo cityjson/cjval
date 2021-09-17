@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use serde_json::Value;
 use std::collections::HashMap;
+use std::collections::HashSet;
 
 #[derive(Serialize, Deserialize, Debug)]
 struct VertexF {
@@ -160,39 +161,25 @@ impl CJValidator {
         return ls_errors;
     }
 
-    // fn validate_duplicate_vertices(&self) -> bool {
-    //     let mut valid = true;
-    //     if self.version.unwrap() == 10 {
-    //         let vs: Vec<VertexF> = serde_json::from_value(j["vertices"].take()).unwrap();
-    //     }
-    //     let verts = self
-    //         .j
-    //         .get("vertices")
-    //         .expect("no vertices")
-    //         .as_array()
-    //         .expect("not an array");
-    //     // use all vertices as keys in a hashmap
-    //     let mut uniques = HashMap::new();
-    //     for i in 0..verts.len() {
-    //         let vert = verts[i].as_array().unwrap();
-    //         let arr = [
-    //             vert[0].to_string(),
-    //             vert[1].to_string(),
-    //             vert[2].to_string(),
-    //         ];
-    //         if !uniques.contains_key(&arr) {
-    //             uniques.insert(arr, i);
-    //         } else {
-    //             // duplicate found!
-    //             let other = uniques.get(&arr).unwrap();
-    //             valid = false;
-    //             // // feedback
-    //             // plog!("");
-    //             // plog!("Duplicate Vertex Error");
-    //             // plog!("  L indices : vertices[{}] == vertices[{}]", other, i);
-    //             // plog!("  L vertex  : [{}, {}, {}]", arr[0], arr[1], arr[2]);
-    //         }
-    //     }
-    //     return valid;
-    // }
+    pub fn duplicate_vertices(&self) -> Vec<String> {
+        let mut ls_errors: Vec<String> = Vec::new();
+        let vs = self.j.get("vertices").unwrap().as_array().unwrap();
+        // use all vertices as keys in a hashmap
+        let mut uniques = HashSet::new();
+        for i in 0..vs.len() {
+            let v = vs[i].as_array().unwrap();
+            let s: String = format!(
+                "{}{}{}",
+                v[0].to_string(),
+                v[1].to_string(),
+                v[2].to_string()
+            );
+            if !uniques.contains(&s) {
+                uniques.insert(s);
+            } else {
+                ls_errors.push(format!("Vertex ({}, {}, {}) duplicated", v[0], v[1], v[2]));
+            }
+        }
+        return ls_errors;
+    }
 }

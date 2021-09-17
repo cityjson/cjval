@@ -22,20 +22,25 @@ fn main() {
 
     //-- validate against schema
     println!("=== validate against schema ===");
-    let re2 = val.validate_schema();
-    if re2.is_empty() {
+    let mut rev = val.validate_schema();
+    if rev.is_empty() {
         println!("\tVALID :)");
     } else {
         println!("\t==INVALID==");
-        for (i, e) in re2.iter().enumerate() {
+        for (i, e) in rev.iter().enumerate() {
             println!("\t{}. {:?}", i + 1, e);
         }
     }
     // println!("{:?}", re2);
 
-    // if re.is_empty() == true {
-    //     println!("=== parent_children_consistency ===");
-    //     let re = v.parent_children_consistency();
-    //     println!("{:?}", re);
-    // }
+    if rev.is_empty() == true {
+        println!("=== parent_children_consistency ===");
+        rev = val.parent_children_consistency();
+        println!("{:?}", rev);
+    }
+    if rev.is_empty() == true {
+        println!("=== duplicate_vertices ===");
+        let re = val.duplicate_vertices();
+        println!("{:?}", re);
+    }
 }
