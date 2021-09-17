@@ -18,6 +18,18 @@ struct VertexI {
     z: u32,
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+struct GeomMSu {
+    boundaries: Vec<Vec<Vec<usize>>>,
+}
+#[derive(Serialize, Deserialize, Debug)]
+struct GeomSol {
+    boundaries: Vec<Vec<Vec<Vec<usize>>>>,
+}
+#[derive(Serialize, Deserialize, Debug)]
+struct GeomMSol {
+    boundaries: Vec<Vec<Vec<Vec<Vec<usize>>>>>,
+}
 #[allow(non_snake_case)]
 #[derive(Deserialize, Debug)]
 struct Doc {
@@ -181,5 +193,122 @@ impl CJValidator {
             }
         }
         return ls_errors;
+    }
+
+    pub fn wrong_vertex_index(&self) -> Vec<String> {
+        let max_index: usize = self.j.get("vertices").unwrap().as_array().unwrap().len();
+        let mut ls_errors: Vec<String> = Vec::new();
+        let cos = self.j.get("CityObjects").unwrap().as_object().unwrap();
+        for key in cos.keys() {
+            let x = self.j["CityObjects"][key]["geometry"].as_array();
+            if x.is_some() {
+                for g in x.unwrap() {
+                    if g["type"] == "MultiSurface" || g["type"] == "CompositeSurface" {
+                        let aa: GeomMSu = serde_json::from_value(g.clone()).unwrap();
+                        let re = above_max_index_msur(&aa.boundaries, max_index);
+                        if re.is_err() {
+                            ls_errors.push(re.err().unwrap());
+                        }
+                    } else if g["type"] == "Solid" {
+                        let aa: GeomSol = serde_json::from_value(g.clone()).unwrap();
+                        let re = above_max_index_sol(&aa.boundaries, max_index);
+                        if re.is_err() {
+                            ls_errors.push(re.err().unwrap());
+                        }
+                    } else if g["type"] == "MultiSolid" || g["type"] == "CompositeSolid" {
+                        let aa: GeomMSol = serde_json::from_value(g.clone()).unwrap();
+                        let re = above_max_index_msol(&aa.boundaries, max_index);
+                        if re.is_err() {
+                            ls_errors.push(re.err().unwrap());
+                        }
+                    }
+                }
+            }
+        }
+        ls_errors
+    }
+}
+
+fn above_max_index_msur(a: &Vec<Vec<Vec<usize>>>, max_index: usize) -> Result<(), String> {
+    let mut r: Vec<usize> = vec![];
+    for x in a {
+        for y in x {
+            for z in y {
+                if z >= &max_index {
+                    r.push(*z);
+                }
+            }
+        }
+    }
+    if r.is_empty() {
+        return Ok(());
+    } else {
+        let mut s: String = "".to_string();
+        for each in r {
+            s += "#";
+            s += &each.to_string();
+            s += "/";
+        }
+        let s2 = format!("Vertices {} don't exist", s);
+        return Err(s2);
+    }
+}
+
+fn above_max_index_sol(a: &Vec<Vec<Vec<Vec<usize>>>>, max_index: usize) -> Result<(), String> {
+    let mut r: Vec<usize> = vec![];
+    for x in a {
+        for y in x {
+            for z in y {
+                for w in z {
+                    if w >= &max_index {
+                        r.push(*w);
+                    }
+                }
+            }
+        }
+    }
+    if r.is_empty() {
+        return Ok(());
+    } else {
+        let mut s: String = "".to_string();
+        for each in r {
+            s += "#";
+            s += &each.to_string();
+            s += "/";
+        }
+        let s2 = format!("Vertices {} don't exist", s);
+        return Err(s2);
+    }
+}
+
+fn above_max_index_msol(
+    a: &Vec<Vec<Vec<Vec<Vec<usize>>>>>,
+    max_index: usize,
+) -> Result<(), String> {
+    let mut r: Vec<usize> = vec![];
+    for x in a {
+        for y in x {
+            for z in y {
+                for w in z {
+                    for q in w {
+                        if q >= &max_index {
+                            r.push(*q);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    if r.is_empty() {
+        return Ok(());
+    } else {
+        let mut s: String = "".to_string();
+        for each in r {
+            s += "#";
+            s += &each.to_string();
+            s += "/";
+        }
+        let s2 = format!("Vertices {} don't exist", s);
+        return Err(s2);
     }
 }

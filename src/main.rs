@@ -8,6 +8,17 @@ struct Cli {
     cityjson_file: std::path::PathBuf,
 }
 
+fn print_errors(lserrs: &Vec<String>) {
+    if lserrs.is_empty() {
+        println!("👍🏼");
+    } else {
+        println!("❌");
+        for (i, e) in lserrs.iter().enumerate() {
+            println!("\t{}. {:?}", i + 1, e);
+        }
+    }
+}
+
 fn main() {
     let args = Cli::from_args();
 
@@ -23,24 +34,23 @@ fn main() {
     //-- validate against schema
     println!("=== validate against schema ===");
     let mut rev = val.validate_schema();
-    if rev.is_empty() {
-        println!("\tVALID :)");
-    } else {
-        println!("\t==INVALID==");
-        for (i, e) in rev.iter().enumerate() {
-            println!("\t{}. {:?}", i + 1, e);
-        }
-    }
-    // println!("{:?}", re2);
+    print_errors(&rev);
 
     if rev.is_empty() == true {
         println!("=== parent_children_consistency ===");
         rev = val.parent_children_consistency();
-        println!("{:?}", rev);
+        print_errors(&rev);
     }
+
+    if rev.is_empty() == true {
+        println!("=== wrong vertex index ===");
+        rev = val.wrong_vertex_index();
+        print_errors(&rev);
+    }
+
     if rev.is_empty() == true {
         println!("=== duplicate_vertices ===");
-        let re = val.duplicate_vertices();
-        println!("{:?}", re);
+        rev = val.duplicate_vertices();
+        print_errors(&rev);
     }
 }
