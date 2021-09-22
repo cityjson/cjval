@@ -89,3 +89,20 @@ fn non_cityjson() {
     re = v.validate_schema();
     assert!(!re.is_empty());
 }
+
+#[test]
+fn non_json() {
+    let j_mininal = r#"
+        {
+          "type": "CityJSON",
+          "version": "1.1"
+          "transform": {
+            "scale": [0.0, 0.0, 0.0],
+            "translate": [1.0, 1.0, 1.0]
+          "CityObjects": {},
+          "vertices": []
+        }
+        "#;
+    let re = CJValidator::from_str(&j_mininal);
+    assert!(re.is_err());
+}
