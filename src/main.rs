@@ -14,7 +14,7 @@ fn print_errors(lserrs: &Vec<String>) {
     } else {
         println!("❌");
         for (i, e) in lserrs.iter().enumerate() {
-            println!("\t{}. {:?}", i + 1, e);
+            println!("\t{}. {}", i + 1, e);
         }
     }
 }

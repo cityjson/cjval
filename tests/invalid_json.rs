@@ -38,7 +38,7 @@ fn minimal() {
 fn version() {
     let j_mininal = r#"
         {
-          "type": "Potato",
+          "type": "CityJSON",
           "version": "1.1",
           "transform": {
             "scale": [0.0, 0.0, 0.0],
@@ -52,11 +52,17 @@ fn version() {
     *j.get_mut("version").unwrap() = json!("1.0");
     let mut v: CJValidator = CJValidator::from_str(&j.to_string()).unwrap();
     let mut re = v.validate_schema();
+    assert!(re.is_empty());
+
+    *j.get_mut("version").unwrap() = json!("1.0.3");
+    v = CJValidator::from_str(&j.to_string()).unwrap();
+    re = v.validate_schema();
     assert!(!re.is_empty());
 
     j.as_object_mut().unwrap().remove("version");
     v = CJValidator::from_str(&j.to_string()).unwrap();
     re = v.validate_schema();
+    println!("{:?}", re);
     assert!(!re.is_empty());
 }
 

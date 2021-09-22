@@ -72,10 +72,14 @@ impl CJValidator {
         let version;
         if self.j["version"] == "1.1" {
             version = 11;
-        } else if self.j["version"] == 1.0 {
+        } else if self.j["version"] == "1.0" {
             version = 10;
         } else {
-            return vec!["CityJSON version not supported".to_string()];
+            let s: String = format!(
+                "CityJSON version {} not supported [only \"1.0\" and \"1.1\"]",
+                self.j["version"]
+            );
+            return vec![s];
         }
         //-- fetch the correct schema
         let mut schema_str = include_str!("../schemas/10/cityjson.min.schema.json");
