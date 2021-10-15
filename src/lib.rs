@@ -135,15 +135,15 @@ impl CJValidator {
         true
     }
 
-    pub fn validate_extensions(&self) -> Vec<String> {
-        for ext in &self.jexts {
-            // println!("{:?}", ext);
+    fn validate_ext_co(&self, jext: &Value) -> Vec<String> {
+        //-- 1. build the schema file from the Extension file
 
-            //-- 1. build the schema file from the Extension file
-            let mut schema = ext["extraCityObjects"]["+GenericCityObject"].clone();
+        let v = jext.get("extraCityObjects").unwrap().as_object().unwrap();
+        for key in v.keys() {
+            println!("==>{:?}", key);
+            let mut schema = jext["extraCityObjects"][key].clone();
             schema["$schema"] = json!("http://json-schema.org/draft-07/schema#");
             schema["$id"] = json!("https://www.cityjson.org/schemas/1.1.0/tmp.json");
-
             let s1 = std::fs::read_to_string(
                 "/Users/hugo/projects/cjval2/schemas/11/cityobjects.schema.json",
             )
@@ -182,6 +182,16 @@ impl CJValidator {
                     }
                 }
             }
+        }
+
+        vec![]
+    }
+
+    pub fn validate_extensions(&self) -> Vec<String> {
+        for ext in &self.jexts {
+            // println!("{:?}", ext);
+            //-- 1. extraCityObjects
+            self.validate_ext_co(&ext);
         }
         vec![]
     }
