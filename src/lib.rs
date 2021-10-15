@@ -5,6 +5,8 @@ use serde_json::Value;
 use std::collections::HashMap;
 use std::collections::HashSet;
 
+use url::Url;
+
 #[derive(Serialize, Deserialize, Debug)]
 struct VertexF {
     x: f64,
