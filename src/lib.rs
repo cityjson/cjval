@@ -42,13 +42,16 @@ struct Doc {
 #[derive(Debug)]
 pub struct CJValidator {
     j: Value,
+    jexts: Vec<Value>,
     duplicate_keys: bool,
 }
 
 impl CJValidator {
     pub fn from_str(s: &str) -> Result<Self, String> {
+        let l: Vec<Value> = Vec::new();
         let mut v = CJValidator {
             j: json!(null),
+            jexts: l,
             duplicate_keys: false,
         };
         let re: Result<Value, _> = serde_json::from_str(&s);
@@ -106,6 +109,74 @@ impl CJValidator {
             ls_errors.push("Duplicate keys in 'CityObjects'".to_string())
         }
         return ls_errors;
+    }
+
+    /// Does the CityJSON contain Extension(s)?
+    pub fn contains_extensions(&self) -> Vec<String> {
+        let mut re: Vec<String> = Vec::new();
+        let v = self.j.as_object().unwrap();
+        if v.contains_key("extensions") {
+            let exts = self.j.get("extensions").unwrap().as_object().unwrap();
+            for key in exts.keys() {
+                let u = Url::parse(exts[key]["url"].as_str().unwrap()).unwrap();
+                let l = u.path_segments().map(|c| c.collect::<Vec<_>>()).unwrap();
+                re.push(l.last().unwrap().to_string());
+            }
+        }
+        re
+    }
+
+    pub fn add_extension(&mut self, s: &str) -> bool {
+        let re: Result<Value, _> = serde_json::from_str(&s);
+        if re.is_err() {
+            return false;
+        }
+        self.jexts.push(re.unwrap());
+        true
+    }
+
+    pub fn validate_extensions(&self) -> Vec<String> {
+        for ext in &self.jexts {
+            println!("{:?}", ext);
+
+            let s1 = std::fs::read_to_string(
+                "/Users/hugo/projects/cjval2/schemas/11/cityobjects.schema.json",
+            )
+            .expect("Couldn't read CityJSON file");
+            let schema1 = serde_json::from_str(&s1).unwrap();
+            let s2 = std::fs::read_to_string(
+                "/Users/hugo/projects/cjval2/schemas/11/geomprimitives.schema.json",
+            )
+            .expect("Couldn't read CityJSON file");
+            let schema2 = serde_json::from_str(&s2).unwrap();
+
+            let compiled = JSONSchema::options()
+                .with_draft(Draft::Draft7)
+                .with_document(
+                    "https://www.cityjson.org/schemas/1.1.0/cityobjects.schema.json".to_string(),
+                    schema1,
+                )
+                .with_document(
+                    "https://www.cityjson.org/schemas/1.1.0/geomprimitives.schema.json".to_string(),
+                    schema2,
+                )
+                .compile(&ext)
+                .expect("A valid schema");
+
+            // println!("{:?}", compiled);
+            // let result = compiled.validate(&instance);
+            // if result.is_ok() {
+            //     println!("VaLiD!!!");
+            // } else {
+            //     if let Err(errors) = result {
+            //         for error in errors {
+            //             println!("Validation error: {}", error);
+            //             println!("Instance path: {}", error.instance_path);
+            //         }
+            //     }
+            // }
+        }
+        vec![]
     }
 
     // parent_children_consistency
