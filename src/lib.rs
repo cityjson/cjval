@@ -135,7 +135,7 @@ impl CJValidator {
         true
     }
 
-    fn validate_ext_co(&self, jext: &Value) -> Vec<String> {
+    fn validate_ext_extracityobjects(&self, jext: &Value) -> Vec<String> {
         let mut ls_errors: Vec<String> = Vec::new();
         //-- 1. build the schema file from the Extension file
         let v = jext.get("extraCityObjects").unwrap().as_object().unwrap();
@@ -154,6 +154,36 @@ impl CJValidator {
                 if tmp["type"].as_str().unwrap() == eco {
                     // println!("here");
                     let result = compiled.validate(&self.j["CityObjects"][co]);
+                    if let Err(errors) = result {
+                        for error in errors {
+                            let s: String = format!("{} [path:{}]", error, error.instance_path);
+                            ls_errors.push(s);
+                        }
+                    }
+                }
+            }
+        }
+        ls_errors
+    }
+
+    fn validate_ext_extrarootproperties(&self, jext: &Value) -> Vec<String> {
+        let mut ls_errors: Vec<String> = Vec::new();
+        //-- 1. build the schema file from the Extension file
+        let v = jext
+            .get("extraRootProperties")
+            .unwrap()
+            .as_object()
+            .unwrap();
+        for rp in v.keys() {
+            // println!("==>{:?}", eco);
+            let mut schema = jext["extraRootProperties"][rp].clone();
+            schema["$schema"] = json!("http://json-schema.org/draft-07/schema#");
+            schema["$id"] = json!("https://www.cityjson.org/schemas/1.1.0/tmp.json");
+            let compiled = self.get_compiled_schema_extension(&schema);
+
+            for k in self.j.as_object().unwrap().keys() {
+                if k == rp {
+                    let result = compiled.validate(&self.j[k]);
                     if let Err(errors) = result {
                         for error in errors {
                             let s: String = format!("{} [path:{}]", error, error.instance_path);
@@ -197,9 +227,10 @@ impl CJValidator {
     pub fn validate_extensions(&self) -> Vec<String> {
         let mut ls_errors: Vec<String> = Vec::new();
         for ext in &self.jexts {
-            // println!("{:?}", ext);
             //-- 1. extraCityObjects
-            ls_errors.append(&mut self.validate_ext_co(&ext));
+            ls_errors.append(&mut self.validate_ext_extracityobjects(&ext));
+            //-- 3. extraRootProperties
+            ls_errors.append(&mut self.validate_ext_extrarootproperties(&ext));
         }
         ls_errors
     }
