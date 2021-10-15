@@ -50,8 +50,10 @@ fn main() {
             for ext in args.extensions {
                 let s1 = std::fs::read_to_string(ext).expect("Couldn't read Extension file");
                 val.add_extension(&s1);
+                println!("added");
             }
         }
+        val.validate_extensions();
     }
 
     if rev.is_empty() == true {

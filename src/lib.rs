@@ -137,7 +137,12 @@ impl CJValidator {
 
     pub fn validate_extensions(&self) -> Vec<String> {
         for ext in &self.jexts {
-            println!("{:?}", ext);
+            // println!("{:?}", ext);
+
+            //-- 1. build the schema file from the Extension file
+            let mut schema = ext["extraCityObjects"]["+GenericCityObject"].clone();
+            schema["$schema"] = json!("http://json-schema.org/draft-07/schema#");
+            schema["$id"] = json!("https://www.cityjson.org/schemas/1.1.0/tmp.json");
 
             let s1 = std::fs::read_to_string(
                 "/Users/hugo/projects/cjval2/schemas/11/cityobjects.schema.json",
@@ -160,21 +165,23 @@ impl CJValidator {
                     "https://www.cityjson.org/schemas/1.1.0/geomprimitives.schema.json".to_string(),
                     schema2,
                 )
-                .compile(&ext)
+                .compile(&schema)
                 .expect("A valid schema");
 
             // println!("{:?}", compiled);
-            // let result = compiled.validate(&instance);
-            // if result.is_ok() {
-            //     println!("VaLiD!!!");
-            // } else {
-            //     if let Err(errors) = result {
-            //         for error in errors {
-            //             println!("Validation error: {}", error);
-            //             println!("Instance path: {}", error.instance_path);
-            //         }
-            //     }
-            // }
+            //-- 2. fetch the CO
+
+            let result = compiled.validate(&self.j["CityObjects"]["id-1"]);
+            if result.is_ok() {
+                println!("VaLiD!!!");
+            } else {
+                if let Err(errors) = result {
+                    for error in errors {
+                        println!("Validation error: {}", error);
+                        println!("Instance path: {}", error.instance_path);
+                    }
+                }
+            }
         }
         vec![]
     }
