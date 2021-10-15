@@ -136,64 +136,72 @@ impl CJValidator {
     }
 
     fn validate_ext_co(&self, jext: &Value) -> Vec<String> {
+        let mut ls_errors: Vec<String> = Vec::new();
         //-- 1. build the schema file from the Extension file
-
         let v = jext.get("extraCityObjects").unwrap().as_object().unwrap();
-        for key in v.keys() {
-            println!("==>{:?}", key);
-            let mut schema = jext["extraCityObjects"][key].clone();
+        for eco in v.keys() {
+            // println!("==>{:?}", eco);
+            let mut schema = jext["extraCityObjects"][eco].clone();
             schema["$schema"] = json!("http://json-schema.org/draft-07/schema#");
             schema["$id"] = json!("https://www.cityjson.org/schemas/1.1.0/tmp.json");
-            let s1 = std::fs::read_to_string(
-                "/Users/hugo/projects/cjval2/schemas/11/cityobjects.schema.json",
-            )
-            .expect("Couldn't read CityJSON file");
-            let schema1 = serde_json::from_str(&s1).unwrap();
-            let s2 = std::fs::read_to_string(
-                "/Users/hugo/projects/cjval2/schemas/11/geomprimitives.schema.json",
-            )
-            .expect("Couldn't read CityJSON file");
-            let schema2 = serde_json::from_str(&s2).unwrap();
 
-            let compiled = JSONSchema::options()
-                .with_draft(Draft::Draft7)
-                .with_document(
-                    "https://www.cityjson.org/schemas/1.1.0/cityobjects.schema.json".to_string(),
-                    schema1,
-                )
-                .with_document(
-                    "https://www.cityjson.org/schemas/1.1.0/geomprimitives.schema.json".to_string(),
-                    schema2,
-                )
-                .compile(&schema)
-                .expect("A valid schema");
+            let compiled = self.get_compiled_schema_extension(&schema);
 
-            // println!("{:?}", compiled);
             //-- 2. fetch the CO
-
-            let result = compiled.validate(&self.j["CityObjects"]["id-1"]);
-            if result.is_ok() {
-                println!("VaLiD!!!");
-            } else {
-                if let Err(errors) = result {
-                    for error in errors {
-                        println!("Validation error: {}", error);
-                        println!("Instance path: {}", error.instance_path);
+            let cos = self.j.get("CityObjects").unwrap().as_object().unwrap();
+            for co in cos.keys() {
+                let tmp = cos.get(co).unwrap().as_object().unwrap();
+                if tmp["type"].as_str().unwrap() == eco {
+                    // println!("here");
+                    let result = compiled.validate(&self.j["CityObjects"][co]);
+                    if let Err(errors) = result {
+                        for error in errors {
+                            let s: String = format!("{} [path:{}]", error, error.instance_path);
+                            ls_errors.push(s);
+                        }
                     }
                 }
             }
         }
+        ls_errors
+    }
 
-        vec![]
+    fn get_compiled_schema_extension(&self, schema: &Value) -> JSONSchema {
+        let s1 = std::fs::read_to_string(
+            "/Users/hugo/projects/cjval2/schemas/11/cityobjects.schema.json",
+        )
+        .expect("Couldn't read CityJSON file");
+        let schema1 = serde_json::from_str(&s1).unwrap();
+        let s2 = std::fs::read_to_string(
+            "/Users/hugo/projects/cjval2/schemas/11/geomprimitives.schema.json",
+        )
+        .expect("Couldn't read CityJSON file");
+        let schema2 = serde_json::from_str(&s2).unwrap();
+
+        let compiled = JSONSchema::options()
+            .with_draft(Draft::Draft7)
+            .with_document(
+                "https://www.cityjson.org/schemas/1.1.0/cityobjects.schema.json".to_string(),
+                schema1,
+            )
+            .with_document(
+                "https://www.cityjson.org/schemas/1.1.0/geomprimitives.schema.json".to_string(),
+                schema2,
+            )
+            .compile(&schema)
+            .expect("A valid schema");
+        // println!("{:?}", compiled);
+        return compiled;
     }
 
     pub fn validate_extensions(&self) -> Vec<String> {
+        let mut ls_errors: Vec<String> = Vec::new();
         for ext in &self.jexts {
             // println!("{:?}", ext);
             //-- 1. extraCityObjects
-            self.validate_ext_co(&ext);
+            ls_errors.append(&mut self.validate_ext_co(&ext));
         }
-        vec![]
+        ls_errors
     }
 
     // parent_children_consistency
