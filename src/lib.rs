@@ -267,6 +267,56 @@ impl CJValidator {
             ls_errors.append(&mut self.validate_ext_extrarootproperties(&ext));
             //-- 3. extraAttributes
             ls_errors.append(&mut self.validate_ext_extraattributes(&ext));
+            //-- 4. check if there are CityObjects that do not have a schema
+            ls_errors.append(&mut self.validate_ext_co_without_schema());
+            //-- 5. check if there are extra root properties that do not have a schema
+            ls_errors.append(&mut self.validate_ext_rootproperty_without_schema());
+        }
+        ls_errors
+    }
+
+    fn validate_ext_co_without_schema(&self) -> Vec<String> {
+        let mut ls_errors: Vec<String> = Vec::new();
+        let mut newcos: Vec<String> = Vec::new();
+        for jext in &self.jexts {
+            let v = jext.get("extraCityObjects").unwrap().as_object().unwrap();
+            for eco in v.keys() {
+                newcos.push(eco.to_string());
+            }
+        }
+        //-- fetch the COs
+        let cos = self.j.get("CityObjects").unwrap().as_object().unwrap();
+        for co in cos.keys() {
+            let tmp = cos.get(co).unwrap().as_object().unwrap();
+            let thetype = tmp["type"].as_str().unwrap().to_string();
+            if &thetype[0..1] == "+" && newcos.contains(&thetype) == false {
+                let s: String = format!("CityObject '{}' doesn't have a schema", thetype);
+                ls_errors.push(s);
+            }
+        }
+        ls_errors
+    }
+
+    fn validate_ext_rootproperty_without_schema(&self) -> Vec<String> {
+        let mut ls_errors: Vec<String> = Vec::new();
+        let mut newrps: Vec<String> = Vec::new();
+        for jext in &self.jexts {
+            let v = jext
+                .get("extraRootProperties")
+                .unwrap()
+                .as_object()
+                .unwrap();
+            for erp in v.keys() {
+                newrps.push(erp.to_string());
+            }
+        }
+        let t = self.j.as_object().unwrap();
+        for each in t.keys() {
+            let s = each.to_string();
+            if &s[0..1] == "+" && (newrps.contains(&s) == false) {
+                let s: String = format!("Extra root property '{}' doesn't have a schema", s);
+                ls_errors.push(s);
+            }
         }
         ls_errors
     }
