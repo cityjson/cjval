@@ -196,6 +196,41 @@ impl CJValidator {
         ls_errors
     }
 
+    fn validate_ext_extraattributes(&self, jext: &Value) -> Vec<String> {
+        let mut ls_errors: Vec<String> = Vec::new();
+        //-- 1. build the schema file from the Extension file
+        let v = jext.get("extraAttributes").unwrap().as_object().unwrap();
+        for cotype in v.keys() {
+            //-- for each CityObject type
+            for eatt in jext["extraAttributes"][cotype].as_object().unwrap().keys() {
+                let mut schema = jext["extraAttributes"][cotype][eatt.as_str()].clone();
+                schema["$schema"] = json!("http://json-schema.org/draft-07/schema#");
+                schema["$id"] = json!("https://www.cityjson.org/schemas/1.1.0/tmp.json");
+                let compiled = self.get_compiled_schema_extension(&schema);
+
+                let cos = self.j.get("CityObjects").unwrap().as_object().unwrap();
+                for oneco in cos.keys() {
+                    let tmp = cos.get(oneco).unwrap().as_object().unwrap();
+                    if tmp["type"].as_str().unwrap() == cotype
+                        && tmp.contains_key("attributes")
+                        && tmp["attributes"].as_object().unwrap().contains_key(eatt)
+                    {
+                        // println!("here");
+                        let result =
+                            compiled.validate(&self.j["CityObjects"][oneco]["attributes"][eatt]);
+                        if let Err(errors) = result {
+                            for error in errors {
+                                let s: String = format!("{} [path:{}]", error, error.instance_path);
+                                ls_errors.push(s);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        ls_errors
+    }
+
     fn get_compiled_schema_extension(&self, schema: &Value) -> JSONSchema {
         let s1 = std::fs::read_to_string(
             "/Users/hugo/projects/cjval2/schemas/11/cityobjects.schema.json",
@@ -229,8 +264,10 @@ impl CJValidator {
         for ext in &self.jexts {
             //-- 1. extraCityObjects
             ls_errors.append(&mut self.validate_ext_extracityobjects(&ext));
-            //-- 3. extraRootProperties
+            //-- 2. extraRootProperties
             ls_errors.append(&mut self.validate_ext_extrarootproperties(&ext));
+            //-- 3. extraAttributes
+            ls_errors.append(&mut self.validate_ext_extraattributes(&ext));
         }
         ls_errors
     }
