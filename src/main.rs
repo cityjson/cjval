@@ -15,9 +15,8 @@ fn print_errors(lserrs: &Vec<String>) {
     if lserrs.is_empty() {
         println!("ok");
     } else {
-        println!("❌");
         for (i, e) in lserrs.iter().enumerate() {
-            println!("\t{}. {}", i + 1, e);
+            println!("  {}. {}", i + 1, e);
         }
     }
 }
@@ -26,24 +25,23 @@ fn print_warnings(lswarns: &Vec<String>) {
     if lswarns.is_empty() {
         println!("ok");
     } else {
-        println!("⚠️");
         for (i, e) in lswarns.iter().enumerate() {
-            println!("\t{}. {}", i + 1, e);
+            println!("  {}. {}", i + 1, e);
         }
     }
 }
 
 fn summary_and_bye(finalresult: i32) {
     println!("\n");
-    println!("========== SUMMARY ==========");
+    println!("============ SUMMARY ============");
     if finalresult == -1 {
-        println!("❌");
+        println!("❌ File is invalid");
     } else if finalresult == 0 {
-        println!("⚠️");
+        println!("⚠️  File is valid but has warnings");
     } else {
-        println!("✅");
+        println!("✅ File is valid");
     }
-    println!("=============================");
+    println!("=================================");
     process::exit(0x0100);
 }
 
