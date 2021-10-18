@@ -7,6 +7,17 @@ use std::collections::HashSet;
 
 use url::Url;
 
+static EXT_FIXED_NAMES: [&str; 8] = [
+    "type",
+    "name",
+    "uri",
+    "version",
+    "description",
+    "extraAttributes",
+    "extraCityObjects",
+    "extraRootProperties",
+];
+
 // TODO: v1.0 and float-vertices?
 #[derive(Serialize, Deserialize, Debug)]
 struct VertexF {
@@ -142,16 +153,6 @@ impl CJValidator {
 
     fn validate_ext_extracityobjects(&self, jext: &Value) -> Vec<String> {
         let mut ls_errors: Vec<String> = Vec::new();
-        let fixednames = vec![
-            "type",
-            "name",
-            "uri",
-            "version",
-            "description",
-            "extraAttributes",
-            "extraCityObjects",
-            "extraRootProperties",
-        ];
         //-- 1. build the schema file from the Extension file
         let v = jext.get("extraCityObjects").unwrap().as_object().unwrap();
         let jexto = jext.as_object().unwrap();
@@ -162,7 +163,7 @@ impl CJValidator {
             schema["$id"] = json!("https://www.cityjson.org/schemas/1.1.0/tmp.json");
             for each in jexto.keys() {
                 let ss = each.as_str();
-                if fixednames.contains(&ss) == false {
+                if EXT_FIXED_NAMES.contains(&ss) == false {
                     schema[ss] = jext[ss].clone();
                 }
             }
@@ -195,11 +196,18 @@ impl CJValidator {
             .unwrap()
             .as_object()
             .unwrap();
+        let jexto = jext.as_object().unwrap();
         for rp in v.keys() {
             // println!("==>{:?}", eco);
             let mut schema = jext["extraRootProperties"][rp].clone();
             schema["$schema"] = json!("http://json-schema.org/draft-07/schema#");
             schema["$id"] = json!("https://www.cityjson.org/schemas/1.1.0/tmp.json");
+            for each in jexto.keys() {
+                let ss = each.as_str();
+                if EXT_FIXED_NAMES.contains(&ss) == false {
+                    schema[ss] = jext[ss].clone();
+                }
+            }
             let compiled = self.get_compiled_schema_extension(&schema);
 
             for k in self.j.as_object().unwrap().keys() {
@@ -221,14 +229,20 @@ impl CJValidator {
         let mut ls_errors: Vec<String> = Vec::new();
         //-- 1. build the schema file from the Extension file
         let v = jext.get("extraAttributes").unwrap().as_object().unwrap();
+        let jexto = jext.as_object().unwrap();
         for cotype in v.keys() {
             //-- for each CityObject type
             for eatt in jext["extraAttributes"][cotype].as_object().unwrap().keys() {
                 let mut schema = jext["extraAttributes"][cotype][eatt.as_str()].clone();
                 schema["$schema"] = json!("http://json-schema.org/draft-07/schema#");
                 schema["$id"] = json!("https://www.cityjson.org/schemas/1.1.0/tmp.json");
+                for each in jexto.keys() {
+                    let ss = each.as_str();
+                    if EXT_FIXED_NAMES.contains(&ss) == false {
+                        schema[ss] = jext[ss].clone();
+                    }
+                }
                 let compiled = self.get_compiled_schema_extension(&schema);
-
                 let cos = self.j.get("CityObjects").unwrap().as_object().unwrap();
                 for oneco in cos.keys() {
                     let tmp = cos.get(oneco).unwrap().as_object().unwrap();
