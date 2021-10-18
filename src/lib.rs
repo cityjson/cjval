@@ -4,10 +4,22 @@ use serde_json::json;
 use serde_json::Value;
 use std::collections::HashMap;
 use std::collections::HashSet;
-
 use url::Url;
 
-static EXT_FIXED_NAMES: [&str; 8] = [
+// #-- ERRORS
+//  # validate_schema
+//  # validate_extensions
+//  # parent_children_consistency
+//  # wrong_vertex_index
+//  # semantics_array TODO
+//
+//
+// #-- WARNINGS
+//  # extra_root_properties
+//  # duplicate_vertices
+//  # unused_vertices TODO
+
+static EXTENSION_FIXED_NAMES: [&str; 8] = [
     "type",
     "name",
     "uri",
@@ -163,7 +175,7 @@ impl CJValidator {
             schema["$id"] = json!("https://www.cityjson.org/schemas/1.1.0/tmp.json");
             for each in jexto.keys() {
                 let ss = each.as_str();
-                if EXT_FIXED_NAMES.contains(&ss) == false {
+                if EXTENSION_FIXED_NAMES.contains(&ss) == false {
                     schema[ss] = jext[ss].clone();
                 }
             }
@@ -204,7 +216,7 @@ impl CJValidator {
             schema["$id"] = json!("https://www.cityjson.org/schemas/1.1.0/tmp.json");
             for each in jexto.keys() {
                 let ss = each.as_str();
-                if EXT_FIXED_NAMES.contains(&ss) == false {
+                if EXTENSION_FIXED_NAMES.contains(&ss) == false {
                     schema[ss] = jext[ss].clone();
                 }
             }
@@ -238,7 +250,7 @@ impl CJValidator {
                 schema["$id"] = json!("https://www.cityjson.org/schemas/1.1.0/tmp.json");
                 for each in jexto.keys() {
                     let ss = each.as_str();
-                    if EXT_FIXED_NAMES.contains(&ss) == false {
+                    if EXTENSION_FIXED_NAMES.contains(&ss) == false {
                         schema[ss] = jext[ss].clone();
                     }
                 }
@@ -358,6 +370,31 @@ impl CJValidator {
             }
         }
         ls_errors
+    }
+
+    pub fn extra_root_properties(&self) -> Vec<String> {
+        let mut ls_warnings: Vec<String> = Vec::new();
+        let rootproperties: [&str; 9] = [
+            "type",
+            "version",
+            "extensions",
+            "transform",
+            "metadata",
+            "CityObjects",
+            "vertices",
+            "appearance",
+            "geometry-templates",
+        ];
+        let t = self.j.as_object().unwrap();
+        for each in t.keys() {
+            let s = each.to_string();
+            if &s[0..1] != "+" && (rootproperties.contains(&s.as_str()) == false) {
+                let s: String = format!("Root property '{}' is not in CityJSON schema, might be ignored by some parsers", s);
+                ls_warnings.push(s);
+            }
+        }
+
+        ls_warnings
     }
 
     // parent_children_consistency

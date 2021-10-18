@@ -1,6 +1,6 @@
-use structopt::StructOpt;
-
 use cjval::CJValidator;
+use std::process;
+use structopt::StructOpt;
 
 #[derive(StructOpt)]
 struct Cli {
@@ -13,13 +13,38 @@ struct Cli {
 
 fn print_errors(lserrs: &Vec<String>) {
     if lserrs.is_empty() {
-        println!("👍🏼");
+        println!("ok");
     } else {
         println!("❌");
         for (i, e) in lserrs.iter().enumerate() {
             println!("\t{}. {}", i + 1, e);
         }
     }
+}
+
+fn print_warnings(lswarns: &Vec<String>) {
+    if lswarns.is_empty() {
+        println!("ok");
+    } else {
+        println!("⚠️");
+        for (i, e) in lswarns.iter().enumerate() {
+            println!("\t{}. {}", i + 1, e);
+        }
+    }
+}
+
+fn summary_and_bye(finalresult: i32) {
+    println!("\n");
+    println!("========== SUMMARY ==========");
+    if finalresult == -1 {
+        println!("❌");
+    } else if finalresult == 0 {
+        println!("⚠️");
+    } else {
+        println!("✅");
+    }
+    println!("=============================");
+    process::exit(0x0100);
 }
 
 fn main() {
@@ -34,41 +59,74 @@ fn main() {
         exts.push(s2);
     }
 
+    //-- ERRORS
+    println!("=== JSON syntax ===");
     let re = CJValidator::from_str(&s1, &exts);
     if re.is_err() {
-        println!("Invalid JSON file: {:?}", re.as_ref().err().unwrap());
-        return;
+        let s = format!("Invalid JSON file: {:?}", re.as_ref().err().unwrap());
+        let e = vec![s];
+        print_errors(&e);
+        summary_and_bye(-1);
+    } else {
+        let e: Vec<String> = vec![];
+        print_errors(&e);
     }
     let val = re.unwrap();
 
     //-- validate against schema
-    println!("=== validate against schema ===");
+    println!("=== CityJSON schemas ===");
     let mut rev = val.validate_schema();
     print_errors(&rev);
+    if rev.is_empty() == false {
+        summary_and_bye(-1);
+    }
 
     //-- validate Extensions, if any
-    if rev.is_empty() == true {
-        println!("=== validate Extensions ===");
-        rev = val.validate_extensions();
-        print_errors(&rev);
+    println!("=== Extensions schemas ===");
+    rev = val.validate_extensions();
+    print_errors(&rev);
+    if rev.is_empty() == false {
+        summary_and_bye(-1);
     }
 
-    if rev.is_empty() == true {
-        println!("=== parent_children_consistency ===");
-        rev = val.parent_children_consistency();
-        print_errors(&rev);
+    println!("=== parent_children_consistency ===");
+    rev = val.parent_children_consistency();
+    print_errors(&rev);
+    if rev.is_empty() == false {
+        summary_and_bye(-1);
     }
 
-    if rev.is_empty() == true {
-        println!("=== wrong vertex index ===");
-        rev = val.wrong_vertex_index();
-        print_errors(&rev);
+    println!("=== wrong_vertex_index ===");
+    rev = val.wrong_vertex_index();
+    print_errors(&rev);
+    if rev.is_empty() == false {
+        summary_and_bye(-1);
     }
 
-    //-- warnings
+    //-- WARNINGS
+    let mut bwarns = false;
     if rev.is_empty() == true {
         println!("=== duplicate_vertices ===");
         rev = val.duplicate_vertices();
-        print_errors(&rev);
+        print_warnings(&rev);
+        if rev.is_empty() == false {
+            bwarns = true;
+        }
+    }
+
+    if rev.is_empty() == true {
+        println!("=== extra_root_properties ===");
+        rev = val.extra_root_properties();
+        print_warnings(&rev);
+        if rev.is_empty() == false {
+            bwarns = true;
+        }
+    }
+
+    //-- bye-bye
+    if bwarns == false {
+        summary_and_bye(1);
+    } else {
+        summary_and_bye(0);
     }
 }
