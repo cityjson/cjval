@@ -3,9 +3,9 @@
     "version": "1.1",
     "extensions":
     {
-        "Generic":
+        "ManyCases":
         {
-            "url": "https://homepage.tudelft.nl/23t4p/generic.ext.json",
+            "url": "https://www.hugo.com/manycases.ext.json",
             "version": "1.0"
         }
     },
@@ -22,7 +22,12 @@
         {
             "type": "+GenericCityObject",
             "attributes": {
-                "my-attribute": "1.1"
+                "my-attribute": "1.1",
+                "hugo": "ledoux",
+                "measured": {
+                    "value": 22.2,
+                    "uom": "meters"
+                }
             },
             "geometry":
             [
@@ -126,7 +131,7 @@
             "type": "Building",
             "attributes": {
                 "my-attribute": "1.1",
-                "+colour": {"rgba": [1, 2, 3]}
+                "+colour": {"rgba": [1, 2, 3, 33]}
             },
             "geometry":
             [

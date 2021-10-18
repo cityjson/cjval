@@ -1,10 +1,21 @@
 {
   "type": "CityJSON_Extension",
-  "name": "Generic",
+  "name": "ManyCases",
   "uri": "http://someurl.org/generic.ext.json",
   "version": "1.0.0",
-  "description": "Extension to handle GenericCityObject; meant as a template to learn how to construct an Extension",
+  "description": "Extension to test the validator",
   
+  "definitions": {
+    "measure": {
+      "type": "object",
+      "properties": {
+        "value": { "type": "number" },
+        "uom": { "type": "string" }
+      },
+      "required": [ "value", "uom" ],
+      "additionalProperties": false
+    }
+  },
   
   "extraCityObjects": {
     "+GenericCityObject": {
@@ -16,7 +27,8 @@
             "attributes": {
               "type": "object",
               "properties": {
-                "my-attribute": { "type": "string" }
+                "my-attribute": { "type": "string" },
+                "measured": { "$ref": "#/definitions/measure" }  
               }
             },
             "geometry": {
@@ -67,7 +79,7 @@
         },
         "required": ["rgba"],
         "additionalProperties": false
-      }      
+      }    
     } 
   }
   
