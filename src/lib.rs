@@ -44,6 +44,7 @@ pub struct CJValidator {
     j: Value,
     jexts: Vec<Value>,
     duplicate_keys: bool,
+    version: i32,
 }
 
 impl CJValidator {
@@ -53,6 +54,7 @@ impl CJValidator {
             j: json!(null),
             jexts: l,
             duplicate_keys: false,
+            version: 0,
         };
         //-- parse the dataset and convert to JSON
         let re: Result<Value, _> = serde_json::from_str(&str_dataset);
@@ -62,9 +64,16 @@ impl CJValidator {
         }
         let j: Value = re.unwrap();
         v.j = j;
+        //-- check cityjson version
+        if v.j["version"] == "1.1" {
+            v.version = 11;
+        } else if v.j["version"] == "1.0" {
+            v.version = 10;
+        }
         //-- check for duplicate keys in CO object
         let re: Result<Doc, _> = serde_json::from_str(&str_dataset);
         if re.is_err() {
+            // println!("{:?}", re.err());
             v.duplicate_keys = true;
         }
         //-- parse the Extension schemas and convert to JSON
@@ -83,12 +92,7 @@ impl CJValidator {
             return vec!["Not a valid JSON file".to_string()];
         }
         //-- which cityjson version
-        let version;
-        if self.j["version"] == "1.1" {
-            version = 11;
-        } else if self.j["version"] == "1.0" {
-            version = 10;
-        } else {
+        if self.version == 0 {
             let s: String = format!(
                 "CityJSON version {} not supported [only \"1.0\" and \"1.1\"]",
                 self.j["version"]
@@ -97,7 +101,7 @@ impl CJValidator {
         }
         //-- fetch the correct schema
         let mut schema_str = include_str!("../schemas/10/cityjson.min.schema.json");
-        if version == 11 {
+        if self.version == 11 {
             schema_str = include_str!("../schemas/11/cityjson.min.schema.json");
         }
         let schema = serde_json::from_str(schema_str).unwrap();
