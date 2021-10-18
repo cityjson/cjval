@@ -318,11 +318,12 @@ impl CJValidator {
             ls_errors.append(&mut self.validate_ext_extrarootproperties(&ext));
             //-- 3. extraAttributes
             ls_errors.append(&mut self.validate_ext_extraattributes(&ext));
-            //-- 4. check if there are CityObjects that do not have a schema
-            ls_errors.append(&mut self.validate_ext_co_without_schema());
-            //-- 5. check if there are extra root properties that do not have a schema
-            ls_errors.append(&mut self.validate_ext_rootproperty_without_schema());
         }
+        //-- 4. check if there are CityObjects that do not have a schema
+        ls_errors.append(&mut self.validate_ext_co_without_schema());
+        //-- 5. check if there are extra root properties that do not have a schema
+        ls_errors.append(&mut self.validate_ext_rootproperty_without_schema());
+        //TODO 6 for the extra attributes w/o schemas
         ls_errors
     }
 
