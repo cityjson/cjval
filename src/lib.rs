@@ -47,14 +47,15 @@ pub struct CJValidator {
 }
 
 impl CJValidator {
-    pub fn from_str(s: &str) -> Result<Self, String> {
+    pub fn from_str(str_dataset: &str, str_ext_schemas: &Vec<String>) -> Result<Self, String> {
         let l: Vec<Value> = Vec::new();
         let mut v = CJValidator {
             j: json!(null),
             jexts: l,
             duplicate_keys: false,
         };
-        let re: Result<Value, _> = serde_json::from_str(&s);
+        //-- parse the dataset and convert to JSON
+        let re: Result<Value, _> = serde_json::from_str(&str_dataset);
         if re.is_err() {
             // println!("errors: {:?}", re.as_ref().err().unwrap());
             return Err(re.err().unwrap().to_string());
@@ -62,9 +63,17 @@ impl CJValidator {
         let j: Value = re.unwrap();
         v.j = j;
         //-- check for duplicate keys in CO object
-        let re: Result<Doc, _> = serde_json::from_str(&s);
+        let re: Result<Doc, _> = serde_json::from_str(&str_dataset);
         if re.is_err() {
             v.duplicate_keys = true;
+        }
+        //-- parse the Extension schemas and convert to JSON
+        for each in str_ext_schemas {
+            let re: Result<Value, _> = serde_json::from_str(each);
+            if re.is_err() {
+                return Err(re.err().unwrap().to_string());
+            }
+            v.jexts.push(re.unwrap());
         }
         Ok(v)
     }
@@ -124,15 +133,6 @@ impl CJValidator {
             }
         }
         re
-    }
-
-    pub fn add_extension(&mut self, s: &str) -> bool {
-        let re: Result<Value, _> = serde_json::from_str(&s);
-        if re.is_err() {
-            return false;
-        }
-        self.jexts.push(re.unwrap());
-        true
     }
 
     fn validate_ext_extracityobjects(&self, jext: &Value) -> Vec<String> {
@@ -215,7 +215,6 @@ impl CJValidator {
                         && tmp.contains_key("attributes")
                         && tmp["attributes"].as_object().unwrap().contains_key(eatt)
                     {
-                        // println!("here");
                         let result =
                             compiled.validate(&self.j["CityObjects"][oneco]["attributes"][eatt]);
                         if let Err(errors) = result {

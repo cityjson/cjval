@@ -24,18 +24,22 @@ fn print_errors(lserrs: &Vec<String>) {
 
 fn main() {
     let args = Cli::from_args();
-    // println!("{:?}", args.cityjson_file);
-    // println!("{:?}", args.extensions);
-    // return;
 
     //-- fetch the CityJSON data file
     let s1 = std::fs::read_to_string(&args.cityjson_file).expect("Couldn't read CityJSON file");
-    let re = CJValidator::from_str(&s1);
+    //-- fetch the Extension schemas
+    let mut exts: Vec<String> = Vec::new();
+    for ext in args.extensions {
+        let s2 = std::fs::read_to_string(ext).expect("Couldn't read Extension file");
+        exts.push(s2);
+    }
+
+    let re = CJValidator::from_str(&s1, &exts);
     if re.is_err() {
         println!("Invalid JSON file: {:?}", re.as_ref().err().unwrap());
         return;
     }
-    let mut val = re.unwrap();
+    let val = re.unwrap();
 
     //-- validate against schema
     println!("=== validate against schema ===");
@@ -45,14 +49,6 @@ fn main() {
     //-- validate Extensions, if any
     if rev.is_empty() == true {
         println!("=== validate Extensions ===");
-        let exts: Vec<String> = val.contains_extensions();
-        if exts.is_empty() == false {
-            for ext in args.extensions {
-                let s1 = std::fs::read_to_string(ext).expect("Couldn't read Extension file");
-                val.add_extension(&s1);
-                // println!("added");
-            }
-        }
         rev = val.validate_extensions();
         print_errors(&rev);
     }
