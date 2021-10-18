@@ -7,6 +7,7 @@ use std::collections::HashSet;
 
 use url::Url;
 
+// TODO: v1.0 and float-vertices?
 #[derive(Serialize, Deserialize, Debug)]
 struct VertexF {
     x: f64,
@@ -141,16 +142,32 @@ impl CJValidator {
 
     fn validate_ext_extracityobjects(&self, jext: &Value) -> Vec<String> {
         let mut ls_errors: Vec<String> = Vec::new();
+        let fixednames = vec![
+            "type",
+            "name",
+            "uri",
+            "version",
+            "description",
+            "extraAttributes",
+            "extraCityObjects",
+            "extraRootProperties",
+        ];
         //-- 1. build the schema file from the Extension file
         let v = jext.get("extraCityObjects").unwrap().as_object().unwrap();
+        let jexto = jext.as_object().unwrap();
         for eco in v.keys() {
             // println!("==>{:?}", eco);
             let mut schema = jext["extraCityObjects"][eco].clone();
             schema["$schema"] = json!("http://json-schema.org/draft-07/schema#");
             schema["$id"] = json!("https://www.cityjson.org/schemas/1.1.0/tmp.json");
-
+            for each in jexto.keys() {
+                let ss = each.as_str();
+                if fixednames.contains(&ss) == false {
+                    schema[ss] = jext[ss].clone();
+                }
+            }
+            // println!("=>{}", serde_json::to_string(&schema).unwrap());
             let compiled = self.get_compiled_schema_extension(&schema);
-
             //-- 2. fetch the CO
             let cos = self.j.get("CityObjects").unwrap().as_object().unwrap();
             for co in cos.keys() {
@@ -235,30 +252,34 @@ impl CJValidator {
     }
 
     fn get_compiled_schema_extension(&self, schema: &Value) -> JSONSchema {
-        let s1 = std::fs::read_to_string(
-            "/Users/hugo/projects/cjval2/schemas/11/cityobjects.schema.json",
-        )
-        .expect("Couldn't read CityJSON file");
-        let schema1 = serde_json::from_str(&s1).unwrap();
-        let s2 = std::fs::read_to_string(
-            "/Users/hugo/projects/cjval2/schemas/11/geomprimitives.schema.json",
-        )
-        .expect("Couldn't read CityJSON file");
-        let schema2 = serde_json::from_str(&s2).unwrap();
-
+        let s_1 = include_str!("../schemas/11/cityobjects.schema.json");
+        let s_2 = include_str!("../schemas/11/geomprimitives.schema.json");
+        let s_3 = include_str!("../schemas/11/appearance.schema.json");
+        let s_4 = include_str!("../schemas/11/geomtemplates.schema.json");
+        let schema_1 = serde_json::from_str(s_1).unwrap();
+        let schema_2 = serde_json::from_str(s_2).unwrap();
+        let schema_3 = serde_json::from_str(s_3).unwrap();
+        let schema_4 = serde_json::from_str(s_4).unwrap();
         let compiled = JSONSchema::options()
             .with_draft(Draft::Draft7)
             .with_document(
                 "https://www.cityjson.org/schemas/1.1.0/cityobjects.schema.json".to_string(),
-                schema1,
+                schema_1,
             )
             .with_document(
                 "https://www.cityjson.org/schemas/1.1.0/geomprimitives.schema.json".to_string(),
-                schema2,
+                schema_2,
+            )
+            .with_document(
+                "https://www.cityjson.org/schemas/1.1.0/appearance.schema.json".to_string(),
+                schema_3,
+            )
+            .with_document(
+                "https://www.cityjson.org/schemas/1.1.0/geomtemplates.schema.json".to_string(),
+                schema_4,
             )
             .compile(&schema)
             .expect("A valid schema");
-        // println!("{:?}", compiled);
         return compiled;
     }
 
