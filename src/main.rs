@@ -137,53 +137,58 @@ fn main() {
     }
 
     //-- fetch the Extension schemas
-    println!("=== Extensions schemas ===");
-    if val.get_input_cityjson_version() == 10 {
-        println!("Extension validation is not supported in v1.0, upgrade to v1.1");
-    }
-    println!("Extension schemas used:");
+    println!(
+        "{}",
+        Style::new().bold().paint("=== Extensions schemas ===")
+    );
+    println!("Extension schema(s) used:");
     //-- download them
-    if matches.is_present("download-extensions") {
-        let re = val.has_extensions();
-        if re.is_some() {
-            let lexts = re.unwrap();
-            // println!("{:?}", lexts);
-            for ext in lexts {
-                let o = download_extension(&ext);
-                match o {
-                    Ok(l) => {
-                        let re = val.add_one_extension_from_str(&ext, &l);
-                        match re {
-                            Ok(()) => println!("\t- {}.. ok", ext),
-                            Err(e) => println!("\t- {}.. ERROR", e),
+    if val.get_input_cityjson_version() >= 11 {
+        if matches.is_present("download-extensions") {
+            let re = val.has_extensions();
+            if re.is_some() {
+                let lexts = re.unwrap();
+                // println!("{:?}", lexts);
+                for ext in lexts {
+                    let o = download_extension(&ext);
+                    match o {
+                        Ok(l) => {
+                            let re = val.add_one_extension_from_str(&ext, &l);
+                            match re {
+                                Ok(()) => println!("\t- {}.. ok", ext),
+                                Err(e) => println!("\t- {}.. ERROR", e),
+                            }
+                        }
+                        Err(e) => {
+                            println!("\t- {}.. ERROR \n\t{}", ext, e);
+                            summary_and_bye(-1);
                         }
                     }
-                    Err(e) => {
-                        println!("\t- {}.. ERROR \n\t{}", ext, e);
-                        summary_and_bye(-1);
-                    }
                 }
+            } else {
+                println!("\t- NONE");
             }
         } else {
-            println!("\t- NONE");
-        }
-    } else {
-        if let Some(efiles) = matches.values_of("PATH") {
-            let l: Vec<&str> = efiles.collect();
-            for s in l {
-                let s2 = std::fs::read_to_string(s).expect("Couldn't read Extension file");
-                // exts.push(s2);
-                let scanon = Path::new(s).canonicalize().unwrap();
-                let re = val.add_one_extension_from_str(&scanon.to_str().unwrap(), &s2);
-                match re {
-                    Ok(()) => println!("\t- {}.. ok", s),
-                    Err(e) => println!("\t- {}.. ERROR", e),
+            if let Some(efiles) = matches.values_of("PATH") {
+                let l: Vec<&str> = efiles.collect();
+                for s in l {
+                    let s2 = std::fs::read_to_string(s).expect("Couldn't read Extension file");
+                    // exts.push(s2);
+                    let scanon = Path::new(s).canonicalize().unwrap();
+                    let re = val.add_one_extension_from_str(&scanon.to_str().unwrap(), &s2);
+                    match re {
+                        Ok(()) => println!("\t- {}.. ok", s),
+                        Err(e) => println!("\t- {}.. ERROR", e),
+                    }
                 }
             }
         }
     }
     if val.get_extensions().is_empty() {
         println!("\t- NONE");
+    }
+    if val.get_input_cityjson_version() == 10 {
+        println!("(validation of Extensions is not supported in v1.0, upgrade to v1.1)");
     }
     println!("-----");
 
