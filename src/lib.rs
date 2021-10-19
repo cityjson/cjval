@@ -30,21 +30,7 @@ static EXTENSION_FIXED_NAMES: [&str; 8] = [
     "extraRootProperties",
 ];
 
-pub static CITYJSON_VERSION: &str = "1.1.0";
-
-// TODO: v1.0 and float-vertices?
-#[derive(Serialize, Deserialize, Debug)]
-struct VertexF {
-    x: f64,
-    y: f64,
-    z: f64,
-}
-#[derive(Serialize, Deserialize, Debug)]
-struct VertexI {
-    x: u32,
-    y: u32,
-    z: u32,
-}
+pub static CITYJSON_VERSIONS: [&str; 2] = ["1.0.3", "1.1.0"];
 
 #[derive(Serialize, Deserialize, Debug)]
 struct GeomMSu {
