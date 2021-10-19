@@ -1,10 +1,10 @@
+use anyhow::{anyhow, Result};
 use jsonschema::{Draft, JSONSchema};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use serde_json::Value;
 use std::collections::HashMap;
 use std::collections::HashSet;
-use url::Url;
 
 // #-- ERRORS
 //  # validate_schema
@@ -68,14 +68,14 @@ struct Doc {
 #[derive(Debug)]
 pub struct CJValidator {
     j: Value,
-    jexts: Vec<Value>,
+    jexts: HashMap<String, Value>,
     duplicate_keys: bool,
     version: i32,
 }
 
 impl CJValidator {
-    pub fn from_str(str_dataset: &str, str_ext_schemas: &Vec<String>) -> Result<Self, String> {
-        let l: Vec<Value> = Vec::new();
+    pub fn from_str(str_dataset: &str) -> Result<Self, String> {
+        let l: HashMap<String, Value> = HashMap::new();
         let mut v = CJValidator {
             j: json!(null),
             jexts: l,
@@ -102,15 +102,45 @@ impl CJValidator {
             // println!("{:?}", re.err());
             v.duplicate_keys = true;
         }
-        //-- parse the Extension schemas and convert to JSON
-        for each in str_ext_schemas {
-            let re: Result<Value, _> = serde_json::from_str(each);
-            if re.is_err() {
-                return Err(re.err().unwrap().to_string());
-            }
-            v.jexts.push(re.unwrap());
-        }
         Ok(v)
+    }
+
+    pub fn add_one_extension_from_str(
+        &mut self,
+        ext_schema_name: &str,
+        ext_schema_str: &str,
+    ) -> Result<()> {
+        let re: Result<Value, _> = serde_json::from_str(ext_schema_str);
+        if re.is_err() {
+            return Err(anyhow!(re.err().unwrap().to_string()));
+        }
+        self.jexts.insert(ext_schema_name.to_string(), re.unwrap());
+        Ok(())
+    }
+
+    /// Does the CityJSON contain Extension(s)?
+    pub fn has_extensions(&self) -> Option<Vec<String>> {
+        let mut re: Vec<String> = Vec::new();
+        let v = self.j.as_object().unwrap();
+        if v.contains_key("extensions") {
+            let exts = self.j.get("extensions").unwrap().as_object().unwrap();
+            for key in exts.keys() {
+                re.push(exts[key]["url"].as_str().unwrap().to_string());
+            }
+        }
+        if re.is_empty() {
+            None
+        } else {
+            Some(re)
+        }
+    }
+
+    pub fn get_extensions(&self) -> &HashMap<String, Value> {
+        &self.jexts
+    }
+
+    pub fn get_input_cityjson_version(&self) -> i32 {
+        self.version
     }
 
     pub fn validate_schema(&self) -> Vec<String> {
@@ -148,21 +178,6 @@ impl CJValidator {
             ls_errors.push("Duplicate keys in 'CityObjects'".to_string())
         }
         return ls_errors;
-    }
-
-    /// Does the CityJSON contain Extension(s)?
-    pub fn contains_extensions(&self) -> Vec<String> {
-        let mut re: Vec<String> = Vec::new();
-        let v = self.j.as_object().unwrap();
-        if v.contains_key("extensions") {
-            let exts = self.j.get("extensions").unwrap().as_object().unwrap();
-            for key in exts.keys() {
-                let u = Url::parse(exts[key]["url"].as_str().unwrap()).unwrap();
-                let l = u.path_segments().map(|c| c.collect::<Vec<_>>()).unwrap();
-                re.push(l.last().unwrap().to_string());
-            }
-        }
-        re
     }
 
     fn validate_ext_extracityobjects(&self, jext: &Value) -> Vec<String> {
@@ -313,7 +328,7 @@ impl CJValidator {
 
     pub fn validate_extensions(&self) -> Vec<String> {
         let mut ls_errors: Vec<String> = Vec::new();
-        for ext in &self.jexts {
+        for (_k, ext) in &self.jexts {
             //-- 1. extraCityObjects
             ls_errors.append(&mut self.validate_ext_extracityobjects(&ext));
             //-- 2. extraRootProperties
@@ -332,7 +347,7 @@ impl CJValidator {
     fn validate_ext_co_without_schema(&self) -> Vec<String> {
         let mut ls_errors: Vec<String> = Vec::new();
         let mut newcos: Vec<String> = Vec::new();
-        for jext in &self.jexts {
+        for (_k, jext) in &self.jexts {
             let v = jext.get("extraCityObjects").unwrap().as_object().unwrap();
             for eco in v.keys() {
                 newcos.push(eco.to_string());
@@ -354,7 +369,7 @@ impl CJValidator {
     fn validate_ext_rootproperty_without_schema(&self) -> Vec<String> {
         let mut ls_errors: Vec<String> = Vec::new();
         let mut newrps: Vec<String> = Vec::new();
-        for jext in &self.jexts {
+        for (_k, jext) in &self.jexts {
             let v = jext
                 .get("extraRootProperties")
                 .unwrap()

@@ -3,6 +3,7 @@ use cjval::CJValidator;
 #[macro_use]
 extern crate clap;
 use serde_json::Value;
+use std::collections::HashMap;
 use std::path::Path;
 use url::Url;
 
@@ -63,7 +64,7 @@ fn main() {
                 .help("CityJSON file to validate."),
         )
         .arg(
-            Arg::with_name("path")
+            Arg::with_name("PATH")
                 .short("e")
                 .long("extensionfile")
                 .multiple(true)
@@ -93,68 +94,10 @@ fn main() {
         .expect("Couldn't read CityJSON file");
     println!("Input CityJSON file:\n\t- {:?}", p1);
 
-    //-- fetch the Extension schemas
-    let mut exts: Vec<String> = Vec::new();
-    let mut pexts = Vec::new();
-    println!("Extension schemas:");
-    //-- download them
-    if matches.is_present("download-extensions") {
-        let re: Result<Value, _> = serde_json::from_str(&s1);
-        if re.is_ok() {
-            let v = re.unwrap();
-            let j = v.as_object().unwrap();
-            if j.contains_key("extensions") {
-                let jexts = j["extensions"].as_object().unwrap();
-                for key in jexts.keys() {
-                    // let u = Url::parse(jexts[key]["url"].as_str().unwrap()).unwrap();
-                    let o = download_extension(&jexts[key]["url"].as_str().unwrap());
-                    match o {
-                        Ok(l) => {
-                            exts.push(l);
-                            println!("\t- {}.. ok", jexts[key]["url"].as_str().unwrap())
-                        }
-                        Err(e) => {
-                            println!(
-                                "\t- {}.. ERROR \n\t{}",
-                                jexts[key]["url"].as_str().unwrap(),
-                                e
-                            );
-                            summary_and_bye(-1);
-                        }
-                    }
-                }
-            } else {
-                println!("\t- NONE");
-            }
-        } else {
-            println!("Error from the string");
-        }
-    } else {
-        //-- use the local files
-        if let Some(efiles) = matches.values_of("extensionfiles") {
-            let l: Vec<&str> = efiles.collect();
-            for s in l {
-                let s2 = std::fs::read_to_string(s).expect("Couldn't read Extension file");
-                exts.push(s2);
-                let p = Path::new(&s);
-                pexts.push(p.canonicalize().unwrap());
-            }
-        }
-        if pexts.is_empty() {
-            println!("\t- NONE");
-        }
-        for each in pexts {
-            println!("\t- {:?}", each);
-        }
-    }
-
-    println!("CityJSON schemas:");
-    println!("\t- v{} (built-in)", cjval::CITYJSON_VERSION);
-
     //-- ERRORS
     println!("\n");
     println!("=== JSON syntax ===");
-    let re = CJValidator::from_str(&s1, &exts);
+    let re = CJValidator::from_str(&s1);
     if re.is_err() {
         let s = format!("Invalid JSON file: {:?}", re.as_ref().err().unwrap());
         let e = vec![s];
@@ -164,18 +107,67 @@ fn main() {
         let e: Vec<String> = vec![];
         print_errors(&e);
     }
-    let val = re.unwrap();
+    let mut val = re.unwrap();
 
     //-- validate against schema
     println!("=== CityJSON schemas ===");
+    // println!("CityJSON schemas:"); TODO PUT VERSION OF CITYJSON HERE
+    // println!("\t- v{} (built-in)", cjval::CITYJSON_VERSION);
     let mut rev = val.validate_schema();
     print_errors(&rev);
     if rev.is_empty() == false {
         summary_and_bye(-1);
     }
 
-    //-- validate Extensions, if any
+    //-- fetch the Extension schemas
     println!("=== Extensions schemas ===");
+    println!("Extension schemas used:");
+    //-- download them
+    if matches.is_present("download-extensions") {
+        let re = val.has_extensions();
+        if re.is_some() {
+            let lexts = re.unwrap();
+            // println!("{:?}", lexts);
+            for ext in lexts {
+                let o = download_extension(&ext);
+                match o {
+                    Ok(l) => {
+                        let re = val.add_one_extension_from_str(&ext, &l);
+                        match re {
+                            Ok(()) => println!("\t- {}.. ok", ext),
+                            Err(e) => println!("\t- {}.. ERROR", e),
+                        }
+                    }
+                    Err(e) => {
+                        println!("\t- {}.. ERROR \n\t{}", ext, e);
+                        summary_and_bye(-1);
+                    }
+                }
+            }
+        } else {
+            println!("\t- NONE");
+        }
+    } else {
+        if let Some(efiles) = matches.values_of("PATH") {
+            let l: Vec<&str> = efiles.collect();
+            for s in l {
+                let s2 = std::fs::read_to_string(s).expect("Couldn't read Extension file");
+                // exts.push(s2);
+                let scanon = Path::new(s).canonicalize().unwrap();
+                let re = val.add_one_extension_from_str(&scanon.to_str().unwrap(), &s2);
+                match re {
+                    Ok(()) => println!("\t- {}.. ok", s),
+                    Err(e) => println!("\t- {}.. ERROR", e),
+                }
+            }
+        }
+    }
+    if val.get_extensions().is_empty() {
+        println!("\t- NONE");
+    }
+    println!("----------");
+
+    //-- validate Extensions, if any
     rev = val.validate_extensions();
     print_errors(&rev);
     if rev.is_empty() == false {
