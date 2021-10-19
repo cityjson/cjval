@@ -30,6 +30,8 @@ static EXTENSION_FIXED_NAMES: [&str; 8] = [
     "extraRootProperties",
 ];
 
+static CITYJSON_VERSION: &str = "1.1.0";
+
 // TODO: v1.0 and float-vertices?
 #[derive(Serialize, Deserialize, Debug)]
 struct VertexF {

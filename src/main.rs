@@ -1,15 +1,10 @@
 use cjval::CJValidator;
+
+#[macro_use]
+extern crate clap;
 use std::process;
-use structopt::StructOpt;
 
-#[derive(StructOpt)]
-struct Cli {
-    #[structopt(parse(from_os_str))]
-    cityjson_file: std::path::PathBuf,
-
-    #[structopt(short = "e", long = "extensionfile", parse(from_os_str))]
-    extensions: Vec<std::path::PathBuf>,
-}
+use clap::{App, AppSettings, Arg};
 
 fn print_errors(lserrs: &Vec<String>) {
     if lserrs.is_empty() {
@@ -46,15 +41,63 @@ fn summary_and_bye(finalresult: i32) {
 }
 
 fn main() {
-    let args = Cli::from_args();
+    // Enable ANSI support for Windows
+    #[cfg(windows)]
+    let _ = ansi_term::enable_ansi_support();
+    let app = App::new(crate_name!())
+        .setting(AppSettings::ColorAuto)
+        .setting(AppSettings::ColoredHelp)
+        .setting(AppSettings::DeriveDisplayOrder)
+        // .setting(AppSettings::UnifiedHelpMessage)
+        .max_term_width(90)
+        .version(crate_version!())
+        .about(crate_description!())
+        .arg(
+            Arg::with_name("INPUT")
+                .required(true)
+                .help("CityJSON file to validate."),
+        )
+        .arg(
+            Arg::with_name("extensionfiles")
+                .short("e")
+                .long("extensionfile")
+                .multiple(true)
+                .takes_value(true)
+                .help(
+                    "Read the CityJSON Extensions files locally. More than one can \
+                     be given. Alternatively you can read them locally with --d",
+                ),
+        )
+        .arg(
+            Arg::with_name("download-extensions")
+                .short("d")
+                .long("download")
+                .takes_value(false)
+                .help(
+                    "Download the CityJSON Extensions from their given URLs \
+                     in the file. Alternatively you can read them locally with --e",
+                ),
+        );
+
+    let matches = app.get_matches();
+
+    // if let Some(efiles) = matches.values_of("extensionfiles") {
+    //     let l: Vec<&str> = efiles.collect();
+    //     println!("{:?}", l);
+    // }
 
     //-- fetch the CityJSON data file
-    let s1 = std::fs::read_to_string(&args.cityjson_file).expect("Couldn't read CityJSON file");
+    let s1 = std::fs::read_to_string(&matches.value_of("INPUT").unwrap())
+        .expect("Couldn't read CityJSON file");
+
     //-- fetch the Extension schemas
     let mut exts: Vec<String> = Vec::new();
-    for ext in args.extensions {
-        let s2 = std::fs::read_to_string(ext).expect("Couldn't read Extension file");
-        exts.push(s2);
+    if let Some(efiles) = matches.values_of("extensionfiles") {
+        let l: Vec<&str> = efiles.collect();
+        for s in l {
+            let s2 = std::fs::read_to_string(s).expect("Couldn't read Extension file");
+            exts.push(s2);
+        }
     }
 
     //-- ERRORS
