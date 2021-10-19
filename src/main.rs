@@ -2,6 +2,7 @@ use cjval::CJValidator;
 
 #[macro_use]
 extern crate clap;
+use std::path::Path;
 use std::process;
 
 use clap::{App, AppSettings, Arg};
@@ -81,26 +82,37 @@ fn main() {
 
     let matches = app.get_matches();
 
-    // if let Some(efiles) = matches.values_of("extensionfiles") {
-    //     let l: Vec<&str> = efiles.collect();
-    //     println!("{:?}", l);
-    // }
-
-    //-- fetch the CityJSON data file
+    let p1 = Path::new(matches.value_of("INPUT").unwrap())
+        .canonicalize()
+        .unwrap();
     let s1 = std::fs::read_to_string(&matches.value_of("INPUT").unwrap())
         .expect("Couldn't read CityJSON file");
+    println!("Input CityJSON file:\n\t- {:?}", p1);
 
     //-- fetch the Extension schemas
     let mut exts: Vec<String> = Vec::new();
+    let mut pexts = Vec::new();
     if let Some(efiles) = matches.values_of("extensionfiles") {
         let l: Vec<&str> = efiles.collect();
         for s in l {
             let s2 = std::fs::read_to_string(s).expect("Couldn't read Extension file");
             exts.push(s2);
+            let p = Path::new(&s);
+            pexts.push(p.canonicalize().unwrap());
         }
     }
+    println!("Extension schemas:");
+    if pexts.is_empty() {
+        println!("\t- NONE");
+    }
+    for each in pexts {
+        println!("\t- {:?}", each);
+    }
+    println!("CityJSON schemas:");
+    println!("\t- v{}", cjval::CITYJSON_VERSION);
 
     //-- ERRORS
+    println!("\n");
     println!("=== JSON syntax ===");
     let re = CJValidator::from_str(&s1, &exts);
     if re.is_err() {
