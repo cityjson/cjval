@@ -2,10 +2,13 @@ use cjval::CJValidator;
 
 #[macro_use]
 extern crate clap;
+use serde_json::Value;
 use std::path::Path;
-use std::process;
+use url::Url;
 
 use clap::{App, AppSettings, Arg};
+
+use anyhow::{anyhow, Result};
 
 fn print_errors(lserrs: &Vec<String>) {
     if lserrs.is_empty() {
@@ -38,7 +41,7 @@ fn summary_and_bye(finalresult: i32) {
         println!("✅ File is valid");
     }
     println!("=================================");
-    process::exit(0x0100);
+    std::process::exit(1);
 }
 
 fn main() {
@@ -93,24 +96,60 @@ fn main() {
     //-- fetch the Extension schemas
     let mut exts: Vec<String> = Vec::new();
     let mut pexts = Vec::new();
-    if let Some(efiles) = matches.values_of("extensionfiles") {
-        let l: Vec<&str> = efiles.collect();
-        for s in l {
-            let s2 = std::fs::read_to_string(s).expect("Couldn't read Extension file");
-            exts.push(s2);
-            let p = Path::new(&s);
-            pexts.push(p.canonicalize().unwrap());
+    println!("Extension schemas:");
+    //-- download them
+    if matches.is_present("download-extensions") {
+        let re: Result<Value, _> = serde_json::from_str(&s1);
+        if re.is_ok() {
+            let v = re.unwrap();
+            let j = v.as_object().unwrap();
+            if j.contains_key("extensions") {
+                let jexts = j["extensions"].as_object().unwrap();
+                for key in jexts.keys() {
+                    // let u = Url::parse(jexts[key]["url"].as_str().unwrap()).unwrap();
+                    let o = download_extension(&jexts[key]["url"].as_str().unwrap());
+                    match o {
+                        Ok(l) => {
+                            exts.push(l);
+                            println!("\t- {}.. ok", jexts[key]["url"].as_str().unwrap())
+                        }
+                        Err(e) => {
+                            println!(
+                                "\t- {}.. ERROR \n\t{}",
+                                jexts[key]["url"].as_str().unwrap(),
+                                e
+                            );
+                            summary_and_bye(-1);
+                        }
+                    }
+                }
+            } else {
+                println!("\t- NONE");
+            }
+        } else {
+            println!("Error from the string");
+        }
+    } else {
+        //-- use the local files
+        if let Some(efiles) = matches.values_of("extensionfiles") {
+            let l: Vec<&str> = efiles.collect();
+            for s in l {
+                let s2 = std::fs::read_to_string(s).expect("Couldn't read Extension file");
+                exts.push(s2);
+                let p = Path::new(&s);
+                pexts.push(p.canonicalize().unwrap());
+            }
+        }
+        if pexts.is_empty() {
+            println!("\t- NONE");
+        }
+        for each in pexts {
+            println!("\t- {:?}", each);
         }
     }
-    println!("Extension schemas:");
-    if pexts.is_empty() {
-        println!("\t- NONE");
-    }
-    for each in pexts {
-        println!("\t- {:?}", each);
-    }
+
     println!("CityJSON schemas:");
-    println!("\t- v{}", cjval::CITYJSON_VERSION);
+    println!("\t- v{} (built-in)", cjval::CITYJSON_VERSION);
 
     //-- ERRORS
     println!("\n");
@@ -182,5 +221,17 @@ fn main() {
         summary_and_bye(1);
     } else {
         summary_and_bye(0);
+    }
+}
+
+#[tokio::main]
+async fn download_extension(theurl: &str) -> Result<String> {
+    // println!("{:?}", jext);
+    let u = Url::parse(theurl).unwrap();
+    let res = reqwest::get(u).await?;
+    if res.status().is_success() {
+        Ok(res.text().await?)
+    } else {
+        return Err(anyhow!("Cannot download extension schema: {}", theurl));
     }
 }
