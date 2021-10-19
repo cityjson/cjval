@@ -1,3 +1,4 @@
+use ansi_term::Style;
 use cjval::CJValidator;
 
 #[macro_use]
@@ -91,10 +92,17 @@ fn main() {
         .unwrap();
     let s1 = std::fs::read_to_string(&matches.value_of("INPUT").unwrap())
         .expect("Couldn't read CityJSON file");
-    println!("Input CityJSON file:\n\t- {:?}", p1);
+    println!(
+        "{}",
+        Style::new().bold().paint("=== Input CityJSON file ===")
+    );
+    println!("  {:?}", p1);
 
     //-- ERRORS
-    println!("=== JSON syntax ===");
+    // use ansi_term::Colour::Blue;
+    // println!("{}", Blue.paint("da ba dee"));
+    println!("{}", Style::new().bold().paint("=== JSON syntax ==="));
+    // println!("{}", Blue.paint("=== JSON syntax ==="));
     let re = CJValidator::from_str(&s1);
     if re.is_err() {
         let s = format!("Invalid JSON file: {:?}", re.as_ref().err().unwrap());
@@ -108,7 +116,7 @@ fn main() {
     let mut val = re.unwrap();
 
     //-- validate against schema
-    println!("=== CityJSON schemas ===");
+    println!("{}", Style::new().bold().paint("=== CityJSON schemas ==="));
     let version = val.get_input_cityjson_version();
     match version {
         10 => println!(
@@ -186,14 +194,22 @@ fn main() {
         summary_and_bye(-1);
     }
 
-    println!("=== parent_children_consistency ===");
+    println!(
+        "{}",
+        Style::new()
+            .bold()
+            .paint("=== parent_children_consistency ===")
+    );
     rev = val.parent_children_consistency();
     print_errors(&rev);
     if rev.is_empty() == false {
         summary_and_bye(-1);
     }
 
-    println!("=== wrong_vertex_index ===");
+    println!(
+        "{}",
+        Style::new().bold().paint("=== wrong_vertex_index ===")
+    );
     rev = val.wrong_vertex_index();
     print_errors(&rev);
     if rev.is_empty() == false {
@@ -203,7 +219,12 @@ fn main() {
     //-- WARNINGS
     let mut bwarns = false;
     if rev.is_empty() == true {
-        println!("=== duplicate_vertices (warnings) ===");
+        println!(
+            "{}",
+            Style::new()
+                .bold()
+                .paint("=== duplicate_vertices (warnings) ===")
+        );
         rev = val.duplicate_vertices();
         print_warnings(&rev);
         if rev.is_empty() == false {
@@ -212,7 +233,12 @@ fn main() {
     }
 
     if rev.is_empty() == true {
-        println!("=== extra_root_properties (warnings) ===");
+        println!(
+            "{}",
+            Style::new()
+                .bold()
+                .paint("=== extra_root_properties (warnings) ===")
+        );
         rev = val.extra_root_properties();
         print_warnings(&rev);
         if rev.is_empty() == false {
