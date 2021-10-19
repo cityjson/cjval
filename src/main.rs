@@ -43,6 +43,7 @@ fn summary_and_bye(finalresult: i32) {
 
 fn main() {
     // Enable ANSI support for Windows
+    let desc = format!("{} (supports CityJSON v1.1)", crate_description!());
     #[cfg(windows)]
     let _ = ansi_term::enable_ansi_support();
     let app = App::new(crate_name!())
@@ -52,21 +53,21 @@ fn main() {
         // .setting(AppSettings::UnifiedHelpMessage)
         .max_term_width(90)
         .version(crate_version!())
-        .about(crate_description!())
+        .about(&*desc)
         .arg(
             Arg::with_name("INPUT")
                 .required(true)
                 .help("CityJSON file to validate."),
         )
         .arg(
-            Arg::with_name("extensionfiles")
+            Arg::with_name("path")
                 .short("e")
                 .long("extensionfile")
                 .multiple(true)
                 .takes_value(true)
                 .help(
                     "Read the CityJSON Extensions files locally. More than one can \
-                     be given. Alternatively you can read them locally with --d",
+                     be given. Alternatively you can read them locally with '-d'",
                 ),
         )
         .arg(
@@ -76,7 +77,7 @@ fn main() {
                 .takes_value(false)
                 .help(
                     "Download the CityJSON Extensions from their given URLs \
-                     in the file. Alternatively you can read them locally with --e",
+                     in the file. Alternatively you can read them locally with '-e'",
                 ),
         );
 
@@ -159,7 +160,7 @@ fn main() {
     //-- WARNINGS
     let mut bwarns = false;
     if rev.is_empty() == true {
-        println!("=== duplicate_vertices ===");
+        println!("=== duplicate_vertices (warnings) ===");
         rev = val.duplicate_vertices();
         print_warnings(&rev);
         if rev.is_empty() == false {
@@ -168,7 +169,7 @@ fn main() {
     }
 
     if rev.is_empty() == true {
-        println!("=== extra_root_properties ===");
+        println!("=== extra_root_properties (warnings) ===");
         rev = val.extra_root_properties();
         print_warnings(&rev);
         if rev.is_empty() == false {
