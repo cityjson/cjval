@@ -94,7 +94,6 @@ fn main() {
     println!("Input CityJSON file:\n\t- {:?}", p1);
 
     //-- ERRORS
-    println!("\n");
     println!("=== JSON syntax ===");
     let re = CJValidator::from_str(&s1);
     if re.is_err() {
@@ -110,8 +109,19 @@ fn main() {
 
     //-- validate against schema
     println!("=== CityJSON schemas ===");
-    // println!("CityJSON schemas:"); TODO PUT VERSION OF CITYJSON HERE
-    // println!("\t- v{} (built-in)", cjval::CITYJSON_VERSION);
+    let version = val.get_input_cityjson_version();
+    match version {
+        10 => println!(
+            "CityJSON schemas used: v{} (builtin)",
+            cjval::CITYJSON_VERSIONS[0]
+        ),
+        11 => println!(
+            "CityJSON schemas used: v{} (builtin)",
+            cjval::CITYJSON_VERSIONS[1]
+        ),
+        _ => {}
+    }
+    // println!("\t- v{} (built-in)", cjval::CITYJSON_VERSIONS);
     let mut rev = val.validate_schema();
     print_errors(&rev);
     if rev.is_empty() == false {
@@ -120,6 +130,9 @@ fn main() {
 
     //-- fetch the Extension schemas
     println!("=== Extensions schemas ===");
+    if val.get_input_cityjson_version() == 10 {
+        println!("Extension validation is not supported in v1.0, upgrade to v1.1");
+    }
     println!("Extension schemas used:");
     //-- download them
     if matches.is_present("download-extensions") {
@@ -164,7 +177,7 @@ fn main() {
     if val.get_extensions().is_empty() {
         println!("\t- NONE");
     }
-    println!("----------");
+    println!("-----");
 
     //-- validate Extensions, if any
     rev = val.validate_extensions();
