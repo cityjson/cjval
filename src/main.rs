@@ -2,8 +2,7 @@ use cjval::CJValidator;
 
 #[macro_use]
 extern crate clap;
-use serde_json::Value;
-use std::collections::HashMap;
+
 use std::path::Path;
 use url::Url;
 
@@ -47,7 +46,7 @@ fn summary_and_bye(finalresult: i32) {
 
 fn main() {
     // Enable ANSI support for Windows
-    let desc = format!("{} (supports CityJSON v1.1)", crate_description!());
+    let desc = format!("{} (supports CityJSON v1.0 + v1.1)", crate_description!());
     #[cfg(windows)]
     let _ = ansi_term::enable_ansi_support();
     let app = App::new(crate_name!())
