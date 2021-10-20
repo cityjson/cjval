@@ -133,14 +133,22 @@ fn main() {
         //-- if argument "-e" is passed then do not download
         if let Some(efiles) = matches.values_of("PATH") {
             let l: Vec<&str> = efiles.collect();
+            let is_valid = true;
             for s in l {
                 let s2 = std::fs::read_to_string(s).expect("Couldn't read Extension file");
                 let scanon = Path::new(s).canonicalize().unwrap();
                 let re = val.add_one_extension_from_str(&scanon.to_str().unwrap(), &s2);
                 match re {
-                    Ok(()) => println!("\t- {}.. ok", s),
-                    Err(e) => println!("\t- {}.. ERROR", e),
+                    Ok(()) => println!("\t- {}.. ok", scanon.to_str().unwrap()),
+                    Err(e) => {
+                        println!("\t- {}.. ERROR", scanon.to_str().unwrap());
+                        println!("\t  ({})", e);
+                        summary_and_bye(-1);
+                    }
                 }
+            }
+            if is_valid == false {
+                summary_and_bye(-1);
             }
         } else {
             //-- download automatically the Extensions
@@ -155,7 +163,11 @@ fn main() {
                             let re = val.add_one_extension_from_str(&ext, &l);
                             match re {
                                 Ok(()) => println!("\t- {}.. ok", ext),
-                                Err(e) => println!("\t- {}.. ERROR", e),
+                                Err(e) => {
+                                    println!("\t- {}.. ERROR", ext);
+                                    println!("\t  ({})", e);
+                                    summary_and_bye(-1);
+                                }
                             }
                         }
                         Err(e) => {
