@@ -333,7 +333,7 @@ impl CJValidator {
 
     fn validate_ext_attribute_without_schema(&self) -> Vec<String> {
         let mut ls_errors: Vec<String> = Vec::new();
-        let mut ls_plusattrs: Vec<String> = Vec::new();
+        let mut ls_plusattrs: HashSet<String> = HashSet::new();
         let cos = self.j.get("CityObjects").unwrap().as_object().unwrap();
         for theid in cos.keys() {
             let co = cos.get(theid).unwrap().as_object().unwrap();
@@ -344,7 +344,7 @@ impl CJValidator {
                     if &sattr[0..1] == "+" {
                         // println!("attr: {:?}", sattr);
                         let a = format!("{}/{}", co.get("type").unwrap().as_str().unwrap(), sattr);
-                        ls_plusattrs.push(a);
+                        ls_plusattrs.insert(a);
                     }
                 }
             }
