@@ -176,8 +176,6 @@ fn main() {
                         }
                     }
                 }
-            } else {
-                println!("\t- NONE");
             }
         }
     }
