@@ -72,5 +72,5 @@ If instead you want to use your own schema(s), you can pass them instead with th
 
 ## Contributors
 
-- @josfeenstra (started the project for a [course at TU Delft](https://3d.bk.tudelft.nl/courses/geo5010/))
+- @josfeenstra (started the project for a [course at TU Delft](https://3d.bk.tudelft.nl/courses/geo5010/), [original code](https://github.com/josfeenstra/cjval))
 - @hugoledoux
