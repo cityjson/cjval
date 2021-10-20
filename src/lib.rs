@@ -327,6 +327,39 @@ impl CJValidator {
         //-- 5. check if there are extra root properties that do not have a schema
         ls_errors.append(&mut self.validate_ext_rootproperty_without_schema());
         //TODO 6 for the extra attributes w/o schemas
+        ls_errors.append(&mut self.validate_ext_attribute_without_schema());
+        ls_errors
+    }
+
+    fn validate_ext_attribute_without_schema(&self) -> Vec<String> {
+        let mut ls_errors: Vec<String> = Vec::new();
+        let mut ls_plusattrs: Vec<String> = Vec::new();
+        let cos = self.j.get("CityObjects").unwrap().as_object().unwrap();
+        for theid in cos.keys() {
+            let co = cos.get(theid).unwrap().as_object().unwrap();
+            if co.contains_key("attributes") {
+                let attrs = co.get("attributes").unwrap().as_object().unwrap();
+                for attr in attrs.keys() {
+                    let sattr = attr.as_str();
+                    if &sattr[0..1] == "+" {
+                        // println!("attr: {:?}", sattr);
+                        let a = format!("{}/{}", co.get("type").unwrap().as_str().unwrap(), sattr);
+                        ls_plusattrs.push(a);
+                    }
+                }
+            }
+        }
+        // println!("{:?}", ls_plusattrs);
+        for each in ls_plusattrs {
+            for (_theid, jext) in &self.jexts {
+                let s = format!("/extraAttributes/{}", each);
+                let re = jext.pointer(s.as_str());
+                if re.is_none() {
+                    let s: String = format!("Attribute '{}' doesn't have a schema", each);
+                    ls_errors.push(s);
+                }
+            }
+        }
         ls_errors
     }
 
