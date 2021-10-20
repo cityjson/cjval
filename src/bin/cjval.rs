@@ -194,6 +194,8 @@ fn main() {
         summary_and_bye(-1);
     }
 
+    let mut is_valid = true;
+
     println!(
         "{}",
         Style::new()
@@ -202,9 +204,9 @@ fn main() {
     );
     rev = val.parent_children_consistency();
     print_errors(&rev);
-    // if rev.is_empty() == false {
-    //     summary_and_bye(-1);
-    // }
+    if rev.is_empty() == false {
+        is_valid = false;
+    }
 
     println!(
         "{}",
@@ -212,9 +214,21 @@ fn main() {
     );
     rev = val.wrong_vertex_index();
     print_errors(&rev);
-    // if rev.is_empty() == false {
-    //     summary_and_bye(-1);
-    // }
+    if rev.is_empty() == false {
+        is_valid = false;
+    }
+
+    println!("{}", Style::new().bold().paint("=== semantics_arrays ==="));
+    rev = val.semantics_arrays();
+    print_errors(&rev);
+    if rev.is_empty() == false {
+        is_valid = false;
+    }
+
+    //-- if not valid at this point then stop
+    if is_valid == false {
+        summary_and_bye(-1);
+    }
 
     //-- WARNINGS
     let mut bwarns = false;
