@@ -11,13 +11,13 @@ use std::collections::HashSet;
 //  # validate_extensions
 //  # parent_children_consistency
 //  # wrong_vertex_index
-//  # semantics_array TODO
+//  # semantics_arrays
 //
 //
 // #-- WARNINGS
 //  # extra_root_properties
 //  # duplicate_vertices
-//  # unused_vertices TODO
+//  # unused_vertices
 
 static EXTENSION_FIXED_NAMES: [&str; 8] = [
     "type",
