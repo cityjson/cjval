@@ -71,20 +71,10 @@ fn main() {
                 .takes_value(true)
                 .help(
                     "Read the CityJSON Extensions files locally. More than one can \
-                     be given. Alternatively you can read them locally with '-d'",
-                ),
-        )
-        .arg(
-            Arg::with_name("download-extensions")
-                .short("d")
-                .long("download")
-                .takes_value(false)
-                .help(
-                    "Download the CityJSON Extensions from their given URLs \
-                     in the file. Alternatively you can read them locally with '-e'",
+                     be given. By default the Extension schemas are download, this \
+                     overwrites this behaviour",
                 ),
         );
-
     let matches = app.get_matches();
 
     let p1 = Path::new(matches.value_of("INPUT").unwrap())
@@ -126,7 +116,6 @@ fn main() {
         ),
         _ => {}
     }
-    // println!("\t- v{} (built-in)", cjval::CITYJSON_VERSIONS);
     let mut rev = val.validate_schema();
     print_errors(&rev);
     if rev.is_empty() == false {
@@ -141,7 +130,20 @@ fn main() {
     println!("Extension schema(s) used:");
     //-- download them
     if val.get_input_cityjson_version() >= 11 {
-        if matches.is_present("download-extensions") {
+        //-- if argument "-e" is passed then do not download
+        if let Some(efiles) = matches.values_of("PATH") {
+            let l: Vec<&str> = efiles.collect();
+            for s in l {
+                let s2 = std::fs::read_to_string(s).expect("Couldn't read Extension file");
+                let scanon = Path::new(s).canonicalize().unwrap();
+                let re = val.add_one_extension_from_str(&scanon.to_str().unwrap(), &s2);
+                match re {
+                    Ok(()) => println!("\t- {}.. ok", s),
+                    Err(e) => println!("\t- {}.. ERROR", e),
+                }
+            }
+        } else {
+            //-- download automatically the Extensions
             let re = val.has_extensions();
             if re.is_some() {
                 let lexts = re.unwrap();
@@ -164,19 +166,6 @@ fn main() {
                 }
             } else {
                 println!("\t- NONE");
-            }
-        } else {
-            if let Some(efiles) = matches.values_of("PATH") {
-                let l: Vec<&str> = efiles.collect();
-                for s in l {
-                    let s2 = std::fs::read_to_string(s).expect("Couldn't read Extension file");
-                    let scanon = Path::new(s).canonicalize().unwrap();
-                    let re = val.add_one_extension_from_str(&scanon.to_str().unwrap(), &s2);
-                    match re {
-                        Ok(()) => println!("\t- {}.. ok", s),
-                        Err(e) => println!("\t- {}.. ERROR", e),
-                    }
-                }
             }
         }
     }
