@@ -564,6 +564,135 @@ impl CJValidator {
         }
         ls_errors
     }
+
+    pub fn semantics_arrays(&self) -> Vec<String> {
+        let mut ls_errors: Vec<String> = Vec::new();
+        let cos = self.j.get("CityObjects").unwrap().as_object().unwrap();
+        for theid in cos.keys() {
+            let x = self.j["CityObjects"][theid]["geometry"].as_array();
+            if x.is_some() {
+                let gs = x.unwrap();
+                let mut gi = 0;
+                for g in gs {
+                    if g.get("semantics").is_none() {
+                        continue;
+                    }
+                    if g["type"] == "MultiSurface" || g["type"] == "CompositeSurface" {
+                        //-- length of the sem-surfaces == # of surfaces
+                        if g["boundaries"].as_array().unwrap().len()
+                            != g["semantics"]["values"].as_array().unwrap().len()
+                        {
+                            ls_errors.push(format!(
+                                "Semantic \"values\" not same dimension as \"boundaries\"; #{} and geom-#{}", theid, gi
+                            ));
+                        }
+                        //-- values in "values"
+                        let a = g["semantics"]["surfaces"].as_array().unwrap().len();
+                        for i in g["semantics"]["values"].as_array().unwrap() {
+                            if i.is_null() {
+                                continue;
+                            }
+                            if i.as_u64().unwrap() > (a - 1) as u64 {
+                                ls_errors.push(format!(
+                                    "Reference in semantic \"values\" overflows; #{} and geom-#{}",
+                                    theid, gi
+                                ));
+                            }
+                        }
+                    }
+                    if g["type"] == "Solid" {
+                        //-- length of the sem-surfaces == # of surfaces
+                        let mut bs: Vec<usize> = Vec::new();
+                        let shells = g["boundaries"].as_array().unwrap();
+                        for surface in shells {
+                            bs.push(surface.as_array().unwrap().len());
+                        }
+                        // println!("bs: {:?}", bs);
+                        let mut vs: Vec<usize> = Vec::new();
+                        let tmp = g["semantics"]["values"].as_array().unwrap();
+                        for each in tmp {
+                            vs.push(each.as_array().unwrap().len());
+                        }
+                        // println!("vs: {:?}", vs);
+                        // println!("eq: {:?}", bs.iter().eq(vs.iter()));
+                        if bs.iter().eq(vs.iter()) == false {
+                            ls_errors.push(format!(
+                                "Semantic \"values\" not same dimension as \"boundaries\"; #{} and geom-#{}", theid, gi
+                            ));
+                        }
+                        //-- values in "values"
+                        let a = g["semantics"]["surfaces"].as_array().unwrap().len();
+                        for i in g["semantics"]["values"].as_array().unwrap() {
+                            let ai = i.as_array().unwrap();
+                            for j in ai {
+                                if j.is_null() {
+                                    continue;
+                                }
+                                if j.as_u64().unwrap() > (a - 1) as u64 {
+                                    ls_errors.push(format!(
+                                        "Reference in semantic \"values\" overflows; #{} and geom-#{}",
+                                        theid, gi
+                                    ));
+                                }
+                            }
+                        }
+                    }
+                    if g["type"] == "MultiSolid" || g["type"] == "CompositeSolid" {
+                        //-- length of the sem-surfaces == # of surfaces
+                        let mut bs: Vec<Vec<usize>> = Vec::new();
+                        let solids = g["boundaries"].as_array().unwrap();
+                        for solid in solids {
+                            let asolid = solid.as_array().unwrap();
+                            let mut tmp: Vec<usize> = Vec::new();
+                            for surface in asolid {
+                                tmp.push(surface.as_array().unwrap().len());
+                            }
+                            bs.push(tmp);
+                        }
+                        // println!("ms-bs: {:?}", bs);
+                        let mut vs: Vec<Vec<usize>> = Vec::new();
+                        let a = g["semantics"]["values"].as_array().unwrap();
+                        for i in a {
+                            let mut tmp: Vec<usize> = Vec::new();
+                            let b = i.as_array().unwrap();
+                            for j in b {
+                                tmp.push(j.as_array().unwrap().len());
+                            }
+                            vs.push(tmp);
+                        }
+                        // println!("ms-vs: {:?}", vs);
+                        // println!("eq: {:?}", bs.iter().eq(vs.iter()));
+                        if bs.iter().eq(vs.iter()) == false {
+                            ls_errors.push(format!(
+                                "Semantic \"values\" not same dimension as \"boundaries\"; #{} and geom-#{}", theid, gi
+                            ));
+                        }
+                        //-- values in "values"
+                        let a = g["semantics"]["surfaces"].as_array().unwrap().len();
+                        for i in g["semantics"]["values"].as_array().unwrap() {
+                            let ai = i.as_array().unwrap();
+                            for j in ai {
+                                let aj = j.as_array().unwrap();
+                                for k in aj {
+                                    if k.is_null() {
+                                        continue;
+                                    }
+                                    if k.as_u64().unwrap() > (a - 1) as u64 {
+                                        ls_errors.push(format!(
+                                        "Reference in semantic \"values\" overflows; #{} and geom-#{}",
+                                        theid, gi
+                                    ));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    gi += 1;
+                }
+            }
+        }
+        ls_errors
+    }
 }
 
 fn collect_indices_msu(a: &Vec<Vec<Vec<usize>>>, uniques: &mut HashSet<usize>) {
