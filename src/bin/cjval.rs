@@ -202,9 +202,9 @@ fn main() {
     );
     rev = val.parent_children_consistency();
     print_errors(&rev);
-    if rev.is_empty() == false {
-        summary_and_bye(-1);
-    }
+    // if rev.is_empty() == false {
+    //     summary_and_bye(-1);
+    // }
 
     println!(
         "{}",
@@ -212,9 +212,9 @@ fn main() {
     );
     rev = val.wrong_vertex_index();
     print_errors(&rev);
-    if rev.is_empty() == false {
-        summary_and_bye(-1);
-    }
+    // if rev.is_empty() == false {
+    //     summary_and_bye(-1);
+    // }
 
     //-- WARNINGS
     let mut bwarns = false;
