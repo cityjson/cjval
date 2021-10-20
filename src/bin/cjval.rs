@@ -247,6 +247,20 @@ fn main() {
         }
     }
 
+    if rev.is_empty() == true {
+        println!(
+            "{}",
+            Style::new()
+                .bold()
+                .paint("=== unused_vertices (warnings) ===")
+        );
+        rev = val.unused_vertices();
+        print_warnings(&rev);
+        if rev.is_empty() == false {
+            bwarns = true;
+        }
+    }
+
     //-- bye-bye
     if bwarns == false {
         summary_and_bye(1);

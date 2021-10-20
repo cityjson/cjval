@@ -504,7 +504,7 @@ impl CJValidator {
                 for g in x.unwrap() {
                     if g["type"] == "MultiSurface" || g["type"] == "CompositeSurface" {
                         let aa: GeomMSu = serde_json::from_value(g.clone()).unwrap();
-                        let re = above_max_index_msur(&aa.boundaries, max_index);
+                        let re = above_max_index_msu(&aa.boundaries, max_index);
                         if re.is_err() {
                             ls_errors.push(re.err().unwrap());
                         }
@@ -526,9 +526,83 @@ impl CJValidator {
         }
         ls_errors
     }
+
+    pub fn unused_vertices(&self) -> Vec<String> {
+        let mut ls_errors: Vec<String> = Vec::new();
+        let mut uniques: HashSet<usize> = HashSet::new();
+        let cos = self.j.get("CityObjects").unwrap().as_object().unwrap();
+        for theid in cos.keys() {
+            let x = self.j["CityObjects"][theid]["geometry"].as_array();
+            if x.is_some() {
+                let gs = x.unwrap();
+                for g in gs {
+                    if g["type"] == "MultiSurface" || g["type"] == "CompositeSurface" {
+                        let gv: GeomMSu = serde_json::from_value(g.clone()).unwrap();
+                        collect_indices_msu(&gv.boundaries, &mut uniques);
+                    } else if g["type"] == "Solid" {
+                        let gv: GeomSol = serde_json::from_value(g.clone()).unwrap();
+                        collect_indices_sol(&gv.boundaries, &mut uniques);
+                    } else if g["type"] == "MultiSolid" || g["type"] == "CompositeSolid" {
+                        let gv: GeomMSol = serde_json::from_value(g.clone()).unwrap();
+                        collect_indices_msol(&gv.boundaries, &mut uniques);
+                    }
+                }
+            }
+        }
+        let noorphans = self.j["vertices"].as_array().unwrap().len() - uniques.len();
+        if noorphans > 0 {
+            if noorphans > 5 {
+                ls_errors.push(format!("{} vertices are unused", noorphans));
+            } else {
+                let total = self.j["vertices"].as_array().unwrap().len();
+                for each in 0..total {
+                    if !uniques.contains(&each) {
+                        ls_errors.push(format!("vertex #{} is unused", each));
+                    }
+                }
+            }
+        }
+        ls_errors
+    }
 }
 
-fn above_max_index_msur(a: &Vec<Vec<Vec<usize>>>, max_index: usize) -> Result<(), String> {
+fn collect_indices_msu(a: &Vec<Vec<Vec<usize>>>, uniques: &mut HashSet<usize>) {
+    for x in a {
+        for y in x {
+            for z in y {
+                uniques.insert(*z);
+            }
+        }
+    }
+}
+
+fn collect_indices_sol(a: &Vec<Vec<Vec<Vec<usize>>>>, uniques: &mut HashSet<usize>) {
+    for x in a {
+        for y in x {
+            for z in y {
+                for w in z {
+                    uniques.insert(*w);
+                }
+            }
+        }
+    }
+}
+
+fn collect_indices_msol(a: &Vec<Vec<Vec<Vec<Vec<usize>>>>>, uniques: &mut HashSet<usize>) {
+    for x in a {
+        for y in x {
+            for z in y {
+                for w in z {
+                    for q in w {
+                        uniques.insert(*q);
+                    }
+                }
+            }
+        }
+    }
+}
+
+fn above_max_index_msu(a: &Vec<Vec<Vec<usize>>>, max_index: usize) -> Result<(), String> {
     let mut r: Vec<usize> = vec![];
     for x in a {
         for y in x {
