@@ -1,0 +1,61 @@
+{
+    "type": "CityJSON",
+    "version": "1.1",
+    "CityObjects":
+    {
+        "LondonTower":
+        {
+            "type": "Building",
+            "children":
+            [
+                "oneroom"
+            ]
+        },
+        "oneroom":
+        {
+            "type": "BuildingRoom",
+            "parents":
+            [
+                "LondonTower"
+            ]
+        }
+    },
+    "vertices": [
+        [
+            0,
+            0,
+            0
+        ],
+        [
+            1000,
+            0,
+            0
+        ],
+        [
+            1000,
+            1000,
+            0
+        ],
+        [
+            1000,
+            0,
+            0
+        ]
+
+    ],
+    "transform":
+    {
+        "scale":
+        [
+            0.001,
+            0.001,
+            0.001
+        ],
+        "translate":
+        [
+            0.0,
+            0.0,
+            0.0
+        ]
+    }
+}
