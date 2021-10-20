@@ -99,10 +99,7 @@ fn main() {
     println!("  {:?}", p1);
 
     //-- ERRORS
-    // use ansi_term::Colour::Blue;
-    // println!("{}", Blue.paint("da ba dee"));
     println!("{}", Style::new().bold().paint("=== JSON syntax ==="));
-    // println!("{}", Blue.paint("=== JSON syntax ==="));
     let re = CJValidator::from_str(&s1);
     if re.is_err() {
         let s = format!("Invalid JSON file: {:?}", re.as_ref().err().unwrap());
@@ -173,7 +170,6 @@ fn main() {
                 let l: Vec<&str> = efiles.collect();
                 for s in l {
                     let s2 = std::fs::read_to_string(s).expect("Couldn't read Extension file");
-                    // exts.push(s2);
                     let scanon = Path::new(s).canonicalize().unwrap();
                     let re = val.add_one_extension_from_str(&scanon.to_str().unwrap(), &s2);
                     match re {
