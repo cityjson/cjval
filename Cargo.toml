@@ -16,14 +16,21 @@ jsonschema = { version = "0.12.0", default-features = false }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 serde_with = "1.10.0"
-structopt = "0.3.23"
-url = "2.2.2"
-ansi_term = "0.12"
-reqwest = "0.11.5"
-tokio = { version = "1", features = ["full"] }
 anyhow = "1.0.31"
+url = { version = "2.2.2", optional = true }
+ansi_term = { version = "0.12", optional = true }
+reqwest = { version = "0.11.5", optional = true }
+tokio = { version = "1", features = ["full"], optional = true }
 
 [dependencies.clap]
 version = "2"
 default-features = false
 features = ["suggestions", "color", "wrap_help"]
+
+[features]
+build-binary = ["url", "ansi_term", "reqwest", "tokio"]
+
+[[bin]]
+name = "cjval"
+path = "src/bin/cjval.rs"
+required-features = ["build-binary"]
