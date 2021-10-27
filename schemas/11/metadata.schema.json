@@ -69,17 +69,17 @@
   "metadata": {
     "type": "object",
     "properties": {
-      "citymodelIdentifier": {
+      "identifier": {
         "type": "string"
       },
-      "datasetPointOfContact": {
+      "pointOfContact": {
         "$ref": "#/definitions/contactDetails"
       },
-      "datasetReferenceDate": {
+      "referenceDate": {
         "type": "string",
         "format": "date"
       },
-      "datasetTitle": {
+      "title": {
         "type": "string"
       },
       "geographicalExtent": {
