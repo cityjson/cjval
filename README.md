@@ -58,7 +58,7 @@ If instead you want to use your own schema(s), you can pass them instead with th
 
 ## Web application
 
-The same code is use for (https://validator.cityjson.org)[https://validator.cityjson.org]
+The same code is use for [https://validator.cityjson.org](https://validator.cityjson.org)
 
 The code is there: [https://github.com/cityjson/cjval_wasm](https://github.com/cityjson/cjval_wasm)
 
