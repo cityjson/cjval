@@ -25,7 +25,6 @@ It also verifies the following, these are not errors since the file is still con
 
 
 
-
 ## Usage
 
 The [CityJSON schemas](https://www.cityjson.org/schemas/) are built-in the program, so it suffices to:
@@ -59,18 +58,18 @@ If instead you want to use your own schema(s), you can pass them instead with th
 
 ## Web application
 
+The same code is use for (https://validator.cityjson.org)[https://validator.cityjson.org]
 
+The code is there: [https://github.com/cityjson/cjval_wasm](https://github.com/cityjson/cjval_wasm)
 
 ## Installation/compilation
 
 1. install the [Rust compiler](https://www.rust-lang.org/learn/get-started)
-2. `cargo build --release`
+2. `cargo build --release --features build-binary`
 3. `./target/release/cjval myfile.json`
-
-
 
 
 ## Contributors
 
-- @josfeenstra (started the project for a [course at TU Delft](https://3d.bk.tudelft.nl/courses/geo5010/), [original code](https://github.com/josfeenstra/cjval))
-- @hugoledoux
+- [@hugoledoux](https://github.com/hugoledoux/)
+- [@josfeenstra](https://github.com/josfeenstra/) (started the project for a [course at TU Delft](https://3d.bk.tudelft.nl/courses/geo5010/), [original code](https://github.com/josfeenstra/cjval))
