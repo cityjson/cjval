@@ -4,7 +4,7 @@
 [![GitHub license](https://img.shields.io/github/license/cityjson/cjval)](https://github.com/cityjson/cjval/blob/main/LICENSE)
 
 
-A validator for CityJSON files, it validates a CityJSON against its [schemas](https://www.cityjson.org/schemas) and additional functions have been implemented (because these can't be expressed with [JSON Schema](https://json-schema.org/)).
+A validator for [CityJSON files](https://cityjson.org), it validates against the [CityJSON schemas](https://www.cityjson.org/schemas) and additional functions have been implemented (because these can't be expressed with [JSON Schema](https://json-schema.org/)).
 
 
 ## What is validated exactly?
@@ -28,14 +28,23 @@ It also verifies the following, these are not errors since the file is still con
 
 ## Installation/compilation
 
+### To compile the project
+
 1. install the [Rust compiler](https://www.rust-lang.org/learn/get-started)
-2. `cargo build --release --features build-binary`
-3. `./target/release/cjval myfile.json`
+2. `git clone https://github.com/cityjson/cjval.git`
+3. `cargo build --release --features build-binary`
+4. `./target/release/cjval myfile.json`
+
+
+### To install only the binary on your system
+
+1. install the [Rust compiler](https://www.rust-lang.org/learn/get-started)
+2. `cargo install cjval --features build-binary`
 
 
 ## Web application
 
-The code is use for [https://validator.cityjson.org](https://validator.cityjson.org), that is it is compiled as WebAssembly ([WASM code here](https://github.com/cityjson/cjval_wasm)).
+The code is use at [https://validator.cityjson.org](https://validator.cityjson.org), that is it is compiled as WebAssembly ([WASM code here](https://github.com/cityjson/cjval_wasm)).
 
 
 ## CLI Usage
@@ -68,7 +77,6 @@ then `cjval` will fetch/download automatically the schema(s).
 If instead you want to use your own local Extension schema(s), you can pass them as argument with the argument `-e`:
 
     $ cjval myfile.city.json -e ./myextensions/generic.ext.json
-
 
 
 ## Contributors
