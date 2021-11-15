@@ -1,5 +1,8 @@
+# cjval: a validator for CityJSON files
 
-# cjval -- CityJSON validator
+[![crates.io](https://img.shields.io/crates/v/cjval.svg)](https://crates.io/crates/cjval)
+[![GitHub license](https://img.shields.io/github/license/cityjson/cjval)](https://github.com/cityjson/cjval/blob/main/LICENSE)
+
 
 A validator for CityJSON files, it validates a CityJSON against its [schemas](https://www.cityjson.org/schemas) and additional functions have been implemented (because these can't be expressed with [JSON Schema](https://json-schema.org/)).
 
@@ -18,16 +21,26 @@ The following is performed by `cjval`:
 
 It also verifies the following, these are not errors since the file is still considered valid and usable, but they can make the file larger and some parsers might not understand all the properties:
 
-
   1. *extra_root_properties*: if CityJSON has extra root properties, these should be documented in an Extension. If not this warning is returned
   1. *duplicate_vertices*: duplicated vertices in `vertices` are allowed, but they take up spaces and decreases the topological relationships explicitly in the file. If there are any, [cjio](https://github.com/cityjson/cjio) has the operator `clean` to fix this automatically.
   1. *unused_vertices*: vertices that are not referenced in the file, they take extra space. If there are any, [cjio](https://github.com/cityjson/cjio) has the operator `clean` to fix this automatically.
 
 
+## Installation/compilation
 
-## Usage
+1. install the [Rust compiler](https://www.rust-lang.org/learn/get-started)
+2. `cargo build --release --features build-binary`
+3. `./target/release/cjval myfile.json`
 
-The [CityJSON schemas](https://www.cityjson.org/schemas/) are built-in the program, so it suffices to:
+
+## Web application
+
+The code is use for [https://validator.cityjson.org](https://validator.cityjson.org), that is it is compiled as WebAssembly ([WASM code here](https://github.com/cityjson/cjval_wasm)).
+
+
+## CLI Usage
+
+The [CityJSON schemas](https://www.cityjson.org/schemas/) are built-in the binary, so it suffices to:
 
     $ cjval myfile.city.json
 
@@ -47,26 +60,15 @@ If the file contains one or more [Extensions](https://www.cityjson.org/extension
       "version": "1.0"
     }
   }
+...  
 ```
 
-Then `cjval` will fetch/download automatically the schema(s).
+then `cjval` will fetch/download automatically the schema(s).
 
-If instead you want to use your own schema(s), you can pass them instead with the argument `-e`:
+If instead you want to use your own local Extension schema(s), you can pass them as argument with the argument `-e`:
 
     $ cjval myfile.city.json -e ./myextensions/generic.ext.json
 
-
-## Web application
-
-The same code is use for [https://validator.cityjson.org](https://validator.cityjson.org)
-
-The code is there: [https://github.com/cityjson/cjval_wasm](https://github.com/cityjson/cjval_wasm)
-
-## Installation/compilation
-
-1. install the [Rust compiler](https://www.rust-lang.org/learn/get-started)
-2. `cargo build --release --features build-binary`
-3. `./target/release/cjval myfile.json`
 
 
 ## Contributors
