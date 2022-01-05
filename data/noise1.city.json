@@ -1,0 +1,28 @@
+{
+  "type": "CityJSON",
+  "version": "1.1",
+  "extensions": {
+    "Noise": {
+      "url" : "https://someurl.org/noise.json",
+      "version": "1.0"
+    }
+  },
+  "CityObjects": {
+    "un": {
+      "type": "Building", 
+      "attributes": { 
+        "storeysAboveGround": 2,
+        "+noise-buildingReflection": "ledoux",
+        "+noise-buildingLDenMax": { 
+          "value": 11.2,
+          "uom": "meter"
+        }
+      }
+    }
+  },
+  "vertices": [],
+  "transform": {
+    "scale": [0.0, 0.0, 0.0],
+    "translate": [1.0, 1.0, 1.0]
+  }
+}
