@@ -19,16 +19,16 @@ use std::collections::HashSet;
 //  # duplicate_vertices
 //  # unused_vertices
 
-static EXTENSION_FIXED_NAMES: [&str; 9] = [
+static EXTENSION_FIXED_NAMES: [&str; 6] = [
     "type",
     "name",
     "uri",
     "version",
     "versionCityJSON",
     "description",
-    "extraAttributes",
-    "extraCityObjects",
-    "extraRootProperties",
+    // "extraAttributes",
+    // "extraCityObjects",
+    // "extraRootProperties",
 ];
 
 pub static CITYJSON_VERSIONS: [&str; 2] = ["1.0.3", "1.1.0"];
