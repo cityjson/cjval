@@ -34,3 +34,8 @@ build-binary = ["url", "ansi_term", "reqwest", "tokio"]
 name = "cjval"
 path = "src/bin/cjval.rs"
 required-features = ["build-binary"]
+
+[[bin]]
+name = "cjvalext"
+path = "src/bin/cjvalext.rs"
+required-features = ["build-binary"]
