@@ -1,15 +1,8 @@
-use ansi_term::Style;
-
 #[macro_use]
 extern crate clap;
-use anyhow::{anyhow, Result};
 use clap::{App, AppSettings, Arg};
 use jsonschema::{Draft, JSONSchema};
-use serde::{Deserialize, Serialize};
-use serde_json::json;
 use serde_json::Value;
-use std::path::Path;
-use url::Url;
 
 static CITYJSON_FILES: [&str; 4] = [
     "cityobjects.schema.json",
@@ -39,21 +32,16 @@ fn main() {
     let matches = app.get_matches();
 
     //-- fetch the instance (the Extension)
-    let p1 = Path::new(matches.value_of("INPUT").unwrap())
-        .canonicalize()
-        .unwrap();
     let s1 = std::fs::read_to_string(&matches.value_of("INPUT").unwrap())
         .expect("Couldn't read CityJSON Extension file");
-    // println!("  {:?}", p1);
     let re: Result<Value, _> = serde_json::from_str(&s1);
     if re.is_err() {
         println!("errors: {:?}", re.as_ref().err().unwrap());
-        // return Err(re.err().unwrap().to_string());
     }
     let j: Value = re.unwrap();
 
     //-- fetch the correct schema
-    let mut schema_str = include_str!("../../schemas/extensions/extension.schema.json");
+    let schema_str = include_str!("../../schemas/extensions/extension.schema.json");
     let schema = serde_json::from_str(schema_str).unwrap();
     let compiled = JSONSchema::options()
         .with_draft(Draft::Draft7)
@@ -65,7 +53,7 @@ fn main() {
         for error in errors {
             let s: String = format!("{} [path:{}]", error, error.instance_path);
             // ls_errors.push(s);
-            println!("{}", s);
+            println!("ERROR: {}", s);
         }
     }
 
