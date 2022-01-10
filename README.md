@@ -28,18 +28,18 @@ It also verifies the following, these are not errors since the file is still con
 
 ## Installation/compilation
 
-### To compile the project
+### To install the binary on your system easily
+
+1. install the [Rust compiler](https://www.rust-lang.org/learn/get-started)
+2. `cargo install cjval --features build-binary`
+
+
+### To compile the project (and eventually modify it)
 
 1. install the [Rust compiler](https://www.rust-lang.org/learn/get-started)
 2. `git clone https://github.com/cityjson/cjval.git`
 3. `cargo build --release --features build-binary`
 4. `./target/release/cjval myfile.json`
-
-
-### To install only the binary on your system
-
-1. install the [Rust compiler](https://www.rust-lang.org/learn/get-started)
-2. `cargo install cjval --features build-binary`
 
 
 ## Web application
