@@ -449,15 +449,11 @@ impl CJValidator {
                 let thechildrenkeys = co.get("children").unwrap().as_array().unwrap();
                 for ckey in thechildrenkeys {
                     if !cos.contains_key(ckey.as_str().unwrap()) {
-                        let s =
-                            format!("CityObject #{} doesn't exit [referenced by #{}]", ckey, key);
-                        ls_errors.push(s);
-                    }
-                }
-                for ckey in thechildrenkeys {
-                    if !cos.contains_key(ckey.as_str().unwrap()) {
-                        let s =
-                            format!("CityObject #{} doesn't exit (referenced by #{}", ckey, key);
+                        let s = format!(
+                            "CityObject #{} doesn't exist (referenced by #{})",
+                            ckey.as_str().unwrap(),
+                            key
+                        );
                         ls_errors.push(s);
                     } else {
                         if (!cos
