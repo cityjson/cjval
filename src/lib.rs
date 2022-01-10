@@ -474,8 +474,9 @@ impl CJValidator {
                                 .contains(&json!(key)))
                         {
                             let s = format!(
-                                "CityObject #{} doesn't reference correct parent ({})",
-                                ckey, key
+                                "CityObject #{} doesn't reference correct parent (#{})",
+                                ckey.as_str().unwrap(),
+                                key
                             );
                             ls_errors.push(s);
                         }
@@ -491,8 +492,9 @@ impl CJValidator {
                 for pkey in theparentkeys {
                     if !cos.contains_key(pkey.as_str().unwrap()) {
                         let s = format!(
-                            "CityObject #{} is an orphan [parent #{} doesn't exist]",
-                            key, pkey
+                            "CityObject #{} is an orphan (parent #{} doesn't exist)",
+                            key,
+                            pkey.as_str().unwrap()
                         );
                         ls_errors.push(s);
                     }
