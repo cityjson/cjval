@@ -11,9 +11,25 @@
     "un": {
       "type": "Building", 
       "attributes": { 
-        "storeysAboveGround": 2,
-        "+noise-buildingReflection": "ledoux",
+        "storeysAboveGround": "2",
+        "+noise-buildingReflection": "just a string",
         "+noise-buildingLDenMax": { 
+          "value": 11.2,
+          "uom": "meter"
+        }
+      }
+    },
+    "deux": {
+      "type": "CityFurniture",
+      "geometry": [],
+      "children": ["trois"]
+    },
+    "trois": {
+      "type": "+NoiseCityFurnitureSegment", 
+      "parents": ["deux"],
+      "geometry": [],
+      "attributes": { 
+        "reflectionCorrection": { 
           "value": 11.2,
           "uom": "meter"
         }
