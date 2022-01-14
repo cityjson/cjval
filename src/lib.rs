@@ -594,7 +594,19 @@ impl CJValidator {
             if x.is_some() {
                 let gs = x.unwrap();
                 for g in gs {
-                    if g["type"] == "MultiSurface" || g["type"] == "CompositeSurface" {
+                    if g["type"] == "MultiPoint" {
+                        let a: GeomMPo = serde_json::from_value(g.clone()).unwrap();
+                        for each in a.boundaries {
+                            uniques.insert(each);
+                        }
+                    } else if g["type"] == "MultiLineString" {
+                        let a: GeomMLS = serde_json::from_value(g.clone()).unwrap();
+                        for l in a.boundaries {
+                            for each in l {
+                                uniques.insert(each);
+                            }
+                        }
+                    } else if g["type"] == "MultiSurface" || g["type"] == "CompositeSurface" {
                         let gv: GeomMSu = serde_json::from_value(g.clone()).unwrap();
                         collect_indices_msu(&gv.boundaries, &mut uniques);
                     } else if g["type"] == "Solid" {
