@@ -34,6 +34,14 @@ static EXTENSION_FIXED_NAMES: [&str; 6] = [
 pub static CITYJSON_VERSIONS: [&str; 2] = ["1.0.3", "1.1.0"];
 
 #[derive(Serialize, Deserialize, Debug)]
+struct GeomMPo {
+    boundaries: Vec<usize>,
+}
+#[derive(Serialize, Deserialize, Debug)]
+struct GeomMLS {
+    boundaries: Vec<Vec<usize>>,
+}
+#[derive(Serialize, Deserialize, Debug)]
 struct GeomMSu {
     boundaries: Vec<Vec<Vec<usize>>>,
 }
@@ -534,21 +542,39 @@ impl CJValidator {
             let x = self.j["CityObjects"][key]["geometry"].as_array();
             if x.is_some() {
                 for g in x.unwrap() {
-                    if g["type"] == "MultiSurface" || g["type"] == "CompositeSurface" {
-                        let aa: GeomMSu = serde_json::from_value(g.clone()).unwrap();
-                        let re = above_max_index_msu(&aa.boundaries, max_index);
+                    if g["type"] == "MultiPoint" {
+                        let a: GeomMPo = serde_json::from_value(g.clone()).unwrap();
+                        for each in a.boundaries {
+                            if each >= max_index {
+                                let s2 = format!("Vertices {} don't exist", each);
+                                ls_errors.push(s2);
+                            }
+                        }
+                    } else if g["type"] == "MultiLineString" {
+                        let a: GeomMLS = serde_json::from_value(g.clone()).unwrap();
+                        for l in a.boundaries {
+                            for each in l {
+                                if each >= max_index {
+                                    let s2 = format!("Vertices {} don't exist", each);
+                                    ls_errors.push(s2);
+                                }
+                            }
+                        }
+                    } else if g["type"] == "MultiSurface" || g["type"] == "CompositeSurface" {
+                        let a: GeomMSu = serde_json::from_value(g.clone()).unwrap();
+                        let re = above_max_index_msu(&a.boundaries, max_index);
                         if re.is_err() {
                             ls_errors.push(re.err().unwrap());
                         }
                     } else if g["type"] == "Solid" {
-                        let aa: GeomSol = serde_json::from_value(g.clone()).unwrap();
-                        let re = above_max_index_sol(&aa.boundaries, max_index);
+                        let a: GeomSol = serde_json::from_value(g.clone()).unwrap();
+                        let re = above_max_index_sol(&a.boundaries, max_index);
                         if re.is_err() {
                             ls_errors.push(re.err().unwrap());
                         }
                     } else if g["type"] == "MultiSolid" || g["type"] == "CompositeSolid" {
-                        let aa: GeomMSol = serde_json::from_value(g.clone()).unwrap();
-                        let re = above_max_index_msol(&aa.boundaries, max_index);
+                        let a: GeomMSol = serde_json::from_value(g.clone()).unwrap();
+                        let re = above_max_index_msol(&a.boundaries, max_index);
                         if re.is_err() {
                             ls_errors.push(re.err().unwrap());
                         }
