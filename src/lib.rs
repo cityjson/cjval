@@ -578,6 +578,14 @@ impl CJValidator {
                         if re.is_err() {
                             ls_errors.push(re.err().unwrap());
                         }
+                    } else if g["type"] == "GeometryInstance" {
+                        let a: GeomMPo = serde_json::from_value(g.clone()).unwrap();
+                        for each in a.boundaries {
+                            if each >= max_index {
+                                let s2 = format!("Vertex {} doesn't exist (in #{})", each, key);
+                                ls_errors.push(s2);
+                            }
+                        }
                     }
                 }
             }
@@ -615,6 +623,11 @@ impl CJValidator {
                     } else if g["type"] == "MultiSolid" || g["type"] == "CompositeSolid" {
                         let gv: GeomMSol = serde_json::from_value(g.clone()).unwrap();
                         collect_indices_msol(&gv.boundaries, &mut uniques);
+                    } else if g["type"] == "GeometryInstance" {
+                        let a: GeomMPo = serde_json::from_value(g.clone()).unwrap();
+                        for each in a.boundaries {
+                            uniques.insert(each);
+                        }
                     }
                 }
             }
