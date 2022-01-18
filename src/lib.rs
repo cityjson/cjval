@@ -660,7 +660,11 @@ impl CJValidator {
                     if g.get("semantics").is_none() {
                         continue;
                     }
-                    if g["type"] == "MultiSurface" || g["type"] == "CompositeSurface" {
+                    if g["type"] == "MultiPoint"
+                        || g["type"] == "MultiLineString"
+                        || g["type"] == "MultiSurface"
+                        || g["type"] == "CompositeSurface"
+                    {
                         //-- length of the sem-surfaces == # of surfaces
                         if g["boundaries"].as_array().unwrap().len()
                             != g["semantics"]["values"].as_array().unwrap().len()
