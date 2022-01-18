@@ -627,7 +627,7 @@ impl CJValidator {
                 let total = self.j["vertices"].as_array().unwrap().len();
                 for each in 0..total {
                     if !uniques.contains(&each) {
-                        ls_errors.push(format!("vertex #{} is unused", each));
+                        ls_errors.push(format!("Vertex #{} is unused", each));
                     }
                 }
             }
