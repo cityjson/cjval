@@ -1,7 +1,7 @@
 [package]
 name = "cjval"
-version = "0.4.0"
-description = "CityJSON validator"
+version = "0.4.1"
+description = "Validation of CityJSON files against its schemas"
 authors = ["Hugo Ledoux <h.ledoux@tudelft.nl>"]
 edition = "2018"
 license = "MIT"
