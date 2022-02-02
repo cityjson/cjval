@@ -1,6 +1,10 @@
 # Changelog
 
 
+## [0.4.2] - 2022-02-02
+### Modified
+- fix bug where v1.0 files were validated with the v1.1 schema
+
 ## [0.4.1] - 2022-02-02
 ### Modified
 - fix bugs related to the warnings for ignoring vertices in GeometryTemplate and "address" and MultiPoint and MultiLineString 
