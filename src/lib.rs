@@ -110,10 +110,9 @@ impl CJValidator {
             v.version_schema = vs.get(34..39).unwrap().to_string();
         } else if v.j["version"] == "1.0" {
             v.version_file = 10;
-            let schema_str = include_str!("../schemas/11/cityjson.min.schema.json");
+            let schema_str = include_str!("../schemas/10/cityjson.min.schema.json");
             v.jschema = serde_json::from_str(schema_str).unwrap();
-            let vs = &v.jschema["$id"].to_string();
-            v.version_schema = vs.get(34..39).unwrap().to_string();
+            v.version_schema = "1.0.3".to_string();
         }
         //-- check for duplicate keys in CO object
         let re: Result<Doc, _> = serde_json::from_str(&str_dataset);
