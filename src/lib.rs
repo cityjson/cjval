@@ -562,6 +562,7 @@ impl CJValidator {
         let mut ls_errors: Vec<String> = Vec::new();
         let cos = self.j.get("CityObjects").unwrap().as_object().unwrap();
         for key in cos.keys() {
+            //-- check geometry
             let x = self.j["CityObjects"][key]["geometry"].as_array();
             if x.is_some() {
                 for g in x.unwrap() {
@@ -612,6 +613,27 @@ impl CJValidator {
                     }
                 }
             }
+            //-- check address
+            if self.j["CityObjects"][key]["type"] == "Building"
+                || self.j["CityObjects"][key]["type"] == "BuildingPart"
+                || self.j["CityObjects"][key]["type"] == "BuildingUnit"
+                || self.j["CityObjects"][key]["type"] == "Bridge"
+                || self.j["CityObjects"][key]["type"] == "BridgePart"
+            {
+                let x = self.j["CityObjects"][key]["address"].as_array();
+                if x.is_some() {
+                    for ad in x.unwrap() {
+                        let t = ad.pointer("/location/boundaries");
+                        if t.is_some() {
+                            let i = t.unwrap().get(0).unwrap().as_u64().unwrap();
+                            if (i as usize) >= max_index {
+                                let s2 = format!("Vertices {} don't exist", i);
+                                ls_errors.push(s2);
+                            }
+                        }
+                    }
+                }
+            }
         }
         ls_errors
     }
@@ -620,8 +642,9 @@ impl CJValidator {
         let mut ls_errors: Vec<String> = Vec::new();
         let mut uniques: HashSet<usize> = HashSet::new();
         let cos = self.j.get("CityObjects").unwrap().as_object().unwrap();
-        for theid in cos.keys() {
-            let x = self.j["CityObjects"][theid]["geometry"].as_array();
+        for key in cos.keys() {
+            //-- check geometry
+            let x = self.j["CityObjects"][key]["geometry"].as_array();
             if x.is_some() {
                 let gs = x.unwrap();
                 for g in gs {
@@ -650,6 +673,24 @@ impl CJValidator {
                         let a: GeomMPo = serde_json::from_value(g.clone()).unwrap();
                         for each in a.boundaries {
                             uniques.insert(each);
+                        }
+                    }
+                }
+            }
+            //-- check address
+            if self.j["CityObjects"][key]["type"] == "Building"
+                || self.j["CityObjects"][key]["type"] == "BuildingPart"
+                || self.j["CityObjects"][key]["type"] == "BuildingUnit"
+                || self.j["CityObjects"][key]["type"] == "Bridge"
+                || self.j["CityObjects"][key]["type"] == "BridgePart"
+            {
+                let x = self.j["CityObjects"][key]["address"].as_array();
+                if x.is_some() {
+                    for ad in x.unwrap() {
+                        let t = ad.pointer("/location/boundaries");
+                        if t.is_some() {
+                            let i = t.unwrap().get(0).unwrap().as_u64().unwrap();
+                            uniques.insert(i as usize);
                         }
                     }
                 }
