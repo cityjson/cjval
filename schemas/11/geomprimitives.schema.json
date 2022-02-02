@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://www.cityjson.org/schemas/1.1.0/geomprimitives.schema.json",
-  "title": "CityJSON geometric primitives schema v1.1.0",
+  "$id": "https://www.cityjson.org/schemas/1.1.1/geomprimitives.schema.json",
+  "title": "CityJSON geometric primitives schema v1.1.1",
   "Semantics": {
     "type": "object",
     "properties": {
@@ -48,6 +48,21 @@
               "Door"
             ]
           },
+          {
+            "enum": [
+              "InteriorWallSurface"
+            ]
+          },
+          {
+            "enum": [
+              "CeilingSurface"
+            ]
+          },
+          {
+            "enum": [
+              "FloorSurface"
+            ]
+          },                              
           {
             "enum": [
               "WaterSurface"
@@ -786,7 +801,34 @@
             "type": "integer"
           }
         }
-      }
+      },
+      "semantics": {
+        "type": "object",
+        "properties": {
+          "surfaces": {
+            "type": "array",
+            "items": {
+              "$ref": "#/Semantics"
+            }
+          },
+          "values": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            }
+          }
+        },
+        "required": [
+          "surfaces",
+          "values"
+        ]
+      }      
     },
     "required": [
       "type",
@@ -812,7 +854,34 @@
         "items": {
           "type": "integer"
         }
-      }
+      },
+      "semantics": {
+        "type": "object",
+        "properties": {
+          "surfaces": {
+            "type": "array",
+            "items": {
+              "$ref": "#/Semantics"
+            }
+          },
+          "values": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            }
+          }
+        },
+        "required": [
+          "surfaces",
+          "values"
+        ]
+      }      
     },
     "required": [
       "type",
