@@ -31,7 +31,7 @@ static EXTENSION_FIXED_NAMES: [&str; 6] = [
     // "extraRootProperties",
 ];
 
-pub static CITYJSON_VERSIONS: [&str; 2] = ["1.0.3", "1.1.0"];
+static CITYJSON_V10_VERSION: &str = "1.0.3";
 
 #[derive(Serialize, Deserialize, Debug)]
 struct GeomMPo {
@@ -60,12 +60,26 @@ struct Doc {
     CityObjects: HashMap<String, Value>,
 }
 
+pub fn get_cityjson_schema_all_versions() -> Vec<String> {
+    let mut l: Vec<String> = Vec::new();
+    //-- v1.0
+    l.push(CITYJSON_V10_VERSION.to_string());
+    //-- v1.1
+    let schema_str = include_str!("../schemas/11/cityjson.min.schema.json");
+    let schema: Value = serde_json::from_str(schema_str).unwrap();
+    let vs = &schema["$id"].to_string();
+    l.push(vs.get(34..39).unwrap().to_string());
+    l
+}
+
 #[derive(Debug)]
 pub struct CJValidator {
     j: Value,
+    jschema: Value,
     jexts: HashMap<String, Value>,
     duplicate_keys: bool,
-    version: i32,
+    version_file: i32,
+    version_schema: String,
 }
 
 impl CJValidator {
@@ -73,9 +87,11 @@ impl CJValidator {
         let l: HashMap<String, Value> = HashMap::new();
         let mut v = CJValidator {
             j: json!(null),
+            jschema: json!(null),
             jexts: l,
             duplicate_keys: false,
-            version: 0,
+            version_file: 0,
+            version_schema: "none".to_string(),
         };
         //-- parse the dataset and convert to JSON
         let re: Result<Value, _> = serde_json::from_str(&str_dataset);
@@ -87,9 +103,17 @@ impl CJValidator {
         v.j = j;
         //-- check cityjson version
         if v.j["version"] == "1.1" {
-            v.version = 11;
+            v.version_file = 11;
+            let schema_str = include_str!("../schemas/11/cityjson.min.schema.json");
+            v.jschema = serde_json::from_str(schema_str).unwrap();
+            let vs = &v.jschema["$id"].to_string();
+            v.version_schema = vs.get(34..39).unwrap().to_string();
         } else if v.j["version"] == "1.0" {
-            v.version = 10;
+            v.version_file = 10;
+            let schema_str = include_str!("../schemas/11/cityjson.min.schema.json");
+            v.jschema = serde_json::from_str(schema_str).unwrap();
+            let vs = &v.jschema["$id"].to_string();
+            v.version_schema = vs.get(34..39).unwrap().to_string();
         }
         //-- check for duplicate keys in CO object
         let re: Result<Doc, _> = serde_json::from_str(&str_dataset);
@@ -135,7 +159,11 @@ impl CJValidator {
     }
 
     pub fn get_input_cityjson_version(&self) -> i32 {
-        self.version
+        self.version_file
+    }
+
+    pub fn get_cityjson_schema_version(&self) -> String {
+        self.version_schema.to_owned()
     }
 
     pub fn validate_schema(&self) -> Vec<String> {
@@ -143,22 +171,17 @@ impl CJValidator {
             return vec!["Not a valid JSON file".to_string()];
         }
         //-- which cityjson version
-        if self.version == 0 {
+        if self.version_file == 0 {
             let s: String = format!(
                 "CityJSON version {} not supported [only \"1.0\" and \"1.1\"]",
                 self.j["version"]
             );
             return vec![s];
         }
-        //-- fetch the correct schema
-        let mut schema_str = include_str!("../schemas/10/cityjson.min.schema.json");
-        if self.version == 11 {
-            schema_str = include_str!("../schemas/11/cityjson.min.schema.json");
-        }
-        let schema = serde_json::from_str(schema_str).unwrap();
+
         let compiled = JSONSchema::options()
             .with_draft(Draft::Draft7)
-            .compile(&schema)
+            .compile(&self.jschema)
             .expect("A valid schema");
         let result = compiled.validate(&self.j);
         let mut ls_errors: Vec<String> = Vec::new();

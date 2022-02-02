@@ -47,7 +47,13 @@ fn summary_and_bye(finalresult: i32) {
 
 fn main() {
     // Enable ANSI support for Windows
-    let desc = format!("{} (supports CityJSON v1.0 + v1.1)", crate_description!());
+    let sversions: Vec<String> = cjval::get_cityjson_schema_all_versions();
+    let desc = format!(
+        "{}\nSupports CityJSON v1.0 + v1.1 (schemas v{} + v{} are used)",
+        crate_description!(),
+        sversions[0],
+        sversions[1]
+    );
     #[cfg(windows)]
     let _ = ansi_term::enable_ansi_support();
     let app = App::new(crate_name!())
@@ -104,18 +110,11 @@ fn main() {
 
     //-- validate against schema
     println!("{}", Style::new().bold().paint("=== CityJSON schemas ==="));
-    let version = val.get_input_cityjson_version();
-    match version {
-        10 => println!(
-            "CityJSON schemas used: v{} (builtin)",
-            cjval::CITYJSON_VERSIONS[0]
-        ),
-        11 => println!(
-            "CityJSON schemas used: v{} (builtin)",
-            cjval::CITYJSON_VERSIONS[1]
-        ),
-        _ => {}
-    }
+    // let version = val.get_input_cityjson_version();
+    println!(
+        "CityJSON schemas used: v{} (builtin)",
+        val.get_cityjson_schema_version()
+    );
     let mut rev = val.validate_schema();
     print_errors(&rev);
     if rev.is_empty() == false {
