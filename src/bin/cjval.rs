@@ -77,8 +77,8 @@ fn main() {
                 .takes_value(true)
                 .help(
                     "Read the CityJSON Extensions files locally. More than one can \
-                     be given. By default the Extension schemas are download, this \
-                     overwrites this behaviour",
+                     be given. By default the Extension schemas are automatically \
+                     downloaded, this overwrites this behaviour",
                 ),
         );
     let matches = app.get_matches();
