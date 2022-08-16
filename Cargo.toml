@@ -15,7 +15,7 @@ repository = "https://github.com/cityjson/cjval"
 jsonschema = { version = "0.12.0", default-features = false }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-serde_with = "1.10.0"
+serde_with = "2.0.0"
 anyhow = "1.0.31"
 url = { version = "2.2.2", optional = true }
 ansi_term = { version = "0.12", optional = true }

@@ -53,8 +53,9 @@ struct GeomSol {
 struct GeomMSol {
     boundaries: Vec<Vec<Vec<Vec<Vec<usize>>>>>,
 }
+
 #[allow(non_snake_case)]
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, PartialEq)]
 struct Doc {
     #[serde(with = "::serde_with::rust::maps_duplicate_key_is_error")]
     CityObjects: HashMap<String, Value>,
