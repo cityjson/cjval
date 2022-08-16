@@ -1,6 +1,11 @@
 # Changelog
 
 
+## [0.4.3] - 2022-08-16
+### Modified
+- upgraded the schemas to v1.1.2
+- upgraded one dependency (serde_with) to latest version and removed the warning when compiling
+
 ## [0.4.2] - 2022-02-02
 ### Modified
 - fix bug where v1.0 files were validated with the v1.1 schema

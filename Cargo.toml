@@ -1,9 +1,9 @@
 [package]
 name = "cjval"
-version = "0.4.2"
+version = "0.4.3"
 description = "Validation of CityJSON files against its schemas"
 authors = ["Hugo Ledoux <h.ledoux@tudelft.nl>"]
-edition = "2018"
+edition = "2021"
 license = "MIT"
 readme = "README.md"
 homepage = "https://github.com/cityjson/cjval"
