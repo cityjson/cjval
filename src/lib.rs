@@ -22,13 +22,10 @@ use std::collections::HashSet;
 static EXTENSION_FIXED_NAMES: [&str; 6] = [
     "type",
     "name",
-    "uri",
+    "url",
     "version",
     "versionCityJSON",
     "description",
-    // "extraAttributes",
-    // "extraCityObjects",
-    // "extraRootProperties",
 ];
 
 static CITYJSON_V10_VERSION: &str = "1.0.3";
