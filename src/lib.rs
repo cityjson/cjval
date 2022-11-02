@@ -72,6 +72,7 @@ pub fn get_cityjson_schema_all_versions() -> Vec<String> {
 
 #[derive(Debug)]
 pub struct CJValidator {
+    cjfeature: bool,
     j: Value,
     jschema: Value,
     jexts: HashMap<String, Value>,
@@ -84,6 +85,7 @@ impl CJValidator {
     pub fn from_str(str_dataset: &str) -> Result<Self, String> {
         let l: HashMap<String, Value> = HashMap::new();
         let mut v = CJValidator {
+            cjfeature: false,
             j: json!(null),
             jschema: json!(null),
             jexts: l,
@@ -94,28 +96,38 @@ impl CJValidator {
         //-- parse the dataset and convert to JSON
         let re: Result<Value, _> = serde_json::from_str(&str_dataset);
         if re.is_err() {
-            // println!("errors: {:?}", re.as_ref().err().unwrap());
             return Err(re.err().unwrap().to_string());
         }
         let j: Value = re.unwrap();
         v.j = j;
-        //-- check cityjson version
-        if v.j["version"] == "1.1" {
+        //-- check the type
+        if v.j["type"] == "CityJSONFeature" {
+            v.cjfeature = true;
+            //-- here we assume that it's latest v1.1, since v1.0 doesn't have this type
             v.version_file = 11;
-            let schema_str = include_str!("../schemas/11/cityjson.min.schema.json");
+            let schema_str = include_str!("../schemas/11/cityjsonfeature.min.schema.json");
             v.jschema = serde_json::from_str(schema_str).unwrap();
             let vs = &v.jschema["$id"].to_string();
             v.version_schema = vs.get(34..39).unwrap().to_string();
-        } else if v.j["version"] == "1.0" {
-            v.version_file = 10;
-            let schema_str = include_str!("../schemas/10/cityjson.min.schema.json");
-            v.jschema = serde_json::from_str(schema_str).unwrap();
-            v.version_schema = "1.0.3".to_string();
+        } else {
+            //-- check cityjson version
+            if v.j["version"] == "1.1" {
+                v.version_file = 11;
+                let schema_str = include_str!("../schemas/11/cityjson.min.schema.json");
+                v.jschema = serde_json::from_str(schema_str).unwrap();
+                let vs = &v.jschema["$id"].to_string();
+                v.version_schema = vs.get(34..39).unwrap().to_string();
+            } else if v.j["version"] == "1.0" {
+                v.version_file = 10;
+                let schema_str = include_str!("../schemas/10/cityjson.min.schema.json");
+                v.jschema = serde_json::from_str(schema_str).unwrap();
+                v.version_schema = "1.0.3".to_string();
+            }
         }
-        //-- check for duplicate keys in CO object
+        //-- check for duplicate keys in CO object, Doc is the struct above
+        //-- used for identifying duplicate keys
         let re: Result<Doc, _> = serde_json::from_str(&str_dataset);
         if re.is_err() {
-            // println!("{:?}", re.err());
             v.duplicate_keys = true;
         }
         Ok(v)
@@ -167,21 +179,22 @@ impl CJValidator {
         if self.j.is_null() {
             return vec!["Not a valid JSON file".to_string()];
         }
-        //-- which cityjson version
-        if self.version_file == 0 {
-            let s: String = format!(
-                "CityJSON version {} not supported [only \"1.0\" and \"1.1\"]",
-                self.j["version"]
-            );
-            return vec![s];
+        let mut ls_errors: Vec<String> = Vec::new();
+        if self.cjfeature == false {
+            //-- which cityjson version
+            if self.version_file == 0 {
+                let s: String = format!(
+                    "CityJSON version {} not supported [only \"1.0\" and \"1.1\"]",
+                    self.j["version"]
+                );
+                return vec![s];
+            }
         }
-
         let compiled = JSONSchema::options()
             .with_draft(Draft::Draft7)
             .compile(&self.jschema)
             .expect("A valid schema");
         let result = compiled.validate(&self.j);
-        let mut ls_errors: Vec<String> = Vec::new();
         if let Err(errors) = result {
             for error in errors {
                 let s: String = format!("{} [path:{}]", error, error.instance_path);
