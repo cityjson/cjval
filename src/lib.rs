@@ -91,7 +91,7 @@ impl CJValidator {
             jexts: l,
             duplicate_keys: false,
             version_file: 0,
-            version_schema: "none".to_string(),
+            version_schema: "-1".to_string(),
         };
         //-- parse the dataset and convert to JSON
         let re: Result<Value, _> = serde_json::from_str(&str_dataset);
