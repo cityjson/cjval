@@ -29,7 +29,7 @@ fn summary_and_bye(finalresult: i32) {
     if finalresult == -1 {
         println!("❌ File is invalid");
     } else if finalresult == 0 {
-        println!("⚠️  File is valid but has warnings");
+        println!("🟡  File is valid but has warnings");
     } else {
         println!("✅ File is valid");
     }
