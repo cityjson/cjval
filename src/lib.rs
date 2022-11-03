@@ -133,6 +133,26 @@ impl CJValidator {
         Ok(v)
     }
 
+    pub fn replace_cjfeature(&mut self, str_cjf: &str) -> Result<(), String> {
+        //-- parse the cjf and convert to JSON
+        let re: Result<Value, _> = serde_json::from_str(&str_cjf);
+        if re.is_err() {
+            return Err(re.err().unwrap().to_string());
+        }
+        let j: Value = re.unwrap();
+        if j["type"] != "CityJSONFeature" {
+            return Err("Not a CityJSONFeature object".to_string());
+        }
+        self.j = j;
+        self.cjfeature = true;
+        self.version_file = 11;
+        let schema_str = include_str!("../schemas/11/cityjsonfeature.min.schema.json");
+        self.jschema = serde_json::from_str(schema_str).unwrap();
+        let vs = &self.jschema["$id"].to_string();
+        self.version_schema = vs.get(34..39).unwrap().to_string();
+        Ok(())
+    }
+
     pub fn add_one_extension_from_str(
         &mut self,
         ext_schema_name: &str,
