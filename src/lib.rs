@@ -523,6 +523,9 @@ impl CJValidator {
     }
 
     pub fn extra_root_properties(&self) -> Result<(), Vec<String>> {
+        if self.cjfeature {
+            return Ok(());
+        };
         let mut ls_warnings: Vec<String> = Vec::new();
         let rootproperties: [&str; 9] = [
             "type",
