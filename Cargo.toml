@@ -36,6 +36,11 @@ path = "src/bin/cjval.rs"
 required-features = ["build-binary"]
 
 [[bin]]
+name = "cjfval"
+path = "src/bin/cjfval.rs"
+required-features = ["build-binary"]
+
+[[bin]]
 name = "cjvalext"
 path = "src/bin/cjvalext.rs"
 required-features = ["build-binary"]

@@ -4,41 +4,14 @@ use cjval::CJValidator;
 #[macro_use]
 extern crate clap;
 
-use std::path::Path;
 use url::Url;
 
+use std::io;
 use std::io::BufRead;
-use std::io::{self, Write};
 
 use clap::{App, AppSettings, Arg};
 
 use anyhow::{anyhow, Result};
-
-fn print_errors(lserrs: &Vec<String>) {
-    for (i, e) in lserrs.iter().enumerate() {
-        println!("  {}. {}", i + 1, e);
-    }
-}
-
-fn print_warnings(lswarns: &Vec<String>) {
-    for (i, e) in lswarns.iter().enumerate() {
-        println!("  {}. {}", i + 1, e);
-    }
-}
-
-fn summary_and_bye(finalresult: i32) {
-    println!("\n");
-    println!("============= SUMMARY =============");
-    if finalresult == -1 {
-        println!("❌ File is invalid");
-    } else if finalresult == 0 {
-        println!("🟡  File is valid but has warnings");
-    } else {
-        println!("✅ File is valid");
-    }
-    println!("===================================");
-    std::process::exit(1);
-}
 
 #[tokio::main]
 async fn download_extension(theurl: &str) -> Result<String> {
@@ -77,7 +50,11 @@ fn main() -> io::Result<()> {
         );
     let matches = app.get_matches();
 
-    let mut bMetadata = false;
+    let mut b_verbose = false;
+    if matches.occurrences_of("verbose") > 0 {
+        b_verbose = true;
+    }
+    let mut b_metadata = false;
     let mut val = CJValidator::from_str("{}").unwrap();
     let stdin = std::io::stdin();
     for (i, line) in stdin.lock().lines().enumerate() {
@@ -85,30 +62,75 @@ fn main() -> io::Result<()> {
         if l.is_empty() {
             continue;
         }
-        if !bMetadata {
+        if !b_metadata {
             let tmp = CJValidator::from_str(&l);
             match tmp {
                 Ok(f) => {
                     val = f;
                     let re = validate_cj(&mut val);
-                    println!("{} {:?}", i + 1, re);
+                    match re {
+                        Ok(_) => {
+                            let w = validate_cj_warnings(&val);
+                            match w {
+                                Ok(_) => println!("{} ✅", i + 1),
+                                Err(e) => {
+                                    println!("{} 🟡", i + 1);
+                                    if b_verbose {
+                                        println!("{:?}", e);
+                                    }
+                                }
+                            }
+                        }
+                        Err(e) => {
+                            println!("{} ❌", i + 1);
+                            if b_verbose {
+                                println!("{:?}", e);
+                            }
+                        }
+                    }
                 }
                 Err(e) => {
-                    let s = format!("Invalid JSON file: {:?}", e);
-                    println!("{} {}", i + 1, s);
+                    println!("{} ❌", i + 1);
+                    if b_verbose {
+                        let s = format!("Invalid JSON file: {:?}", e);
+                        println!("{}", s);
+                    }
                 }
             }
-            bMetadata = true;
+            b_metadata = true;
         } else {
             let re = val.replace_cjfeature(&l);
             match re {
                 Ok(_) => {
                     let re = validate_cjf(&val);
-                    println!("{} ok", i);
+                    match re {
+                        Ok(_) => {
+                            let w = validate_cjf_warnings(&val);
+                            match w {
+                                Ok(_) => println!("{} ✅", i + 1),
+                                Err(e) => {
+                                    println!("{} 🟡", i + 1);
+                                    if b_verbose {
+                                        println!("{:?}", e);
+                                    }
+                                }
+                            }
+                        }
+                        Err(e) => {
+                            println!("{} ❌", i + 1);
+                            if b_verbose {
+                                println!("{:?}", e);
+                            }
+                        }
+                    }
+                    // println!("{} ok", i);
                 }
                 Err(e) => {
-                    let s = format!("Invalid JSON file: {:?}", e);
-                    println!("{} {}", i + 1, s);
+                    println!("{} ❌", i + 1);
+                    if b_verbose {
+                        let s = format!("Invalid JSON file: {:?}", e);
+                        println!("{}", s);
+                    }
                 }
             }
         }
@@ -116,15 +138,19 @@ fn main() -> io::Result<()> {
     Ok(())
 }
 
-fn validate_cj(val: &mut CJValidator) -> Result<(), String> {
-    let mut bValid = true;
+fn validate_cj(val: &mut CJValidator) -> Result<(), Vec<String>> {
+    let mut b_valid = true;
+    let mut ls_errors: Vec<String> = Vec::new();
     //-- CityJSON schema
     let re = val.validate_schema();
     match re {
-        Ok(_f) => (),
-        Err(e) => {
-            println!("schema invalid");
-            bValid = false;
+        Ok(_) => (),
+        Err(errors) => {
+            b_valid = false;
+            for error in errors {
+                let s: String = format!("{}", error);
+                ls_errors.push(s);
+            }
         }
     }
     //-- Extensions
@@ -133,45 +159,53 @@ fn validate_cj(val: &mut CJValidator) -> Result<(), String> {
         let re = val.has_extensions();
         if re.is_some() {
             let lexts = re.unwrap();
-            println!("{:?}", lexts);
+            // println!("{:?}", lexts);
             for ext in lexts {
                 let o = download_extension(&ext);
                 match o {
                     Ok(l) => {
                         let re = val.add_one_extension_from_str(&ext, &l);
                         match re {
-                            Ok(()) => println!("\t- {}.. ok", ext),
-                            Err(e) => {
-                                println!("\t- {}.. ERROR", ext);
-                                println!("\t  ({})", e);
-                                // summary_and_bye(-1);
+                            Ok(_) => (),
+                            Err(error) => {
+                                b_valid = false;
+                                let s: String = format!("{}", error);
+                                ls_errors.push(s);
                             }
                         }
                     }
-                    Err(e) => {
-                        println!("\t- {}.. ERROR \n\t{}", ext, e);
+                    Err(error) => {
+                        let s: String = format!("{}", error);
+                        ls_errors.push(s);
+                        b_valid = false;
                     }
                 }
             }
         }
     }
-    //-- warnings
-    let rev = val.extra_root_properties();
-    println!("{:?}", rev);
+    if b_valid {
+        Ok(())
+    } else {
+        Err(ls_errors)
+    }
+}
+
+fn validate_cj_warnings(val: &CJValidator) -> Result<(), Vec<String>> {
+    let _ = val.extra_root_properties()?;
     Ok(())
 }
 
 fn validate_cjf(val: &CJValidator) -> Result<(), Vec<String>> {
-    // let mut bErrors = false;
-    // let mut bWarnings = false;
     let _ = val.validate_schema()?;
     let _ = val.validate_extensions()?;
     let _ = val.parent_children_consistency()?;
     let _ = val.wrong_vertex_index()?;
     let _ = val.semantics_arrays()?;
-    //-- warnings
-    let redv = val.duplicate_vertices();
-    let reuv = val.unused_vertices();
-    // println!("{:?}", rev);
+    Ok(())
+}
+
+fn validate_cjf_warnings(val: &CJValidator) -> Result<(), Vec<String>> {
+    let _ = val.duplicate_vertices()?;
+    let _ = val.unused_vertices()?;
     Ok(())
 }
