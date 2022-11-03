@@ -259,37 +259,33 @@ fn main() {
         }
     }
 
-    if bwarns == false {
-        println!(
-            "{}",
-            Style::new()
-                .bold()
-                .paint("=== extra_root_properties (warnings) ===")
-        );
-        rev = val.extra_root_properties();
-        match rev {
-            Ok(_f) => println!("ok"),
-            Err(e) => {
-                print_warnings(&e);
-                bwarns = true;
-            }
+    println!(
+        "{}",
+        Style::new()
+            .bold()
+            .paint("=== extra_root_properties (warnings) ===")
+    );
+    rev = val.extra_root_properties();
+    match rev {
+        Ok(_f) => println!("ok"),
+        Err(e) => {
+            print_warnings(&e);
+            bwarns = true;
         }
     }
 
-    if bwarns == false {
-        println!(
-            "{}",
-            Style::new()
-                .bold()
-                .paint("=== unused_vertices (warnings) ===")
-        );
-        rev = val.unused_vertices();
-        match rev {
-            Ok(_f) => println!("ok"),
-            Err(e) => {
-                print_warnings(&e);
-                bwarns = true;
-            }
+    println!(
+        "{}",
+        Style::new()
+            .bold()
+            .paint("=== unused_vertices (warnings) ===")
+    );
+    rev = val.unused_vertices();
+    match rev {
+        Ok(_f) => println!("ok"),
+        Err(e) => {
+            print_warnings(&e);
+            bwarns = true;
         }
     }
 
