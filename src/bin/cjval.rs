@@ -25,7 +25,7 @@ fn print_warnings(lswarns: &Vec<String>) {
 
 fn summary_and_bye(finalresult: i32) {
     println!("\n");
-    println!("============ SUMMARY ============");
+    println!("============= SUMMARY =============");
     if finalresult == -1 {
         println!("❌ File is invalid");
     } else if finalresult == 0 {
@@ -33,7 +33,7 @@ fn summary_and_bye(finalresult: i32) {
     } else {
         println!("✅ File is valid");
     }
-    println!("=================================");
+    println!("===================================");
     std::process::exit(1);
 }
 
