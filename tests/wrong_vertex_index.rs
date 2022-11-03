@@ -100,7 +100,7 @@ fn wrong_vertex_index_1() {
     let j = get_data1();
     let v: CJValidator = CJValidator::from_str(&j.to_string()).unwrap();
     let re = v.wrong_vertex_index();
-    assert!(!re.is_empty());
+    assert!(re.is_err());
 }
 
 #[test]
@@ -108,7 +108,7 @@ fn wrong_vertex_index_2() {
     let mut j = get_data2();
     let mut v: CJValidator = CJValidator::from_str(&j.to_string()).unwrap();
     let re = v.wrong_vertex_index();
-    assert!(re.is_empty());
+    assert!(re.is_ok());
 
     j["CityObjects"]["un"]["geometry"][0]["boundaries"]
         .as_array_mut()
@@ -116,5 +116,5 @@ fn wrong_vertex_index_2() {
         .push(json!(77));
     v = CJValidator::from_str(&j.to_string()).unwrap();
     let re = v.wrong_vertex_index();
-    assert!(!re.is_empty());
+    assert!(re.is_err());
 }

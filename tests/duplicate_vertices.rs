@@ -34,7 +34,7 @@ fn invalid_integer() {
     let j = get_data();
     let v: CJValidator = CJValidator::from_str(&j.to_string()).unwrap();
     let re = v.duplicate_vertices();
-    assert!(!re.is_empty());
+    assert!(re.is_err());
 }
 
 #[test]
@@ -43,5 +43,5 @@ fn valid_integer() {
     j["vertices"].as_array_mut().unwrap().pop().unwrap();
     let v: CJValidator = CJValidator::from_str(&j.to_string()).unwrap();
     let re = v.duplicate_vertices();
-    assert!(re.is_empty());
+    assert!(re.is_ok());
 }

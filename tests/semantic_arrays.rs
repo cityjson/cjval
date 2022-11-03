@@ -160,7 +160,7 @@ fn semantics_arrays_valid() {
     let j = get_data_1();
     let v: CJValidator = CJValidator::from_str(&j.to_string()).unwrap();
     let re = v.semantics_arrays();
-    assert!(re.is_empty());
+    assert!(re.is_ok());
 }
 
 #[test]
@@ -168,7 +168,7 @@ fn semantics_point_linestring() {
     let j = get_data_2();
     let v: CJValidator = CJValidator::from_str(&j.to_string()).unwrap();
     let re = v.semantics_arrays();
-    assert!(re.is_empty());
+    assert!(re.is_ok());
 }
 
 #[test]
@@ -180,7 +180,7 @@ fn semantics_point_linestring_wrong_array_size() {
         .push(json!(1));
     let v: CJValidator = CJValidator::from_str(&j.to_string()).unwrap();
     let re = v.semantics_arrays();
-    assert!(!re.is_empty());
+    assert!(re.is_err());
 }
 
 #[test]
@@ -193,7 +193,7 @@ fn semantics_arrays_diff_dimensions() {
     // println!("=====>{:?}", &j);
     let v: CJValidator = CJValidator::from_str(&j.to_string()).unwrap();
     let re = v.semantics_arrays();
-    assert!(!re.is_empty());
+    assert!(re.is_err());
 }
 
 #[test]
@@ -209,5 +209,5 @@ fn semantics_arrays_unused() {
         .push(json!(77));
     let v: CJValidator = CJValidator::from_str(&j.to_string()).unwrap();
     let re = v.semantics_arrays();
-    assert!(!re.is_empty());
+    assert!(re.is_err());
 }

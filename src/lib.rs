@@ -175,9 +175,9 @@ impl CJValidator {
         self.version_schema.to_owned()
     }
 
-    pub fn validate_schema(&self) -> Vec<String> {
+    pub fn validate_schema(&self) -> Result<(), Vec<String>> {
         if self.j.is_null() {
-            return vec!["Not a valid JSON file".to_string()];
+            return Err(vec!["Not a valid JSON file".to_string()]);
         }
         let mut ls_errors: Vec<String> = Vec::new();
         if self.cjfeature == false {
@@ -187,7 +187,7 @@ impl CJValidator {
                     "CityJSON version {} not supported [only \"1.0\" and \"1.1\"]",
                     self.j["version"]
                 );
-                return vec![s];
+                return Err(vec![s]);
             }
         }
         let compiled = JSONSchema::options()
@@ -205,10 +205,14 @@ impl CJValidator {
         if ls_errors.is_empty() && self.duplicate_keys {
             ls_errors.push("Duplicate keys in 'CityObjects'".to_string())
         }
-        return ls_errors;
+        if ls_errors.is_empty() {
+            Ok(())
+        } else {
+            Err(ls_errors)
+        }
     }
 
-    fn validate_ext_extracityobjects(&self, jext: &Value) -> Vec<String> {
+    fn validate_ext_extracityobjects(&self, jext: &Value) -> Result<(), Vec<String>> {
         let mut ls_errors: Vec<String> = Vec::new();
         //-- 1. build the schema file from the Extension file
         let v = jext.get("extraCityObjects").unwrap().as_object().unwrap();
@@ -242,10 +246,14 @@ impl CJValidator {
                 }
             }
         }
-        ls_errors
+        if ls_errors.is_empty() {
+            Ok(())
+        } else {
+            Err(ls_errors)
+        }
     }
 
-    fn validate_ext_extrarootproperties(&self, jext: &Value) -> Vec<String> {
+    fn validate_ext_extrarootproperties(&self, jext: &Value) -> Result<(), Vec<String>> {
         let mut ls_errors: Vec<String> = Vec::new();
         //-- 1. build the schema file from the Extension file
         let v = jext
@@ -279,10 +287,14 @@ impl CJValidator {
                 }
             }
         }
-        ls_errors
+        if ls_errors.is_empty() {
+            Ok(())
+        } else {
+            Err(ls_errors)
+        }
     }
 
-    fn validate_ext_extraattributes(&self, jext: &Value) -> Vec<String> {
+    fn validate_ext_extraattributes(&self, jext: &Value) -> Result<(), Vec<String>> {
         let mut ls_errors: Vec<String> = Vec::new();
         //-- 1. build the schema file from the Extension file
         let v = jext.get("extraAttributes").unwrap().as_object().unwrap();
@@ -319,7 +331,11 @@ impl CJValidator {
                 }
             }
         }
-        ls_errors
+        if ls_errors.is_empty() {
+            Ok(())
+        } else {
+            Err(ls_errors)
+        }
     }
 
     fn get_compiled_schema_extension(&self, schema: &Value) -> JSONSchema {
@@ -354,26 +370,49 @@ impl CJValidator {
         return compiled;
     }
 
-    pub fn validate_extensions(&self) -> Vec<String> {
+    pub fn validate_extensions(&self) -> Result<(), Vec<String>> {
         let mut ls_errors: Vec<String> = Vec::new();
         for (_k, ext) in &self.jexts {
             //-- 1. extraCityObjects
-            ls_errors.append(&mut self.validate_ext_extracityobjects(&ext));
+            let mut re = self.validate_ext_extracityobjects(&ext);
+            if re.is_err() {
+                ls_errors.append(&mut re.err().unwrap());
+            }
             //-- 2. extraRootProperties
-            ls_errors.append(&mut self.validate_ext_extrarootproperties(&ext));
+            re = self.validate_ext_extrarootproperties(&ext);
+            if re.is_err() {
+                ls_errors.append(&mut re.err().unwrap());
+            }
             //-- 3. extraAttributes
-            ls_errors.append(&mut self.validate_ext_extraattributes(&ext));
+            re = self.validate_ext_extraattributes(&ext);
+            if re.is_err() {
+                ls_errors.append(&mut re.err().unwrap());
+            }
         }
         //-- 4. check if there are CityObjects that do not have a schema
-        ls_errors.append(&mut self.validate_ext_co_without_schema());
+        let mut re = self.validate_ext_co_without_schema();
+        if re.is_err() {
+            ls_errors.append(&mut re.err().unwrap());
+        }
         //-- 5. check if there are extra root properties that do not have a schema
-        ls_errors.append(&mut self.validate_ext_rootproperty_without_schema());
+        re = self.validate_ext_rootproperty_without_schema();
+        if re.is_err() {
+            ls_errors.append(&mut re.err().unwrap());
+        }
         //TODO 6 for the extra attributes w/o schemas
-        ls_errors.append(&mut self.validate_ext_attribute_without_schema());
-        ls_errors
+        re = self.validate_ext_attribute_without_schema();
+        if re.is_err() {
+            ls_errors.append(&mut re.err().unwrap());
+        }
+
+        if ls_errors.is_empty() {
+            Ok(())
+        } else {
+            Err(ls_errors)
+        }
     }
 
-    fn validate_ext_attribute_without_schema(&self) -> Vec<String> {
+    fn validate_ext_attribute_without_schema(&self) -> Result<(), Vec<String>> {
         let mut ls_errors: Vec<String> = Vec::new();
         let mut ls_plusattrs: HashSet<String> = HashSet::new();
         let cos = self.j.get("CityObjects").unwrap().as_object().unwrap();
@@ -402,10 +441,14 @@ impl CJValidator {
                 }
             }
         }
-        ls_errors
+        if ls_errors.is_empty() {
+            Ok(())
+        } else {
+            Err(ls_errors)
+        }
     }
 
-    fn validate_ext_co_without_schema(&self) -> Vec<String> {
+    fn validate_ext_co_without_schema(&self) -> Result<(), Vec<String>> {
         let mut ls_errors: Vec<String> = Vec::new();
         let mut newcos: Vec<String> = Vec::new();
         for (_k, jext) in &self.jexts {
@@ -424,10 +467,14 @@ impl CJValidator {
                 ls_errors.push(s);
             }
         }
-        ls_errors
+        if ls_errors.is_empty() {
+            Ok(())
+        } else {
+            Err(ls_errors)
+        }
     }
 
-    fn validate_ext_rootproperty_without_schema(&self) -> Vec<String> {
+    fn validate_ext_rootproperty_without_schema(&self) -> Result<(), Vec<String>> {
         let mut ls_errors: Vec<String> = Vec::new();
         let mut newrps: Vec<String> = Vec::new();
         for (_k, jext) in &self.jexts {
@@ -448,10 +495,14 @@ impl CJValidator {
                 ls_errors.push(s);
             }
         }
-        ls_errors
+        if ls_errors.is_empty() {
+            Ok(())
+        } else {
+            Err(ls_errors)
+        }
     }
 
-    pub fn extra_root_properties(&self) -> Vec<String> {
+    pub fn extra_root_properties(&self) -> Result<(), Vec<String>> {
         let mut ls_warnings: Vec<String> = Vec::new();
         let rootproperties: [&str; 9] = [
             "type",
@@ -472,15 +523,15 @@ impl CJValidator {
                 ls_warnings.push(s);
             }
         }
-
-        ls_warnings
+        if ls_warnings.is_empty() {
+            Ok(())
+        } else {
+            Err(ls_warnings)
+        }
     }
 
     // parent_children_consistency
-    pub fn parent_children_consistency(&self) -> Vec<String> {
-        // if (self.is_schema_valid.is_none()) || (self.is_schema_valid.unwrap() != true) {
-        //     return vec!["This is not schema valid (or hasn't been tested yet).".to_string()];
-        // }
+    pub fn parent_children_consistency(&self) -> Result<(), Vec<String>> {
         let mut ls_errors: Vec<String> = Vec::new();
         let cos = self.j.get("CityObjects").unwrap().as_object().unwrap();
         //-- do children have the parent too?
@@ -542,10 +593,14 @@ impl CJValidator {
                 }
             }
         }
-        return ls_errors;
+        if ls_errors.is_empty() {
+            Ok(())
+        } else {
+            Err(ls_errors)
+        }
     }
 
-    pub fn duplicate_vertices(&self) -> Vec<String> {
+    pub fn duplicate_vertices(&self) -> Result<(), Vec<String>> {
         let mut ls_errors: Vec<String> = Vec::new();
         let vs = self.j.get("vertices").unwrap().as_array().unwrap();
         // use all vertices as keys in a hashmap
@@ -564,10 +619,14 @@ impl CJValidator {
                 ls_errors.push(format!("Vertex ({}, {}, {}) duplicated", v[0], v[1], v[2]));
             }
         }
-        return ls_errors;
+        if ls_errors.is_empty() {
+            Ok(())
+        } else {
+            Err(ls_errors)
+        }
     }
 
-    pub fn wrong_vertex_index(&self) -> Vec<String> {
+    pub fn wrong_vertex_index(&self) -> Result<(), Vec<String>> {
         let max_index: usize = self.j.get("vertices").unwrap().as_array().unwrap().len();
         let mut ls_errors: Vec<String> = Vec::new();
         let cos = self.j.get("CityObjects").unwrap().as_object().unwrap();
@@ -645,10 +704,14 @@ impl CJValidator {
                 }
             }
         }
-        ls_errors
+        if ls_errors.is_empty() {
+            Ok(())
+        } else {
+            Err(ls_errors)
+        }
     }
 
-    pub fn unused_vertices(&self) -> Vec<String> {
+    pub fn unused_vertices(&self) -> Result<(), Vec<String>> {
         let mut ls_errors: Vec<String> = Vec::new();
         let mut uniques: HashSet<usize> = HashSet::new();
         let cos = self.j.get("CityObjects").unwrap().as_object().unwrap();
@@ -719,10 +782,14 @@ impl CJValidator {
                 }
             }
         }
-        ls_errors
+        if ls_errors.is_empty() {
+            Ok(())
+        } else {
+            Err(ls_errors)
+        }
     }
 
-    pub fn semantics_arrays(&self) -> Vec<String> {
+    pub fn semantics_arrays(&self) -> Result<(), Vec<String>> {
         let mut ls_errors: Vec<String> = Vec::new();
         let cos = self.j.get("CityObjects").unwrap().as_object().unwrap();
         for theid in cos.keys() {
@@ -852,7 +919,11 @@ impl CJValidator {
                 }
             }
         }
-        ls_errors
+        if ls_errors.is_empty() {
+            Ok(())
+        } else {
+            Err(ls_errors)
+        }
     }
 }
 
@@ -904,7 +975,7 @@ fn above_max_index_msu(a: &Vec<Vec<Vec<usize>>>, max_index: usize) -> Result<(),
         }
     }
     if r.is_empty() {
-        return Ok(());
+        Ok(())
     } else {
         let mut s: String = "".to_string();
         for each in r {
@@ -913,7 +984,7 @@ fn above_max_index_msu(a: &Vec<Vec<Vec<usize>>>, max_index: usize) -> Result<(),
             s += "/";
         }
         let s2 = format!("Vertices {} don't exist", s);
-        return Err(s2);
+        Err(s2)
     }
 }
 
@@ -931,7 +1002,7 @@ fn above_max_index_sol(a: &Vec<Vec<Vec<Vec<usize>>>>, max_index: usize) -> Resul
         }
     }
     if r.is_empty() {
-        return Ok(());
+        Ok(())
     } else {
         let mut s: String = "".to_string();
         for each in r {
@@ -940,7 +1011,7 @@ fn above_max_index_sol(a: &Vec<Vec<Vec<Vec<usize>>>>, max_index: usize) -> Resul
             s += "/";
         }
         let s2 = format!("Vertices {} don't exist", s);
-        return Err(s2);
+        Err(s2)
     }
 }
 

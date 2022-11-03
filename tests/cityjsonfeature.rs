@@ -59,7 +59,7 @@ fn get_second_line() -> Value {
                       [ [5, 6, 1, 0 ] ], 
                       [ [6, 7, 2, 1 ] ], 
                       [ [3, 2, 7, 4 ] ], 
-                      [ [7, 6, 5, 4 ] ] 
+                      [ [17, 6, 5, 4 ] ] 
                     ]
                   ],
                   "lod": "1.2",
@@ -139,12 +139,12 @@ fn cjfeature_valid() {
     let mut j = get_first_line();
     let mut v: CJValidator = CJValidator::from_str(&j.to_string()).unwrap();
     let mut re = v.validate_schema();
-    assert!(re.is_empty());
+    assert!(re.is_ok());
 
     j = get_second_line();
     v = CJValidator::from_str(&j.to_string()).unwrap();
     re = v.validate_schema();
-    assert!(re.is_empty());
+    assert!(re.is_ok());
 }
 
 #[test]
@@ -152,5 +152,15 @@ fn cjfeature_extension() {
     let j = get_third_line();
     let v: CJValidator = CJValidator::from_str(&j.to_string()).unwrap();
     let re = v.validate_schema();
-    assert!(re.is_empty());
+    assert!(re.is_ok());
+}
+
+#[test]
+fn yo() {
+    let j = get_third_line();
+    let v: CJValidator = CJValidator::from_str(&j.to_string()).unwrap();
+    let mut re = v.validate_schema();
+    assert!(re.is_ok());
+    re = v.duplicate_vertices();
+    assert!(re.is_ok());
 }

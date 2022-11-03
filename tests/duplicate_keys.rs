@@ -31,5 +31,5 @@ fn contains_same_key() {
     let j = get_data();
     let v: CJValidator = CJValidator::from_str(&j.to_string()).unwrap();
     let re = v.validate_schema();
-    assert!(re.is_empty());
+    assert!(re.is_ok());
 }

@@ -100,7 +100,7 @@ fn unused_vertex_1() {
     let j = get_data1();
     let v: CJValidator = CJValidator::from_str(&j.to_string()).unwrap();
     let re = v.unused_vertices();
-    assert!(!re.is_empty());
+    assert!(re.is_err());
 }
 
 #[test]
@@ -108,5 +108,5 @@ fn unused_vertex_2() {
     let j = get_data2();
     let v: CJValidator = CJValidator::from_str(&j.to_string()).unwrap();
     let re = v.unused_vertices();
-    assert!(!re.is_empty());
+    assert!(re.is_err());
 }

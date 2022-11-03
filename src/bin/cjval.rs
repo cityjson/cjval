@@ -12,22 +12,14 @@ use clap::{App, AppSettings, Arg};
 use anyhow::{anyhow, Result};
 
 fn print_errors(lserrs: &Vec<String>) {
-    if lserrs.is_empty() {
-        println!("ok");
-    } else {
-        for (i, e) in lserrs.iter().enumerate() {
-            println!("  {}. {}", i + 1, e);
-        }
+    for (i, e) in lserrs.iter().enumerate() {
+        println!("  {}. {}", i + 1, e);
     }
 }
 
 fn print_warnings(lswarns: &Vec<String>) {
-    if lswarns.is_empty() {
-        println!("ok");
-    } else {
-        for (i, e) in lswarns.iter().enumerate() {
-            println!("  {}. {}", i + 1, e);
-        }
+    for (i, e) in lswarns.iter().enumerate() {
+        println!("  {}. {}", i + 1, e);
     }
 }
 
@@ -94,31 +86,40 @@ fn main() {
     );
     println!("  {:?}", p1);
 
+    let mut val = CJValidator::from_str("{}").unwrap();
     //-- ERRORS
     println!("{}", Style::new().bold().paint("=== JSON syntax ==="));
     let re = CJValidator::from_str(&s1);
-    if re.is_err() {
-        let s = format!("Invalid JSON file: {:?}", re.as_ref().err().unwrap());
-        let e = vec![s];
-        print_errors(&e);
-        summary_and_bye(-1);
-    } else {
-        let e: Vec<String> = vec![];
-        print_errors(&e);
+    match re {
+        Ok(f) => {
+            println!("ok");
+            val = f;
+        }
+        Err(e) => {
+            let s = format!("Invalid JSON file: {:?}", e);
+            print_errors(&vec![s]);
+            summary_and_bye(-1);
+        }
     }
-    let mut val = re.unwrap();
 
     //-- validate against schema
     println!("{}", Style::new().bold().paint("=== CityJSON schemas ==="));
-    // let version = val.get_input_cityjson_version();
-    println!(
-        "CityJSON schemas used: v{} (builtin)",
-        val.get_cityjson_schema_version()
-    );
+    if val.get_input_cityjson_version() == 0 {
+        println!("CityJSON schemas used: NONE");
+    } else {
+        println!(
+            "CityJSON schemas used: v{} (builtin)",
+            val.get_cityjson_schema_version()
+        );
+    }
     let mut rev = val.validate_schema();
-    print_errors(&rev);
-    if rev.is_empty() == false {
-        summary_and_bye(-1);
+    match rev {
+        Ok(_f) => (),
+        Err(e) => {
+            print_errors(&e);
+
+            summary_and_bye(-1);
+        }
     }
 
     //-- fetch the Extension schemas
@@ -188,9 +189,12 @@ fn main() {
 
     //-- validate Extensions, if any
     rev = val.validate_extensions();
-    print_errors(&rev);
-    if rev.is_empty() == false {
-        summary_and_bye(-1);
+    match rev {
+        Ok(_f) => (),
+        Err(e) => {
+            print_errors(&e);
+            summary_and_bye(-1);
+        }
     }
 
     let mut is_valid = true;
@@ -202,9 +206,12 @@ fn main() {
             .paint("=== parent_children_consistency ===")
     );
     rev = val.parent_children_consistency();
-    print_errors(&rev);
-    if rev.is_empty() == false {
-        is_valid = false;
+    match rev {
+        Ok(_f) => println!("ok"),
+        Err(e) => {
+            print_errors(&e);
+            is_valid = false;
+        }
     }
 
     println!(
@@ -212,16 +219,22 @@ fn main() {
         Style::new().bold().paint("=== wrong_vertex_index ===")
     );
     rev = val.wrong_vertex_index();
-    print_errors(&rev);
-    if rev.is_empty() == false {
-        is_valid = false;
+    match rev {
+        Ok(_f) => println!("ok"),
+        Err(e) => {
+            print_errors(&e);
+            is_valid = false;
+        }
     }
 
     println!("{}", Style::new().bold().paint("=== semantics_arrays ==="));
     rev = val.semantics_arrays();
-    print_errors(&rev);
-    if rev.is_empty() == false {
-        is_valid = false;
+    match rev {
+        Ok(_f) => println!("ok"),
+        Err(e) => {
+            print_errors(&e);
+            is_valid = false;
+        }
     }
 
     //-- if not valid at this point then stop
@@ -231,21 +244,22 @@ fn main() {
 
     //-- WARNINGS
     let mut bwarns = false;
-    if rev.is_empty() == true {
-        println!(
-            "{}",
-            Style::new()
-                .bold()
-                .paint("=== duplicate_vertices (warnings) ===")
-        );
-        rev = val.duplicate_vertices();
-        print_warnings(&rev);
-        if rev.is_empty() == false {
+    println!(
+        "{}",
+        Style::new()
+            .bold()
+            .paint("=== duplicate_vertices (warnings) ===")
+    );
+    rev = val.duplicate_vertices();
+    match rev {
+        Ok(_f) => println!("ok"),
+        Err(e) => {
+            print_warnings(&e);
             bwarns = true;
         }
     }
 
-    if rev.is_empty() == true {
+    if bwarns == false {
         println!(
             "{}",
             Style::new()
@@ -253,13 +267,16 @@ fn main() {
                 .paint("=== extra_root_properties (warnings) ===")
         );
         rev = val.extra_root_properties();
-        print_warnings(&rev);
-        if rev.is_empty() == false {
-            bwarns = true;
+        match rev {
+            Ok(_f) => println!("ok"),
+            Err(e) => {
+                print_warnings(&e);
+                bwarns = true;
+            }
         }
     }
 
-    if rev.is_empty() == true {
+    if bwarns == false {
         println!(
             "{}",
             Style::new()
@@ -267,9 +284,12 @@ fn main() {
                 .paint("=== unused_vertices (warnings) ===")
         );
         rev = val.unused_vertices();
-        print_warnings(&rev);
-        if rev.is_empty() == false {
-            bwarns = true;
+        match rev {
+            Ok(_f) => println!("ok"),
+            Err(e) => {
+                print_warnings(&e);
+                bwarns = true;
+            }
         }
     }
 

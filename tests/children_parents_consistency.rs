@@ -54,7 +54,7 @@ fn valid() {
     let j = get_data();
     let v: CJValidator = CJValidator::from_str(&j.to_string()).unwrap();
     let re = v.validate_schema();
-    assert!(re.is_empty());
+    assert!(re.is_ok());
 }
 
 #[test]
@@ -67,7 +67,7 @@ fn no_child() {
     // println!("=====>{:?}", ar);
     let v: CJValidator = CJValidator::from_str(&j.to_string()).unwrap();
     let re = v.parent_children_consistency();
-    assert!(!re.is_empty());
+    assert!(re.is_err());
 }
 
 #[test]
@@ -80,5 +80,5 @@ fn no_parent() {
     // println!("=====>{:?}", ar);
     let v: CJValidator = CJValidator::from_str(&j.to_string()).unwrap();
     let re = v.parent_children_consistency();
-    assert!(!re.is_empty());
+    assert!(re.is_err());
 }
