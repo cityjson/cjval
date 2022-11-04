@@ -58,6 +58,8 @@ The code is use at [https://validator.cityjson.org](https://validator.cityjson.o
 
 ## CLI Usage
 
+### cjval
+
 The [CityJSON schemas](https://www.cityjson.org/schemas/) are built-in the binary, so it suffices to:
 
     $ cjval myfile.city.json
@@ -86,6 +88,9 @@ then `cjval` will fetch/download automatically the schema(s).
 If instead you want to use your own local Extension schema(s), you can pass them as argument with the argument `-e` and this will overwrite the automatic download:
 
     $ cjval myfile.city.json -e ./myextensions/generic.ext.json
+
+
+### cjfval
 
 To validate a stream of [CityJSONFeature](https://www.cityjson.org/specs/1.1.2/#text-sequences-and-streaming-with-cityjsonfeature) (this uses [cjio](https://github.com/cityjson/cjio) to generate a stream from a CityJSON file):
 
