@@ -1,4 +1,4 @@
-use ansi_term::Style;
+// use ansi_term::Style;
 use cjval::CJValidator;
 
 #[macro_use]
@@ -72,27 +72,27 @@ fn main() -> io::Result<()> {
                         Ok(_) => {
                             let w = validate_cj_warnings(&val);
                             match w {
-                                Ok(_) => println!("{} ✅", i + 1),
+                                Ok(_) => println!("l.{}\t✅", i + 1),
                                 Err(e) => {
-                                    println!("{} 🟡", i + 1);
+                                    println!("l.{}\t🟡", i + 1);
                                     if b_verbose {
-                                        println!("{:?}", e);
+                                        println!("{}", e.join(" | "));
                                     }
                                 }
                             }
                         }
                         Err(e) => {
-                            println!("{} ❌", i + 1);
+                            println!("l.{}\t❌", i + 1);
                             if b_verbose {
-                                println!("{:?}", e);
+                                println!("{}", e.join(" | "));
                             }
                         }
                     }
                 }
                 Err(e) => {
-                    println!("{} ❌", i + 1);
+                    println!("l.{}\t❌", i + 1);
                     if b_verbose {
-                        let s = format!("Invalid JSON file: {:?}", e);
+                        let s = format!("Invalid JSON file: {}", e);
                         println!("{}", s);
                     }
                 }
@@ -107,29 +107,29 @@ fn main() -> io::Result<()> {
                         Ok(_) => {
                             let w = validate_cjf_warnings(&val);
                             match w {
-                                Ok(_) => println!("{} ✅", i + 1),
+                                Ok(_) => println!("l.{}\t✅", i + 1),
                                 Err(e) => {
-                                    println!("{} 🟡", i + 1);
+                                    println!("l.{}\t🟡", i + 1);
                                     if b_verbose {
-                                        println!("{:?}", e);
+                                        println!("{}", e.join(" | "));
                                     }
                                 }
                             }
                         }
                         Err(e) => {
-                            println!("{} ❌", i + 1);
+                            println!("l.{}\t❌", i + 1);
                             if b_verbose {
-                                println!("{:?}", e);
+                                println!("{}", e.join(" | "));
                             }
                         }
                     }
                     // println!("{} ok", i);
                 }
                 Err(e) => {
-                    println!("{} ❌", i + 1);
+                    println!("l.{}\t❌", i + 1);
                     if b_verbose {
-                        let s = format!("Invalid JSON file: {:?}", e);
-                        println!("{}", s);
+                        let e = format!("Invalid JSON file: {:?}", e);
+                        println!("{}", e);
                     }
                 }
             }
