@@ -1,6 +1,5 @@
 use crate::cjval::CJValidator;
 use cjval;
-use serde_json::json;
 use serde_json::Value;
 
 fn get_first_line() -> Value {
@@ -108,7 +107,7 @@ fn get_third_line() -> Value {
                     ]
                   ],
                   "lod": "1",
-                  "type": "Solid"
+                  "type": "Solid999"
                 }
               ],
               "attributes": {
@@ -147,20 +146,12 @@ fn cjfeature_valid() {
     assert!(re.is_ok());
 }
 
+// the extensions are not downloaded automatically in the lib (because WASM)
+// so this cannot be fully tested
 #[test]
 fn cjfeature_extension() {
     let j = get_third_line();
     let v: CJValidator = CJValidator::from_str(&j.to_string()).unwrap();
     let re = v.validate_schema();
-    assert!(re.is_ok());
-}
-
-#[test]
-fn yo() {
-    let j = get_third_line();
-    let v: CJValidator = CJValidator::from_str(&j.to_string()).unwrap();
-    let mut re = v.validate_schema();
-    assert!(re.is_ok());
-    re = v.duplicate_vertices();
     assert!(re.is_ok());
 }
