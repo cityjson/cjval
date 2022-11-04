@@ -1,6 +1,15 @@
 # Changelog
 
 
+## [0.5.] - 2022-11-04
+### Added
+- cjfval binary to validate CityJSONFeatures
+### Modified
+- modified the return values of most functions, now Result are used
+- upgraded the schemas to v1.1.3
+- fixed some bugs
+
+
 ## [0.4.3] - 2022-08-16
 ### Modified
 - upgraded the schemas to v1.1.2
