@@ -32,7 +32,7 @@ It also verifies the following, these are not errors since the file is still con
 
   1. `cjval` to validate a CityJSON file
   2. `cjfval` to validate a stream of CityJSONFeature (from stdin)
-  3. `cjvalext` to validate a [CityJSON Extension file](https://www.cityjson.org/specs/1.1.2/#the-extension-file)
+  3. `cjvalext` to validate a [CityJSON Extension file](https://www.cityjson.org/specs/#the-extension-file)
 
 
 ## Installation/compilation
@@ -92,7 +92,7 @@ If instead you want to use your own local Extension schema(s), you can pass them
 
 ### cjfval
 
-To validate a stream of [CityJSONFeature](https://www.cityjson.org/specs/1.1.2/#text-sequences-and-streaming-with-cityjsonfeature) (this uses [cjio](https://github.com/cityjson/cjio) to generate a stream from a CityJSON file):
+To validate a stream of [CityJSONFeature](https://www.cityjson.org/specs/#text-sequences-and-streaming-with-cityjsonfeature) (this uses [cjio](https://github.com/cityjson/cjio) to generate a stream from a CityJSON file):
 
     $ cjio --suppress_msg myfile.city.json export jsonl stdout | cjfval --verbose
 
