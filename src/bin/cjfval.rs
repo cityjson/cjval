@@ -1,17 +1,13 @@
 // use ansi_term::Style;
 use cjval::CJValidator;
-
 #[macro_use]
 extern crate clap;
-
-use url::Url;
-
+use anyhow::{anyhow, Result};
+use clap::{App, AppSettings, Arg, Values};
 use std::io;
 use std::io::BufRead;
-
-use clap::{App, AppSettings, Arg};
-
-use anyhow::{anyhow, Result};
+use std::path::Path;
+use url::Url;
 
 #[tokio::main]
 async fn download_extension(theurl: &str) -> Result<String> {
@@ -47,8 +43,21 @@ fn main() -> io::Result<()> {
                 .long("verbose")
                 .multiple(true)
                 .help("Explain in detail the errors and warnings"),
+        )
+        .arg(
+            Arg::with_name("PATH")
+                .short("e")
+                .long("extensionfile")
+                .multiple(true)
+                .takes_value(true)
+                .help(
+                    "Read the CityJSON Extensions files locally. More than one can \
+                     be given. By default the Extension schemas are automatically \
+                     downloaded, this overwrites this behaviour",
+                ),
         );
     let matches = app.get_matches();
+    // let extfiles = matches.values_of("PATH");
 
     let mut b_verbose = false;
     if matches.occurrences_of("verbose") > 0 {
@@ -67,7 +76,7 @@ fn main() -> io::Result<()> {
             match tmp {
                 Ok(f) => {
                     val = f;
-                    let re = validate_cj(&mut val);
+                    let re = validate_cj(&mut val, matches.values_of("PATH"));
                     match re {
                         Ok(_) => {
                             let w = validate_cj_warnings(&val);
@@ -138,7 +147,7 @@ fn main() -> io::Result<()> {
     Ok(())
 }
 
-fn validate_cj(val: &mut CJValidator) -> Result<(), Vec<String>> {
+fn validate_cj(val: &mut CJValidator, extpaths: Option<Values>) -> Result<(), Vec<String>> {
     let mut b_valid = true;
     let mut ls_errors: Vec<String> = Vec::new();
     //-- CityJSON schema
@@ -155,29 +164,53 @@ fn validate_cj(val: &mut CJValidator) -> Result<(), Vec<String>> {
     }
     //-- Extensions
     if val.get_input_cityjson_version() >= 11 {
-        //-- download automatically the Extensions
-        let re = val.has_extensions();
-        if re.is_some() {
-            let lexts = re.unwrap();
-            // println!("{:?}", lexts);
-            for ext in lexts {
-                let o = download_extension(&ext);
-                match o {
-                    Ok(l) => {
-                        let re = val.add_one_extension_from_str(&ext, &l);
-                        match re {
-                            Ok(_) => (),
-                            Err(error) => {
-                                b_valid = false;
-                                let s: String = format!("{}", error);
-                                ls_errors.push(s);
-                            }
+        match extpaths {
+            Some(efiles) => {
+                let l: Vec<&str> = efiles.collect();
+                for s in l {
+                    let s2 = std::fs::read_to_string(s).expect("Couldn't read Extension file");
+                    let scanon = Path::new(s).canonicalize().unwrap();
+                    let re = val.add_one_extension_from_str(&scanon.to_str().unwrap(), &s2);
+                    match re {
+                        Ok(_) => (),
+                        Err(e) => {
+                            let s = format!(
+                                "Error with Extension file: {} ({})",
+                                scanon.to_str().unwrap(),
+                                e
+                            );
+                            ls_errors.push(s);
+                            b_valid = false;
                         }
                     }
-                    Err(error) => {
-                        let s: String = format!("{}", error);
-                        ls_errors.push(s);
-                        b_valid = false;
+                }
+            }
+            None => {
+                //-- download automatically the Extensions
+                let re = val.has_extensions();
+                if re.is_some() {
+                    let lexts = re.unwrap();
+                    // println!("{:?}", lexts);
+                    for ext in lexts {
+                        let o = download_extension(&ext);
+                        match o {
+                            Ok(l) => {
+                                let re = val.add_one_extension_from_str(&ext, &l);
+                                match re {
+                                    Ok(_) => (),
+                                    Err(error) => {
+                                        b_valid = false;
+                                        let s: String = format!("{}", error);
+                                        ls_errors.push(s);
+                                    }
+                                }
+                            }
+                            Err(error) => {
+                                let s: String = format!("{}", error);
+                                ls_errors.push(s);
+                                b_valid = false;
+                            }
+                        }
                     }
                 }
             }
