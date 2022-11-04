@@ -183,6 +183,10 @@ impl CJValidator {
         }
     }
 
+    pub fn is_cityjsonfeature(&self) -> bool {
+        self.cjfeature
+    }
+
     pub fn get_extensions(&self) -> &HashMap<String, Value> {
         &self.jexts
     }
