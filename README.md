@@ -26,9 +26,18 @@ It also verifies the following, these are not errors since the file is still con
   1. *unused_vertices*: vertices that are not referenced in the file, they take extra space. If there are any, [cjio](https://github.com/cityjson/cjio) has the operator `clean` to fix this automatically.
 
 
+## Library + 3 binaries
+
+`cjval` is a library and 3 different binaries:
+
+  1. `cjval` to validate a CityJSON file
+  2. `cjfval` to validate a stream of CityJSONFeature (from stdin)
+  3. `cjvalext` to validate a [CityJSON Extension file](https://www.cityjson.org/specs/1.1.2/#the-extension-file)
+
+
 ## Installation/compilation
 
-### To install the binary on your system easily
+### To install the binaries on your system easily
 
 1. install the [Rust compiler](https://www.rust-lang.org/learn/get-started)
 2. `cargo install cjval --features build-binary`
@@ -74,9 +83,15 @@ If the file contains one or more [Extensions](https://www.cityjson.org/extension
 
 then `cjval` will fetch/download automatically the schema(s).
 
-If instead you want to use your own local Extension schema(s), you can pass them as argument with the argument `-e`:
+If instead you want to use your own local Extension schema(s), you can pass them as argument with the argument `-e` and this will overwrite the automatic download:
 
     $ cjval myfile.city.json -e ./myextensions/generic.ext.json
+
+To validate a stream of [CityJSONFeature](https://www.cityjson.org/specs/1.1.2/#text-sequences-and-streaming-with-cityjsonfeature) (this uses [cjio](https://github.com/cityjson/cjio) to generate a stream from a CityJSON file):
+
+    $ cjio --suppress_msg myfile.city.json export jsonl stdout | cjfval --verbose
+
+and you'll get a short report per line (which is one `CityJSON` or `CityJSONFeature`).
 
 
 ## Contributors
