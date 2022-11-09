@@ -75,31 +75,38 @@ pub struct CJValidator {
     cjfeature: bool,
     j: Value,
     jschema: Value,
-    jexts: HashMap<String, Value>,
-    duplicate_keys: bool,
+    jexts: Vec<Value>,
     version_file: i32,
     version_schema: String,
+    errors: HashMap<String, Option<Vec<String>>>,
 }
 
 impl CJValidator {
-    pub fn from_str(str_dataset: &str) -> Result<Self, String> {
-        let l: HashMap<String, Value> = HashMap::new();
+    pub fn from_str(str_dataset: &str) -> Self {
+        let l: Vec<Value> = Vec::new();
+        let r: HashMap<String, Option<Vec<String>>> = HashMap::new();
         let mut v = CJValidator {
             cjfeature: false,
             j: json!(null),
             jschema: json!(null),
             jexts: l,
-            duplicate_keys: false,
+            errors: r,
             version_file: 0,
             version_schema: "-1".to_string(),
         };
         //-- parse the dataset and convert to JSON
-        let re: Result<Value, _> = serde_json::from_str(&str_dataset);
-        if re.is_err() {
-            return Err(re.err().unwrap().to_string());
+        let re = serde_json::from_str(&str_dataset);
+        match re {
+            Ok(j) => {
+                v.j = j;
+                // TODO: what is j.is_null() is true?
+                v.errors.insert("json_syntax".to_string(), None);
+            }
+            Err(e) => {
+                let t = vec![e.to_string()];
+                v.errors.insert("json_syntax".to_string(), Some(t));
+            }
         }
-        let j: Value = re.unwrap();
-        v.j = j;
         //-- check the type
         if v.j["type"] == "CityJSONFeature" {
             v.cjfeature = true;
@@ -128,9 +135,12 @@ impl CJValidator {
         //-- used for identifying duplicate keys
         let re: Result<Doc, _> = serde_json::from_str(&str_dataset);
         if re.is_err() {
-            v.duplicate_keys = true;
+            v.errors.insert(
+                "schema".to_string(),
+                Some(vec!["Duplicate keys in 'CityObjects'".to_string()]),
+            );
         }
-        Ok(v)
+        v
     }
 
     pub fn replace_cjfeature(&mut self, str_cjf: &str) -> Result<(), String> {
@@ -153,21 +163,38 @@ impl CJValidator {
         Ok(())
     }
 
-    pub fn add_one_extension_from_str(
-        &mut self,
-        ext_schema_name: &str,
-        ext_schema_str: &str,
-    ) -> Result<()> {
+    pub fn add_one_extension_from_str(&mut self, ext_schema_str: &str) -> Result<()> {
         let re: Result<Value, _> = serde_json::from_str(ext_schema_str);
         if re.is_err() {
             return Err(anyhow!(re.err().unwrap().to_string()));
         }
-        self.jexts.insert(ext_schema_name.to_string(), re.unwrap());
+        self.jexts.push(re.unwrap());
         Ok(())
     }
 
-    /// Does the CityJSON contain Extension(s)?
-    pub fn has_extensions(&self) -> Option<Vec<String>> {
+    pub fn validate(&self) {
+        // #-- ERRORS
+        //  # json_syntax
+        //  # schema
+        //  # extensions
+        //  # parent_children_consistency
+        //  # wrong_vertex_index
+        //  # semantics_arrays
+        // #-- WARNINGS
+        //  # extra_root_properties
+        //  # duplicate_vertices
+        //  # unused_vertices
+
+        // let re: HashMap<String, Option<Vec<String>)> = HashMap::new();
+
+        //-- json_syntax
+        match &self.errors["json_syntax"] {
+            Some(err) => println!("{:?}", err),
+            None => println!("valid!"),
+        }
+    }
+
+    pub fn get_extensions_urls(&self) -> Option<Vec<String>> {
         let mut re: Vec<String> = Vec::new();
         let v = self.j.as_object().unwrap();
         if v.contains_key("extensions") {
@@ -187,10 +214,6 @@ impl CJValidator {
         self.cjfeature
     }
 
-    pub fn get_extensions(&self) -> &HashMap<String, Value> {
-        &self.jexts
-    }
-
     pub fn get_input_cityjson_version(&self) -> i32 {
         self.version_file
     }
@@ -199,10 +222,7 @@ impl CJValidator {
         self.version_schema.to_owned()
     }
 
-    pub fn validate_schema(&self) -> Result<(), Vec<String>> {
-        if self.j.is_null() {
-            return Err(vec!["Not a valid JSON file".to_string()]);
-        }
+    fn schema(&self) -> Result<(), Vec<String>> {
         let mut ls_errors: Vec<String> = Vec::new();
         if self.cjfeature == false {
             //-- which cityjson version
@@ -224,10 +244,6 @@ impl CJValidator {
                 let s: String = format!("{} [path:{}]", error, error.instance_path);
                 ls_errors.push(s);
             }
-        }
-        //-- duplicate keys
-        if ls_errors.is_empty() && self.duplicate_keys {
-            ls_errors.push("Duplicate keys in 'CityObjects'".to_string())
         }
         if ls_errors.is_empty() {
             Ok(())
@@ -394,9 +410,9 @@ impl CJValidator {
         return compiled;
     }
 
-    pub fn validate_extensions(&self) -> Result<(), Vec<String>> {
+    fn validate_extensions(&self) -> Result<(), Vec<String>> {
         let mut ls_errors: Vec<String> = Vec::new();
-        for (_k, ext) in &self.jexts {
+        for ext in &self.jexts {
             //-- 1. extraCityObjects
             let mut re = self.validate_ext_extracityobjects(&ext);
             if re.is_err() {
@@ -456,7 +472,7 @@ impl CJValidator {
         }
         // println!("{:?}", ls_plusattrs);
         for each in ls_plusattrs {
-            for (_theid, jext) in &self.jexts {
+            for jext in &self.jexts {
                 let s = format!("/extraAttributes/{}", each);
                 let re = jext.pointer(s.as_str());
                 if re.is_none() {
@@ -475,7 +491,7 @@ impl CJValidator {
     fn validate_ext_co_without_schema(&self) -> Result<(), Vec<String>> {
         let mut ls_errors: Vec<String> = Vec::new();
         let mut newcos: Vec<String> = Vec::new();
-        for (_k, jext) in &self.jexts {
+        for jext in &self.jexts {
             let v = jext.get("extraCityObjects").unwrap().as_object().unwrap();
             for eco in v.keys() {
                 newcos.push(eco.to_string());
@@ -501,7 +517,7 @@ impl CJValidator {
     fn validate_ext_rootproperty_without_schema(&self) -> Result<(), Vec<String>> {
         let mut ls_errors: Vec<String> = Vec::new();
         let mut newrps: Vec<String> = Vec::new();
-        for (_k, jext) in &self.jexts {
+        for jext in &self.jexts {
             let v = jext
                 .get("extraRootProperties")
                 .unwrap()
@@ -526,7 +542,7 @@ impl CJValidator {
         }
     }
 
-    pub fn extra_root_properties(&self) -> Result<(), Vec<String>> {
+    fn extra_root_properties(&self) -> Result<(), Vec<String>> {
         if self.cjfeature {
             return Ok(());
         };
@@ -558,7 +574,7 @@ impl CJValidator {
     }
 
     // parent_children_consistency
-    pub fn parent_children_consistency(&self) -> Result<(), Vec<String>> {
+    fn parent_children_consistency(&self) -> Result<(), Vec<String>> {
         let mut ls_errors: Vec<String> = Vec::new();
         let cos = self.j.get("CityObjects").unwrap().as_object().unwrap();
         //-- do children have the parent too?
@@ -627,7 +643,7 @@ impl CJValidator {
         }
     }
 
-    pub fn duplicate_vertices(&self) -> Result<(), Vec<String>> {
+    fn duplicate_vertices(&self) -> Result<(), Vec<String>> {
         let mut ls_errors: Vec<String> = Vec::new();
         let vs = self.j.get("vertices").unwrap().as_array().unwrap();
         // use all vertices as keys in a hashmap
@@ -653,7 +669,7 @@ impl CJValidator {
         }
     }
 
-    pub fn wrong_vertex_index(&self) -> Result<(), Vec<String>> {
+    fn wrong_vertex_index(&self) -> Result<(), Vec<String>> {
         let max_index: usize = self.j.get("vertices").unwrap().as_array().unwrap().len();
         let mut ls_errors: Vec<String> = Vec::new();
         let cos = self.j.get("CityObjects").unwrap().as_object().unwrap();
@@ -738,7 +754,7 @@ impl CJValidator {
         }
     }
 
-    pub fn unused_vertices(&self) -> Result<(), Vec<String>> {
+    fn unused_vertices(&self) -> Result<(), Vec<String>> {
         let mut ls_errors: Vec<String> = Vec::new();
         let mut uniques: HashSet<usize> = HashSet::new();
         let cos = self.j.get("CityObjects").unwrap().as_object().unwrap();
@@ -816,7 +832,7 @@ impl CJValidator {
         }
     }
 
-    pub fn semantics_arrays(&self) -> Result<(), Vec<String>> {
+    fn semantics_arrays(&self) -> Result<(), Vec<String>> {
         let mut ls_errors: Vec<String> = Vec::new();
         let cos = self.j.get("CityObjects").unwrap().as_object().unwrap();
         for theid in cos.keys() {
