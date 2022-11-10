@@ -1,14 +1,16 @@
 use anyhow::{anyhow, Result};
+use indexmap::IndexMap;
 use jsonschema::{Draft, JSONSchema};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use serde_json::Value;
 use std::collections::HashMap;
 use std::collections::HashSet;
+use std::fmt;
 
 // #-- ERRORS
-//  # validate_schema
-//  # validate_extensions
+//  # schema
+//  # extensions
 //  # parent_children_consistency
 //  # wrong_vertex_index
 //  # semantics_arrays
@@ -27,6 +29,45 @@ static EXTENSION_FIXED_NAMES: [&str; 6] = [
     "versionCityJSON",
     "description",
 ];
+
+#[derive(Debug)]
+struct ValSummary {
+    status: Option<bool>,
+    errors: Vec<String>,
+}
+
+impl ValSummary {
+    fn new() -> ValSummary {
+        let l: Vec<String> = Vec::new();
+        ValSummary {
+            status: None,
+            errors: l,
+        }
+    }
+    fn set_validity(&mut self, b: bool) {
+        self.status = Some(b);
+    }
+    fn add_error(&mut self, e: String) {
+        self.errors.push(e);
+        self.set_validity(false);
+    }
+}
+
+impl fmt::Display for ValSummary {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        match self.status {
+            Some(s) => {
+                if s == true {
+                    fmt.write_str("ok")?;
+                } else {
+                    fmt.write_str(&format!("{:?}\n", self.errors.join("\n")))?;
+                }
+            }
+            None => (), //fmt.write_str("\n")?,
+        }
+        Ok(())
+    }
+}
 
 static CITYJSON_V10_VERSION: &str = "1.0.3";
 
@@ -76,21 +117,34 @@ pub struct CJValidator {
     j: Value,
     jschema: Value,
     jexts: Vec<Value>,
+    valsum: IndexMap<String, ValSummary>,
     version_file: i32,
     version_schema: String,
-    errors: HashMap<String, Option<Vec<String>>>,
 }
 
 impl CJValidator {
     pub fn from_str(str_dataset: &str) -> Self {
         let l: Vec<Value> = Vec::new();
-        let r: HashMap<String, Option<Vec<String>>> = HashMap::new();
+        let vsum = IndexMap::from([
+            ("json_syntax".to_string(), ValSummary::new()),
+            ("schema".to_string(), ValSummary::new()),
+            ("extensions".to_string(), ValSummary::new()),
+            (
+                "parents_children_consistency".to_string(),
+                ValSummary::new(),
+            ),
+            ("wrong_vertex_index".to_string(), ValSummary::new()),
+            ("semantics_arrays".to_string(), ValSummary::new()),
+            ("extra_root_properties".to_string(), ValSummary::new()),
+            ("duplicate_vertices".to_string(), ValSummary::new()),
+            ("unused_vertices".to_string(), ValSummary::new()),
+        ]);
         let mut v = CJValidator {
             cjfeature: false,
             j: json!(null),
             jschema: json!(null),
             jexts: l,
-            errors: r,
+            valsum: vsum,
             version_file: 0,
             version_schema: "-1".to_string(),
         };
@@ -100,12 +154,13 @@ impl CJValidator {
             Ok(j) => {
                 v.j = j;
                 // TODO: what is j.is_null() is true?
-                v.errors.insert("json_syntax".to_string(), None);
+                v.valsum.get_mut("json_syntax").unwrap().set_validity(true);
             }
-            Err(e) => {
-                let t = vec![e.to_string()];
-                v.errors.insert("json_syntax".to_string(), Some(t));
-            }
+            Err(e) => v
+                .valsum
+                .get_mut("json_syntax")
+                .unwrap()
+                .add_error(e.to_string()),
         }
         //-- check the type
         if v.j["type"] == "CityJSONFeature" {
@@ -133,14 +188,33 @@ impl CJValidator {
         }
         //-- check for duplicate keys in CO object, Doc is the struct above
         //-- used for identifying duplicate keys
-        let re: Result<Doc, _> = serde_json::from_str(&str_dataset);
-        if re.is_err() {
-            v.errors.insert(
-                "schema".to_string(),
-                Some(vec!["Duplicate keys in 'CityObjects'".to_string()]),
-            );
+        if v.is_valid() == true {
+            let re: Result<Doc, _> = serde_json::from_str(&str_dataset);
+            if re.is_err() {
+                v.valsum
+                    .get_mut("schema")
+                    .unwrap()
+                    .add_error("Duplicate keys in 'CityObjects'".to_string());
+            }
         }
         v
+    }
+
+    fn is_valid(&self) -> bool {
+        // println!("{:?}", self.valsum);
+        let mut re = true;
+        for (_key, val) in self.valsum.iter() {
+            if val.status == Some(false) {
+                re = false;
+                break;
+            }
+        }
+        re
+    }
+
+    fn has_warnings(&self) -> bool {
+        true
+        // TODO: necessary?
     }
 
     pub fn replace_cjfeature(&mut self, str_cjf: &str) -> Result<(), String> {
@@ -172,25 +246,24 @@ impl CJValidator {
         Ok(())
     }
 
-    pub fn validate(&self) {
-        // #-- ERRORS
-        //  # json_syntax
-        //  # schema
-        //  # extensions
-        //  # parent_children_consistency
-        //  # wrong_vertex_index
-        //  # semantics_arrays
-        // #-- WARNINGS
-        //  # extra_root_properties
-        //  # duplicate_vertices
-        //  # unused_vertices
+    pub fn validate(&mut self) {
+        // https://lib.rs/crates/indexmap
 
-        // let re: HashMap<String, Option<Vec<String>)> = HashMap::new();
+        if self.is_valid() == false {
+            println!("here");
+            self.print_val_summary();
+            return;
+        }
 
-        //-- json_syntax
-        match &self.errors["json_syntax"] {
-            Some(err) => println!("{:?}", err),
-            None => println!("valid!"),
+        self.schema();
+        self.print_val_summary();
+        return;
+    }
+
+    fn print_val_summary(&self) {
+        for (criterion, sum) in self.valsum.iter() {
+            println!("=== {} ===", criterion);
+            println!("{}", sum);
         }
     }
 
@@ -222,8 +295,8 @@ impl CJValidator {
         self.version_schema.to_owned()
     }
 
-    fn schema(&self) -> Result<(), Vec<String>> {
-        let mut ls_errors: Vec<String> = Vec::new();
+    fn schema(&mut self) {
+        self.valsum.get_mut("schema").unwrap().set_validity(true);
         if self.cjfeature == false {
             //-- which cityjson version
             if self.version_file == 0 {
@@ -231,7 +304,8 @@ impl CJValidator {
                     "CityJSON version {} not supported [only \"1.0\" and \"1.1\"]",
                     self.j["version"]
                 );
-                return Err(vec![s]);
+                self.valsum.get_mut("schema").unwrap().add_error(s);
+                return;
             }
         }
         let compiled = JSONSchema::options()
@@ -242,13 +316,8 @@ impl CJValidator {
         if let Err(errors) = result {
             for error in errors {
                 let s: String = format!("{} [path:{}]", error, error.instance_path);
-                ls_errors.push(s);
+                self.valsum.get_mut("schema").unwrap().add_error(s);
             }
-        }
-        if ls_errors.is_empty() {
-            Ok(())
-        } else {
-            Err(ls_errors)
         }
     }
 
@@ -574,7 +643,7 @@ impl CJValidator {
     }
 
     // parent_children_consistency
-    fn parent_children_consistency(&self) -> Result<(), Vec<String>> {
+    fn parents_children_consistency(&self) -> Result<(), Vec<String>> {
         let mut ls_errors: Vec<String> = Vec::new();
         let cos = self.j.get("CityObjects").unwrap().as_object().unwrap();
         //-- do children have the parent too?
