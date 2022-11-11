@@ -55,6 +55,13 @@ impl ValSummary {
     pub fn is_warning(&self) -> bool {
         self.warning
     }
+    pub fn is_valid(&self) -> bool {
+        if self.status == Some(true) {
+            return true;
+        } else {
+            return false;
+        }
+    }
     pub fn has_errors(&self) -> bool {
         match self.status {
             Some(s) => {
@@ -230,6 +237,29 @@ impl CJValidator {
         }
         self.jexts.push(re.unwrap());
         Ok(())
+    }
+
+    pub fn is_valid(&self) -> bool {
+        let valsumm = self.validate();
+        if valsumm["json_syntax"].has_errors() {
+            return false;
+        }
+        if valsumm["schema"].has_errors() {
+            return false;
+        }
+        if valsumm["extensions"].has_errors() {
+            return false;
+        }
+        if valsumm["parent_children_consistency"].has_errors() {
+            return false;
+        }
+        if valsumm["wrong_vertex_index"].has_errors() {
+            return false;
+        }
+        if valsumm["semantics_arrays"].has_errors() {
+            return false;
+        }
+        true
     }
 
     pub fn validate(&self) -> IndexMap<String, ValSummary> {
