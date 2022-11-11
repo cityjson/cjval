@@ -11,7 +11,7 @@ use std::fmt;
 // #-- ERRORS
 //  # schema
 //  # extensions
-//  # parent_children_consistency
+//  # parents_children_consistency
 //  # wrong_vertex_index
 //  # semantics_arrays
 //
