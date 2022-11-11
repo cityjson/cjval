@@ -11,18 +11,6 @@ use clap::{App, AppSettings, Arg};
 
 use anyhow::{anyhow, Result};
 
-fn print_errors(lserrs: &Vec<String>) {
-    for (i, e) in lserrs.iter().enumerate() {
-        println!("  {}. {}", i + 1, e);
-    }
-}
-
-fn print_warnings(lswarns: &Vec<String>) {
-    for (i, e) in lswarns.iter().enumerate() {
-        println!("  {}. {}", i + 1, e);
-    }
-}
-
 fn summary_and_bye(finalresult: i32) {
     println!("\n");
     println!("============= SUMMARY =============");
@@ -86,49 +74,11 @@ fn main() {
     );
     println!("  {:?}", p1);
 
-    let mut val = CJValidator::from_str("{}").unwrap();
-    //-- ERRORS
-    println!("{}", Style::new().bold().paint("=== JSON syntax ==="));
-    let re = CJValidator::from_str(&s1);
-    match re {
-        Ok(f) => {
-            println!("ok");
-            val = f;
-        }
-        Err(e) => {
-            let s = format!("Invalid JSON file: {:?}", e);
-            print_errors(&vec![s]);
-            summary_and_bye(-1);
-        }
-    }
+    //-- Get the validator
+    let mut val = CJValidator::from_str(&s1);
 
-    //-- validate against schema
-    println!("{}", Style::new().bold().paint("=== CityJSON schemas ==="));
-    if val.get_input_cityjson_version() == 0 {
-        println!("CityJSON schemas used: NONE");
-    } else {
-        println!(
-            "CityJSON schemas used: v{} (builtin)",
-            val.get_cityjson_schema_version()
-        );
-    }
-    let mut rev = val.validate_schema();
-    match rev {
-        Ok(_f) => (),
-        Err(e) => {
-            print_errors(&e);
-
-            summary_and_bye(-1);
-        }
-    }
-
-    //-- fetch the Extension schemas
-    println!(
-        "{}",
-        Style::new().bold().paint("=== Extensions schemas ===")
-    );
-    println!("Extension schema(s) used:");
-    //-- download them
+    //-- Extensions
+    println!("{}", Style::new().bold().paint("=== Extensions ==="));
     if val.get_input_cityjson_version() >= 11 {
         //-- if argument "-e" is passed then do not download
         if let Some(efiles) = matches.values_of("PATH") {
@@ -137,7 +87,7 @@ fn main() {
             for s in l {
                 let s2 = std::fs::read_to_string(s).expect("Couldn't read Extension file");
                 let scanon = Path::new(s).canonicalize().unwrap();
-                let re = val.add_one_extension_from_str(&scanon.to_str().unwrap(), &s2);
+                let re = val.add_one_extension_from_str(&s2);
                 match re {
                     Ok(()) => println!("\t- {}.. ok", scanon.to_str().unwrap()),
                     Err(e) => {
@@ -152,7 +102,7 @@ fn main() {
             }
         } else {
             //-- download automatically the Extensions
-            let re = val.has_extensions();
+            let re = val.get_extensions_urls();
             if re.is_some() {
                 let lexts = re.unwrap();
                 // println!("{:?}", lexts);
@@ -160,7 +110,7 @@ fn main() {
                     let o = download_extension(&ext);
                     match o {
                         Ok(l) => {
-                            let re = val.add_one_extension_from_str(&ext, &l);
+                            let re = val.add_one_extension_from_str(&l);
                             match re {
                                 Ok(()) => println!("\t- {}.. ok", ext),
                                 Err(e) => {
@@ -176,124 +126,38 @@ fn main() {
                         }
                     }
                 }
+            } else {
+                println!("\t- NONE");
             }
         }
-    }
-    if val.get_extensions().is_empty() {
-        println!("\t- NONE");
     }
     if val.get_input_cityjson_version() == 10 {
         println!("(validation of Extensions is not supported in v1.0, upgrade to v1.1)");
     }
-    println!("-----");
 
-    //-- validate Extensions, if any
-    rev = val.validate_extensions();
-    match rev {
-        Ok(_f) => (),
-        Err(e) => {
-            print_errors(&e);
-            summary_and_bye(-1);
-        }
-    }
+    let valsumm = val.validate();
 
-    let mut is_valid = true;
-
-    println!(
-        "{}",
-        Style::new()
-            .bold()
-            .paint("=== parent_children_consistency ===")
-    );
-    rev = val.parent_children_consistency();
-    match rev {
-        Ok(_f) => println!("ok"),
-        Err(e) => {
-            print_errors(&e);
-            is_valid = false;
-        }
-    }
-
-    println!(
-        "{}",
-        Style::new().bold().paint("=== wrong_vertex_index ===")
-    );
-    rev = val.wrong_vertex_index();
-    match rev {
-        Ok(_f) => println!("ok"),
-        Err(e) => {
-            print_errors(&e);
-            is_valid = false;
-        }
-    }
-
-    println!("{}", Style::new().bold().paint("=== semantics_arrays ==="));
-    rev = val.semantics_arrays();
-    match rev {
-        Ok(_f) => println!("ok"),
-        Err(e) => {
-            print_errors(&e);
-            is_valid = false;
-        }
-    }
-
-    //-- if not valid at this point then stop
-    if is_valid == false {
-        summary_and_bye(-1);
-    }
-
-    //-- WARNINGS
-    let mut bwarns = false;
-    println!(
-        "{}",
-        Style::new()
-            .bold()
-            .paint("=== duplicate_vertices (warnings) ===")
-    );
-    rev = val.duplicate_vertices();
-    match rev {
-        Ok(_f) => println!("ok"),
-        Err(e) => {
-            print_warnings(&e);
-            bwarns = true;
-        }
-    }
-
-    println!(
-        "{}",
-        Style::new()
-            .bold()
-            .paint("=== extra_root_properties (warnings) ===")
-    );
-    rev = val.extra_root_properties();
-    match rev {
-        Ok(_f) => println!("ok"),
-        Err(e) => {
-            print_warnings(&e);
-            bwarns = true;
-        }
-    }
-
-    println!(
-        "{}",
-        Style::new()
-            .bold()
-            .paint("=== unused_vertices (warnings) ===")
-    );
-    rev = val.unused_vertices();
-    match rev {
-        Ok(_f) => println!("ok"),
-        Err(e) => {
-            print_warnings(&e);
-            bwarns = true;
+    let mut has_errors = false;
+    let mut has_warnings = false;
+    for (criterion, summ) in valsumm.iter() {
+        println!("=== {} ===", criterion);
+        println!("{}", summ);
+        if summ.has_errors() == true {
+            if summ.is_warning() == true {
+                has_warnings = true;
+            } else {
+                has_errors = true;
+            }
         }
     }
 
     //-- bye-bye
-    if bwarns == false {
+    if has_errors == false && has_warnings == false {
         summary_and_bye(1);
-    } else {
+    } else if has_errors == false && has_warnings == true {
         summary_and_bye(0);
+    } else {
+        summary_and_bye(-1);
     }
 }
 
