@@ -47,6 +47,18 @@ impl ValSummary {
     fn set_validity(&mut self, b: bool) {
         self.status = Some(b);
     }
+    fn has_errors(&self) -> bool {
+        match self.status {
+            Some(s) => {
+                if s == true {
+                    return false;
+                } else {
+                    return true;
+                }
+            }
+            None => return false,
+        }
+    }
     fn add_error(&mut self, e: String) {
         self.errors.push(e);
         self.set_validity(false);
@@ -308,6 +320,12 @@ impl CJValidator {
             }
         }
 
+        //-- warnings : only do if no errors so far
+        for (_c, summ) in vsum.iter() {
+            if summ.has_errors() == true {
+                return vsum;
+            }
+        }
         //-- extra_root_properties
         re = self.extra_root_properties();
         match re {
