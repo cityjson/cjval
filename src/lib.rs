@@ -34,6 +34,7 @@ static EXTENSION_FIXED_NAMES: [&str; 6] = [
 pub struct ValSummary {
     status: Option<bool>,
     errors: Vec<String>,
+    warning: bool,
 }
 
 impl ValSummary {
@@ -42,12 +43,19 @@ impl ValSummary {
         ValSummary {
             status: None,
             errors: l,
+            warning: false,
         }
     }
     fn set_validity(&mut self, b: bool) {
         self.status = Some(b);
     }
-    fn has_errors(&self) -> bool {
+    fn set_as_warning(&mut self) {
+        self.warning = true;
+    }
+    pub fn is_warning(&self) -> bool {
+        self.warning
+    }
+    pub fn has_errors(&self) -> bool {
         match self.status {
             Some(s) => {
                 if s == true {
@@ -225,6 +233,12 @@ impl CJValidator {
     }
 
     pub fn validate(&self) -> IndexMap<String, ValSummary> {
+        let mut w1 = ValSummary::new();
+        w1.set_as_warning();
+        let mut w2 = ValSummary::new();
+        w2.set_as_warning();
+        let mut w3 = ValSummary::new();
+        w3.set_as_warning();
         let mut vsum = IndexMap::from([
             ("json_syntax".to_string(), ValSummary::new()),
             ("schema".to_string(), ValSummary::new()),
@@ -235,9 +249,9 @@ impl CJValidator {
             ),
             ("wrong_vertex_index".to_string(), ValSummary::new()),
             ("semantics_arrays".to_string(), ValSummary::new()),
-            ("extra_root_properties".to_string(), ValSummary::new()),
-            ("duplicate_vertices".to_string(), ValSummary::new()),
-            ("unused_vertices".to_string(), ValSummary::new()),
+            ("extra_root_properties".to_string(), w1),
+            ("duplicate_vertices".to_string(), w2),
+            ("unused_vertices".to_string(), w3),
         ]);
 
         //-- json_syntax
