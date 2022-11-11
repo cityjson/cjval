@@ -32,16 +32,16 @@ fn get_data() -> Value {
 #[test]
 fn invalid_integer() {
     let j = get_data();
-    let v: CJValidator = CJValidator::from_str(&j.to_string()).unwrap();
-    let re = v.duplicate_vertices();
-    assert!(re.is_err());
+    let v: CJValidator = CJValidator::from_str(&j.to_string());
+    let re = v.validate();
+    assert!(!re["duplicate_vertices"].is_valid());
 }
 
 #[test]
 fn valid_integer() {
     let mut j = get_data();
     j["vertices"].as_array_mut().unwrap().pop().unwrap();
-    let v: CJValidator = CJValidator::from_str(&j.to_string()).unwrap();
-    let re = v.duplicate_vertices();
-    assert!(re.is_ok());
+    let v: CJValidator = CJValidator::from_str(&j.to_string());
+    let re = v.validate();
+    assert!(re["duplicate_vertices"].is_valid());
 }

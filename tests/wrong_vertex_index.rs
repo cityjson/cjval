@@ -98,23 +98,23 @@ fn get_data2() -> Value {
 #[test]
 fn wrong_vertex_index_1() {
     let j = get_data1();
-    let v: CJValidator = CJValidator::from_str(&j.to_string()).unwrap();
-    let re = v.wrong_vertex_index();
-    assert!(re.is_err());
+    let v: CJValidator = CJValidator::from_str(&j.to_string());
+    let re = v.validate();
+    assert!(!re["wrong_vertex_index"].is_valid());
 }
 
 #[test]
 fn wrong_vertex_index_2() {
     let mut j = get_data2();
-    let mut v: CJValidator = CJValidator::from_str(&j.to_string()).unwrap();
-    let re = v.wrong_vertex_index();
-    assert!(re.is_ok());
+    let mut v: CJValidator = CJValidator::from_str(&j.to_string());
+    let re = v.validate();
+    assert!(re["wrong_vertex_index"].is_valid());
 
     j["CityObjects"]["un"]["geometry"][0]["boundaries"]
         .as_array_mut()
         .unwrap()
         .push(json!(77));
-    v = CJValidator::from_str(&j.to_string()).unwrap();
-    let re = v.wrong_vertex_index();
-    assert!(re.is_err());
+    v = CJValidator::from_str(&j.to_string());
+    let re = v.validate();
+    assert!(!re["wrong_vertex_index"].is_valid());
 }

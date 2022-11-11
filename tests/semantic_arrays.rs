@@ -158,17 +158,17 @@ fn get_data_2() -> Value {
 #[test]
 fn semantics_arrays_valid() {
     let j = get_data_1();
-    let v: CJValidator = CJValidator::from_str(&j.to_string()).unwrap();
-    let re = v.semantics_arrays();
-    assert!(re.is_ok());
+    let v: CJValidator = CJValidator::from_str(&j.to_string());
+    let re = v.validate();
+    assert!(re["semantics_arrays"].is_valid());
 }
 
 #[test]
 fn semantics_point_linestring() {
     let j = get_data_2();
-    let v: CJValidator = CJValidator::from_str(&j.to_string()).unwrap();
-    let re = v.semantics_arrays();
-    assert!(re.is_ok());
+    let v: CJValidator = CJValidator::from_str(&j.to_string());
+    let re = v.validate();
+    assert!(re["semantics_arrays"].is_valid());
 }
 
 #[test]
@@ -178,9 +178,9 @@ fn semantics_point_linestring_wrong_array_size() {
         .as_array_mut()
         .unwrap()
         .push(json!(1));
-    let v: CJValidator = CJValidator::from_str(&j.to_string()).unwrap();
-    let re = v.semantics_arrays();
-    assert!(re.is_err());
+    let v: CJValidator = CJValidator::from_str(&j.to_string());
+    let re = v.validate();
+    assert!(!re["semantics_arrays"].is_valid());
 }
 
 #[test]
@@ -191,9 +191,9 @@ fn semantics_arrays_diff_dimensions() {
         .unwrap()
         .push(json!(1));
     // println!("=====>{:?}", &j);
-    let v: CJValidator = CJValidator::from_str(&j.to_string()).unwrap();
-    let re = v.semantics_arrays();
-    assert!(re.is_err());
+    let v: CJValidator = CJValidator::from_str(&j.to_string());
+    let re = v.validate();
+    assert!(!re["semantics_arrays"].is_valid());
 }
 
 #[test]
@@ -207,7 +207,7 @@ fn semantics_arrays_unused() {
         .as_array_mut()
         .unwrap()
         .push(json!(77));
-    let v: CJValidator = CJValidator::from_str(&j.to_string()).unwrap();
-    let re = v.semantics_arrays();
-    assert!(re.is_err());
+    let v: CJValidator = CJValidator::from_str(&j.to_string());
+    let re = v.validate();
+    assert!(!re["semantics_arrays"].is_valid());
 }

@@ -52,9 +52,9 @@ fn get_data() -> Value {
 #[test]
 fn valid() {
     let j = get_data();
-    let v: CJValidator = CJValidator::from_str(&j.to_string()).unwrap();
-    let re = v.validate_schema();
-    assert!(re.is_ok());
+    let v: CJValidator = CJValidator::from_str(&j.to_string());
+    let re = v.validate();
+    assert!(re["parents_children_consistency"].is_valid());
 }
 
 #[test]
@@ -65,9 +65,9 @@ fn no_child() {
         .unwrap()
         .push(json!("hugo"));
     // println!("=====>{:?}", ar);
-    let v: CJValidator = CJValidator::from_str(&j.to_string()).unwrap();
-    let re = v.parent_children_consistency();
-    assert!(re.is_err());
+    let v: CJValidator = CJValidator::from_str(&j.to_string());
+    let re = v.validate();
+    assert!(!re["parents_children_consistency"].is_valid());
 }
 
 #[test]
@@ -78,7 +78,7 @@ fn no_parent() {
         .unwrap()
         .push(json!("hugo"));
     // println!("=====>{:?}", ar);
-    let v: CJValidator = CJValidator::from_str(&j.to_string()).unwrap();
-    let re = v.parent_children_consistency();
-    assert!(re.is_err());
+    let v: CJValidator = CJValidator::from_str(&j.to_string());
+    let re = v.validate();
+    assert!(!re["parents_children_consistency"].is_valid());
 }

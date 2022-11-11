@@ -29,7 +29,7 @@ fn get_data() -> Value {
 #[test]
 fn contains_same_key() {
     let j = get_data();
-    let v: CJValidator = CJValidator::from_str(&j.to_string()).unwrap();
-    let re = v.validate_schema();
-    assert!(re.is_ok());
+    let v: CJValidator = CJValidator::from_str(&j.to_string());
+    let re = v.validate();
+    assert!(re["schema"].is_valid());
 }
