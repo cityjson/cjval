@@ -64,7 +64,7 @@ fn main() -> io::Result<()> {
         b_verbose = true;
     }
     let mut b_metadata = false;
-    let mut val = CJValidator::from_str("{}").unwrap();
+    let mut val = CJValidator::from_str("{}");
     let stdin = std::io::stdin();
     for (i, line) in stdin.lock().lines().enumerate() {
         let l = line.unwrap();
@@ -72,26 +72,16 @@ fn main() -> io::Result<()> {
             continue;
         }
         if !b_metadata {
-            let tmp = CJValidator::from_str(&l);
-            match tmp {
-                Ok(f) => {
-                    val = f;
-                    let re = validate_cj(&mut val, matches.values_of("PATH"));
-                    match re {
-                        Ok(_) => {
-                            let w = validate_cj_warnings(&val);
-                            match w {
-                                Ok(_) => println!("l.{}\t✅", i + 1),
-                                Err(e) => {
-                                    println!("l.{}\t🟡", i + 1);
-                                    if b_verbose {
-                                        println!("{}", e.join(" | "));
-                                    }
-                                }
-                            }
-                        }
+            // TODO: what is no metadata-first-line?
+            let val = CJValidator::from_str(&l);
+            let re = fetch_extensions(&mut val, matches.values_of("PATH"));
+            match re {
+                Ok(_) => {
+                    let w = validate_cj(&val);
+                    match w {
+                        Ok(_) => println!("l.{}\t✅", i + 1),
                         Err(e) => {
-                            println!("l.{}\t❌", i + 1);
+                            println!("l.{}\t🟡", i + 1);
                             if b_verbose {
                                 println!("{}", e.join(" | "));
                             }
@@ -101,8 +91,7 @@ fn main() -> io::Result<()> {
                 Err(e) => {
                     println!("l.{}\t❌", i + 1);
                     if b_verbose {
-                        let s = format!("Invalid JSON file: {}", e);
-                        println!("{}", s);
+                        println!("{}", e.join(" | "));
                     }
                 }
             }
@@ -147,21 +136,9 @@ fn main() -> io::Result<()> {
     Ok(())
 }
 
-fn validate_cj(val: &mut CJValidator, extpaths: Option<Values>) -> Result<(), Vec<String>> {
+fn fetch_extensions(val: &mut CJValidator, extpaths: Option<Values>) -> Result<(), Vec<String>> {
     let mut b_valid = true;
     let mut ls_errors: Vec<String> = Vec::new();
-    //-- CityJSON schema
-    let re = val.validate_schema();
-    match re {
-        Ok(_) => (),
-        Err(errors) => {
-            b_valid = false;
-            for error in errors {
-                let s: String = format!("{}", error);
-                ls_errors.push(s);
-            }
-        }
-    }
     //-- Extensions
     if val.get_input_cityjson_version() >= 11 {
         match extpaths {
@@ -170,7 +147,7 @@ fn validate_cj(val: &mut CJValidator, extpaths: Option<Values>) -> Result<(), Ve
                 for s in l {
                     let s2 = std::fs::read_to_string(s).expect("Couldn't read Extension file");
                     let scanon = Path::new(s).canonicalize().unwrap();
-                    let re = val.add_one_extension_from_str(&scanon.to_str().unwrap(), &s2);
+                    let re = val.add_one_extension_from_str(&s2);
                     match re {
                         Ok(_) => (),
                         Err(e) => {
@@ -195,7 +172,7 @@ fn validate_cj(val: &mut CJValidator, extpaths: Option<Values>) -> Result<(), Ve
                         let o = download_extension(&ext);
                         match o {
                             Ok(l) => {
-                                let re = val.add_one_extension_from_str(&ext, &l);
+                                let re = val.add_one_extension_from_str(&l);
                                 match re {
                                     Ok(_) => (),
                                     Err(error) => {
@@ -223,8 +200,10 @@ fn validate_cj(val: &mut CJValidator, extpaths: Option<Values>) -> Result<(), Ve
     }
 }
 
-fn validate_cj_warnings(val: &CJValidator) -> Result<(), Vec<String>> {
-    let _ = val.extra_root_properties()?;
+fn validate_cj(val: &CJValidator) -> Result<(), Vec<String>> {
+    let valsumm = val.validate();
+    // let _ = val.extra_root_properties()?;
+
     Ok(())
 }
 
