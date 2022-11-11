@@ -63,7 +63,8 @@ impl fmt::Display for ValSummary {
                     fmt.write_str(&format!("{:?}", self.errors.join("\n")))?;
                 }
             }
-            None => fmt.write_str("--")?, //fmt.write_str("\n")?,
+            None => (),
+            // None => fmt.write_str("--")?, //fmt.write_str("\n")?,
         }
         Ok(())
     }
@@ -259,7 +260,7 @@ impl CJValidator {
         //-- extensions
         re = self.validate_extensions();
         match re {
-            Ok(_) => vsum.get_mut("extension").unwrap().set_validity(true),
+            Ok(_) => vsum.get_mut("extensions").unwrap().set_validity(true),
             Err(errs) => {
                 for err in errs {
                     vsum.get_mut("extensions").unwrap().add_error(err);
@@ -268,10 +269,8 @@ impl CJValidator {
             }
         }
 
-        // let othercriteria = ["parents_children_consistency", "wrong_vertex_index", "semantics_arrays", "extra_root_properties", "duplicate_vertices", "unused_vertices"];
-        // for c in othercriteria {
-
-        // }
+        //-- parents_children_consistency
+        re = self.parents_children_consistency();
         match re {
             Ok(_) => vsum
                 .get_mut("parents_children_consistency")
@@ -285,7 +284,68 @@ impl CJValidator {
                 }
             }
         }
+        //-- wrong_vertex_index
+        re = self.wrong_vertex_index();
+        match re {
+            Ok(_) => vsum
+                .get_mut("wrong_vertex_index")
+                .unwrap()
+                .set_validity(true),
+            Err(errs) => {
+                for err in errs {
+                    vsum.get_mut("wrong_vertex_index").unwrap().add_error(err);
+                }
+            }
+        }
+        //-- semantics_arrays
+        re = self.semantics_arrays();
+        match re {
+            Ok(_) => vsum.get_mut("semantics_arrays").unwrap().set_validity(true),
+            Err(errs) => {
+                for err in errs {
+                    vsum.get_mut("semantics_arrays").unwrap().add_error(err);
+                }
+            }
+        }
 
+        //-- extra_root_properties
+        re = self.extra_root_properties();
+        match re {
+            Ok(_) => vsum
+                .get_mut("extra_root_properties")
+                .unwrap()
+                .set_validity(true),
+            Err(errs) => {
+                for err in errs {
+                    vsum.get_mut("extra_root_properties")
+                        .unwrap()
+                        .add_error(err);
+                }
+            }
+        }
+        //-- duplicate_vertices
+        re = self.duplicate_vertices();
+        match re {
+            Ok(_) => vsum
+                .get_mut("duplicate_vertices")
+                .unwrap()
+                .set_validity(true),
+            Err(errs) => {
+                for err in errs {
+                    vsum.get_mut("duplicate_vertices").unwrap().add_error(err);
+                }
+            }
+        }
+        //-- unused_vertices
+        re = self.unused_vertices();
+        match re {
+            Ok(_) => vsum.get_mut("unused_vertices").unwrap().set_validity(true),
+            Err(errs) => {
+                for err in errs {
+                    vsum.get_mut("unused_vertices").unwrap().add_error(err);
+                }
+            }
+        }
         return vsum;
     }
 
