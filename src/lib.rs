@@ -31,7 +31,7 @@ static EXTENSION_FIXED_NAMES: [&str; 6] = [
 ];
 
 #[derive(Debug)]
-struct ValSummary {
+pub struct ValSummary {
     status: Option<bool>,
     errors: Vec<String>,
 }
@@ -60,10 +60,10 @@ impl fmt::Display for ValSummary {
                 if s == true {
                     fmt.write_str("ok")?;
                 } else {
-                    fmt.write_str(&format!("{:?}\n", self.errors.join("\n")))?;
+                    fmt.write_str(&format!("{:?}", self.errors.join("\n")))?;
                 }
             }
-            None => (), //fmt.write_str("\n")?,
+            None => fmt.write_str("--")?, //fmt.write_str("\n")?,
         }
         Ok(())
     }
@@ -117,7 +117,9 @@ pub struct CJValidator {
     j: Value,
     jschema: Value,
     jexts: Vec<Value>,
-    valsum: IndexMap<String, ValSummary>,
+    // valsum: IndexMap<String, ValSummary>,
+    json_syntax_error: Option<String>,
+    duplicate_keys: bool,
     version_file: i32,
     version_schema: String,
 }
@@ -125,26 +127,14 @@ pub struct CJValidator {
 impl CJValidator {
     pub fn from_str(str_dataset: &str) -> Self {
         let l: Vec<Value> = Vec::new();
-        let vsum = IndexMap::from([
-            ("json_syntax".to_string(), ValSummary::new()),
-            ("schema".to_string(), ValSummary::new()),
-            ("extensions".to_string(), ValSummary::new()),
-            (
-                "parents_children_consistency".to_string(),
-                ValSummary::new(),
-            ),
-            ("wrong_vertex_index".to_string(), ValSummary::new()),
-            ("semantics_arrays".to_string(), ValSummary::new()),
-            ("extra_root_properties".to_string(), ValSummary::new()),
-            ("duplicate_vertices".to_string(), ValSummary::new()),
-            ("unused_vertices".to_string(), ValSummary::new()),
-        ]);
         let mut v = CJValidator {
             cjfeature: false,
             j: json!(null),
             jschema: json!(null),
             jexts: l,
-            valsum: vsum,
+            // valsum: vsum,
+            json_syntax_error: None,
+            duplicate_keys: false,
             version_file: 0,
             version_schema: "-1".to_string(),
         };
@@ -154,13 +144,8 @@ impl CJValidator {
             Ok(j) => {
                 v.j = j;
                 // TODO: what is j.is_null() is true?
-                v.valsum.get_mut("json_syntax").unwrap().set_validity(true);
             }
-            Err(e) => v
-                .valsum
-                .get_mut("json_syntax")
-                .unwrap()
-                .add_error(e.to_string()),
+            Err(e) => v.json_syntax_error = Some(e.to_string()),
         }
         //-- check the type
         if v.j["type"] == "CityJSONFeature" {
@@ -188,33 +173,13 @@ impl CJValidator {
         }
         //-- check for duplicate keys in CO object, Doc is the struct above
         //-- used for identifying duplicate keys
-        if v.is_valid() == true {
+        if v.json_syntax_error.is_none() {
             let re: Result<Doc, _> = serde_json::from_str(&str_dataset);
             if re.is_err() {
-                v.valsum
-                    .get_mut("schema")
-                    .unwrap()
-                    .add_error("Duplicate keys in 'CityObjects'".to_string());
+                v.duplicate_keys = true;
             }
         }
         v
-    }
-
-    fn is_valid(&self) -> bool {
-        // println!("{:?}", self.valsum);
-        let mut re = true;
-        for (_key, val) in self.valsum.iter() {
-            if val.status == Some(false) {
-                re = false;
-                break;
-            }
-        }
-        re
-    }
-
-    fn has_warnings(&self) -> bool {
-        true
-        // TODO: necessary?
     }
 
     pub fn replace_cjfeature(&mut self, str_cjf: &str) -> Result<(), String> {
@@ -246,25 +211,82 @@ impl CJValidator {
         Ok(())
     }
 
-    pub fn validate(&mut self) {
-        // https://lib.rs/crates/indexmap
+    pub fn validate(&self) -> IndexMap<String, ValSummary> {
+        let mut vsum = IndexMap::from([
+            ("json_syntax".to_string(), ValSummary::new()),
+            ("schema".to_string(), ValSummary::new()),
+            ("extensions".to_string(), ValSummary::new()),
+            (
+                "parents_children_consistency".to_string(),
+                ValSummary::new(),
+            ),
+            ("wrong_vertex_index".to_string(), ValSummary::new()),
+            ("semantics_arrays".to_string(), ValSummary::new()),
+            ("extra_root_properties".to_string(), ValSummary::new()),
+            ("duplicate_vertices".to_string(), ValSummary::new()),
+            ("unused_vertices".to_string(), ValSummary::new()),
+        ]);
 
-        if self.is_valid() == false {
-            println!("here");
-            self.print_val_summary();
-            return;
+        //-- json_syntax
+        match &self.json_syntax_error {
+            Some(e) => {
+                vsum.get_mut("json_syntax")
+                    .unwrap()
+                    .add_error(e.to_string());
+                return vsum;
+            }
+            None => vsum.get_mut("json_syntax").unwrap().set_validity(true),
         }
 
-        self.schema();
-        self.print_val_summary();
-        return;
-    }
-
-    fn print_val_summary(&self) {
-        for (criterion, sum) in self.valsum.iter() {
-            println!("=== {} ===", criterion);
-            println!("{}", sum);
+        //-- schema
+        if self.duplicate_keys == true {
+            vsum.get_mut("schema")
+                .unwrap()
+                .add_error("Duplicate keys in 'CityObjects'".to_string());
+            return vsum;
         }
+        let mut re = self.schema();
+        match re {
+            Ok(_) => vsum.get_mut("schema").unwrap().set_validity(true),
+            Err(errs) => {
+                for err in errs {
+                    vsum.get_mut("schema").unwrap().add_error(err);
+                }
+                return vsum;
+            }
+        }
+
+        //-- extensions
+        re = self.validate_extensions();
+        match re {
+            Ok(_) => vsum.get_mut("extension").unwrap().set_validity(true),
+            Err(errs) => {
+                for err in errs {
+                    vsum.get_mut("extensions").unwrap().add_error(err);
+                }
+                return vsum;
+            }
+        }
+
+        // let othercriteria = ["parents_children_consistency", "wrong_vertex_index", "semantics_arrays", "extra_root_properties", "duplicate_vertices", "unused_vertices"];
+        // for c in othercriteria {
+
+        // }
+        match re {
+            Ok(_) => vsum
+                .get_mut("parents_children_consistency")
+                .unwrap()
+                .set_validity(true),
+            Err(errs) => {
+                for err in errs {
+                    vsum.get_mut("parents_children_consistency")
+                        .unwrap()
+                        .add_error(err);
+                }
+            }
+        }
+
+        return vsum;
     }
 
     pub fn get_extensions_urls(&self) -> Option<Vec<String>> {
@@ -295,8 +317,8 @@ impl CJValidator {
         self.version_schema.to_owned()
     }
 
-    fn schema(&mut self) {
-        self.valsum.get_mut("schema").unwrap().set_validity(true);
+    fn schema(&self) -> Result<(), Vec<String>> {
+        let mut ls_errors: Vec<String> = Vec::new();
         if self.cjfeature == false {
             //-- which cityjson version
             if self.version_file == 0 {
@@ -304,8 +326,7 @@ impl CJValidator {
                     "CityJSON version {} not supported [only \"1.0\" and \"1.1\"]",
                     self.j["version"]
                 );
-                self.valsum.get_mut("schema").unwrap().add_error(s);
-                return;
+                return Err(vec![s]);
             }
         }
         let compiled = JSONSchema::options()
@@ -316,8 +337,13 @@ impl CJValidator {
         if let Err(errors) = result {
             for error in errors {
                 let s: String = format!("{} [path:{}]", error, error.instance_path);
-                self.valsum.get_mut("schema").unwrap().add_error(s);
+                ls_errors.push(s);
             }
+        }
+        if ls_errors.is_empty() {
+            Ok(())
+        } else {
+            Err(ls_errors)
         }
     }
 
