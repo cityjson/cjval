@@ -27,7 +27,7 @@ It also verifies the following, these are not errors since the file is still con
 
 `cjval` is a library and has 3 different binaries:
 
-  1. `cjval` to validate a CityJSON file
+  1. `cjval` to validate a CityJSON file (it downloads automatically Extensions)
   2. `cjfval` to validate a stream of CityJSONFeature (from stdin)
   3. `cjvalext` to validate a [CityJSON Extension file](https://www.cityjson.org/specs/#the-extension-file)
 

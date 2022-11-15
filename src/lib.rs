@@ -23,7 +23,7 @@
 //!
 //! `cjval` is a library and has 3 different binaries:
 //!
-//!   1. `cjval` to validate a CityJSON file
+//!   1. `cjval` to validate a CityJSON file (it downloads automatically Extensions)
 //!   2. `cjfval` to validate a stream of CityJSONFeature (from stdin)
 //!   3. `cjvalext` to validate a [CityJSON Extension file](https://www.cityjson.org/specs/#the-extension-file)
 //!
@@ -53,12 +53,6 @@
 //! 2. `cargo install cjval --features build-binary`
 //!
 //!
-//! ### To compile the project (and eventually modify it)
-//!
-//! 1. install the [Rust compiler](https://www.rust-lang.org/learn/get-started)
-//! 2. `git clone https://github.com/cityjson/cjval.git`
-//! 3. `cargo build --release --features build-binary`
-//! 4. `./target/release/cjval myfile.json`  
 
 use anyhow::{anyhow, Result};
 use indexmap::IndexMap;
