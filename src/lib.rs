@@ -1,3 +1,65 @@
+//! # cjval: a validator for CityJSON
+//!
+//! A library to validate the syntax of CityJSON objects (CityJSON + [CityJSONFeatures](https://www.cityjson.org/specs/#text-sequences-and-streaming-with-cityjsonfeature)).
+//!
+//! It validates against the [CityJSON schemas](https://www.cityjson.org/schemas) and additional functions have been implemented (because these can't be expressed with [JSON Schema](https://json-schema.org/)).
+//!
+//! The following is error checks are performed:
+//!
+//!   1. *JSON syntax*: is the file a valid JSON file?
+//!   1. *CityJSON schemas*: validation against the schemas (CityJSON v1.0 or v1.1)
+//!   1. *Extension schemas*: validate against the extra schemas if there's an Extension in the input file
+//!   1. *parents_children_consistency*: if a City Object references another in its `children`, this ensures that the child exists. And that the child has the parent in its `parents`
+//!   1. *wrong_vertex_index*: checks if all vertex indices exist in the list of vertices
+//!   1. *semantics_array*: checks if the arrays for the semantics in the geometries have the same shape as that of the geometry and if the values are consistent
+//!
+//! It also verifies the following, these are not errors since the file is still considered valid and usable, but they can make the file larger and some parsers might not understand all the properties:
+//!
+//!   1. *extra_root_properties*: if CityJSON has extra root properties, these should be documented in an Extension. If not this warning is returned
+//!   1. *duplicate_vertices*: duplicated vertices in `vertices` are allowed, but they take up spaces and decreases the topological relationships explicitly in the file. If there are any, [cjio](https://github.com/cityjson/cjio) has the operator `clean` to fix this automatically.
+//!   1. *unused_vertices*: vertices that are not referenced in the file, they take extra space. If there are any, [cjio](https://github.com/cityjson/cjio) has the operator `clean` to fix this automatically.
+//!
+//! ## Library + 3 binaries
+//!
+//! `cjval` is a library and has 3 different binaries:
+//!
+//!   1. `cjval` to validate a CityJSON file
+//!   2. `cjfval` to validate a stream of CityJSONFeature (from stdin)
+//!   3. `cjvalext` to validate a [CityJSON Extension file](https://www.cityjson.org/specs/#the-extension-file)
+//!
+//!
+//! ## Example use
+//!
+//! ```rust
+//! extern crate cjval;
+//!
+//! fn main() {
+//!     let s1 = std::fs::read_to_string("/Users/hugo/projects/cjval/data/cube.city.json")
+//!         .expect("Couldn't read CityJSON file");
+//!     let v = cjval::CJValidator::from_str(&s1);
+//!     let re = v.validate();
+//!     for (criterion, sum) in re.iter() {
+//!         println!("=== {} ===", criterion);
+//!         println!("{}", sum);
+//!     }
+//! }
+//! ```
+//!
+//! ## Installation/compilation
+//!
+//! ### To install the binaries on your system easily
+//!
+//! 1. install the [Rust compiler](https://www.rust-lang.org/learn/get-started)
+//! 2. `cargo install cjval --features build-binary`
+//!
+//!
+//! ### To compile the project (and eventually modify it)
+//!
+//! 1. install the [Rust compiler](https://www.rust-lang.org/learn/get-started)
+//! 2. `git clone https://github.com/cityjson/cjval.git`
+//! 3. `cargo build --release --features build-binary`
+//! 4. `./target/release/cjval myfile.json`  
+
 use anyhow::{anyhow, Result};
 use indexmap::IndexMap;
 use jsonschema::{Draft, JSONSchema};
@@ -30,6 +92,9 @@ static EXTENSION_FIXED_NAMES: [&str; 6] = [
     "description",
 ];
 
+/// Summary of a validation. It is possible that a validation check has not
+/// been performed because other checks returned errors (we do not want to
+/// have cascading errors).
 #[derive(Debug)]
 pub struct ValSummary {
     status: Option<bool>,
@@ -52,9 +117,12 @@ impl ValSummary {
     fn set_as_warning(&mut self) {
         self.warning = true;
     }
+    /// Returns true is it contains at least one warning
     pub fn is_warning(&self) -> bool {
         self.warning
     }
+    /// Returns an Option with true/false if the validation has been performed,
+    /// and None is not performed
     pub fn is_valid(&self) -> bool {
         if self.status == Some(true) {
             return true;
@@ -62,6 +130,7 @@ impl ValSummary {
             return false;
         }
     }
+    /// Returns true if errors are present
     pub fn has_errors(&self) -> bool {
         match self.status {
             Some(s) => {
@@ -139,6 +208,7 @@ pub fn get_cityjson_schema_all_versions() -> Vec<String> {
     l
 }
 
+/// A validator for CityJSON and CityJSONFeature
 #[derive(Debug)]
 pub struct CJValidator {
     cjfeature: bool,
@@ -153,6 +223,14 @@ pub struct CJValidator {
 }
 
 impl CJValidator {
+    /// Creates a CJValidator from a &str.
+    /// Will not return an error here if the &str is not a JSON,
+    /// only when validate() is called can you see that error.
+    /// ```rust
+    /// let s1 = std::fs::read_to_string("delft.city.json")
+    ///         .expect("Couldn't read CityJSON file");
+    /// let v = cjval::CJValidator::from_str(&s1);
+    /// ```
     pub fn from_str(str_dataset: &str) -> Self {
         let l: Vec<Value> = Vec::new();
         let mut v = CJValidator {
@@ -230,6 +308,16 @@ impl CJValidator {
         Ok(())
     }
 
+    /// Add the content (&str) of an Extension.
+    /// The library cannot download automatically the Extensions.
+    /// ```rust
+    /// let sdata = std::fs::read_to_string("delft.city.json")
+    ///         .expect("Couldn't read CityJSON file");
+    /// let sext = std::fs::read_to_string("generic.ext.json")
+    ///         .expect("Couldn't read JSON file");
+    /// let mut val = CJValidator::from_str(&sdata);
+    /// let re = val.add_one_extension_from_str(&sext);
+    /// ```
     pub fn add_one_extension_from_str(&mut self, ext_schema_str: &str) -> Result<()> {
         let re: Result<Value, _> = serde_json::from_str(ext_schema_str);
         if re.is_err() {
@@ -239,6 +327,8 @@ impl CJValidator {
         Ok(())
     }
 
+    /// Returns true if the CityJSON/Feature does not contain errors.
+    /// False otherwise.
     pub fn is_valid(&self) -> bool {
         let valsumm = self.validate();
         if valsumm["json_syntax"].has_errors() {
@@ -262,6 +352,19 @@ impl CJValidator {
         true
     }
 
+    /// The function to performs all the checks (errors+warnings).
+    /// Return a IndexMap (a HashMap where keys are ordered) containing
+    /// the check name and a ValSummary.
+    /// ```rust
+    /// let s1 = std::fs::read_to_string("delft.city.json")
+    ///     .expect("Couldn't read CityJSON file");
+    /// let v = cjval::CJValidator::from_str(&s1);
+    /// let re = v.validate();
+    /// for (criterion, sum) in re.iter() {
+    ///     println!("=== {} ===", criterion);
+    ///     println!("{}", sum);
+    /// }
+    /// ```
     pub fn validate(&self) -> IndexMap<String, ValSummary> {
         let mut w1 = ValSummary::new();
         w1.set_as_warning();
@@ -656,7 +759,7 @@ impl CJValidator {
         if re.is_err() {
             ls_errors.append(&mut re.err().unwrap());
         }
-        //TODO 6 for the extra attributes w/o schemas
+        //-- 6. check for the extra attributes w/o schemas
         re = self.validate_ext_attribute_without_schema();
         if re.is_err() {
             ls_errors.append(&mut re.err().unwrap());
