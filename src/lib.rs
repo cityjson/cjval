@@ -111,12 +111,11 @@ impl ValSummary {
     fn set_as_warning(&mut self) {
         self.warning = true;
     }
-    /// Returns true is it contains at least one warning
+    /// Returns true if it's a warning (and not an error)
     pub fn is_warning(&self) -> bool {
         self.warning
     }
-    /// Returns an Option with true/false if the validation has been performed,
-    /// and None is not performed
+    /// Returns true if valid, false if not (and also false if not performed)
     pub fn is_valid(&self) -> bool {
         if self.status == Some(true) {
             return true;
