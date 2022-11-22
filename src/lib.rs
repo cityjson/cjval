@@ -149,7 +149,7 @@ impl fmt::Display for ValSummary {
                 if s == true {
                     fmt.write_str("ok")?;
                 } else {
-                    fmt.write_str(&format!("{:?}", self.errors.join("\n")))?;
+                    fmt.write_str(&format!("{}", self.errors.join("\n")))?;
                 }
             }
             None => (),
