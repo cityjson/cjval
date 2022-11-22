@@ -1,5 +1,7 @@
 // use ansi_term::Style;
 use cjval::CJValidator;
+use cjval::ValSummary;
+use indexmap::IndexMap;
 #[macro_use]
 extern crate clap;
 use anyhow::{anyhow, Result};
@@ -11,7 +13,6 @@ use url::Url;
 
 #[tokio::main]
 async fn download_extension(theurl: &str) -> Result<String> {
-    // println!("{:?}", jext);
     let u = Url::parse(theurl).unwrap();
     let res = reqwest::get(u).await?;
     if res.status().is_success() {
@@ -73,19 +74,22 @@ fn main() -> io::Result<()> {
         }
         if !b_metadata {
             // TODO: what is no metadata-first-line?
-            let val = CJValidator::from_str(&l);
+            val = CJValidator::from_str(&l);
             let re = fetch_extensions(&mut val, matches.values_of("PATH"));
             match re {
                 Ok(_) => {
-                    let w = validate_cj(&val);
-                    match w {
-                        Ok(_) => println!("l.{}\t✅", i + 1),
-                        Err(e) => {
+                    let valsumm = val.validate();
+                    let status = get_status(valsumm);
+                    match status {
+                        1 => println!("l.{}\t✅", i + 1),
+                        0 => {
                             println!("l.{}\t🟡", i + 1);
-                            if b_verbose {
-                                println!("{}", e.join(" | "));
-                            }
+                            // if b_verbose {
+                            //     println!("{}", e.join(" | "));
+                            // }
                         }
+                        -1 => println!("l.{}\t❌", i + 1),
+                        _ => (),
                     }
                 }
                 Err(e) => {
@@ -100,28 +104,19 @@ fn main() -> io::Result<()> {
             let re = val.replace_cjfeature(&l);
             match re {
                 Ok(_) => {
-                    let re = validate_cjf(&val);
-                    match re {
-                        Ok(_) => {
-                            let w = validate_cjf_warnings(&val);
-                            match w {
-                                Ok(_) => println!("l.{}\t✅", i + 1),
-                                Err(e) => {
-                                    println!("l.{}\t🟡", i + 1);
-                                    if b_verbose {
-                                        println!("{}", e.join(" | "));
-                                    }
-                                }
-                            }
+                    let valsumm = val.validate();
+                    let status = get_status(valsumm);
+                    match status {
+                        1 => println!("l.{}\t✅", i + 1),
+                        0 => {
+                            println!("l.{}\t🟡", i + 1);
+                            // if b_verbose {
+                            //     println!("{}", e.join(" | "));
+                            // }
                         }
-                        Err(e) => {
-                            println!("l.{}\t❌", i + 1);
-                            if b_verbose {
-                                println!("{}", e.join(" | "));
-                            }
-                        }
+                        -1 => println!("l.{}\t❌", i + 1),
+                        _ => (),
                     }
-                    // println!("{} ok", i);
                 }
                 Err(e) => {
                     println!("l.{}\t❌", i + 1);
@@ -134,6 +129,27 @@ fn main() -> io::Result<()> {
         }
     }
     Ok(())
+}
+
+fn get_status(valsumm: IndexMap<String, ValSummary>) -> i8 {
+    let mut has_errors = false;
+    let mut has_warnings = false;
+    for (_criterion, summ) in valsumm.iter() {
+        if summ.has_errors() == true {
+            if summ.is_warning() == true {
+                has_warnings = true;
+            } else {
+                has_errors = true;
+            }
+        }
+    }
+    if has_errors == false && has_warnings == false {
+        1
+    } else if has_errors == false && has_warnings == true {
+        0
+    } else {
+        -1
+    }
 }
 
 fn fetch_extensions(val: &mut CJValidator, extpaths: Option<Values>) -> Result<(), Vec<String>> {
@@ -164,7 +180,7 @@ fn fetch_extensions(val: &mut CJValidator, extpaths: Option<Values>) -> Result<(
             }
             None => {
                 //-- download automatically the Extensions
-                let re = val.has_extensions();
+                let re = val.get_extensions_urls();
                 if re.is_some() {
                     let lexts = re.unwrap();
                     // println!("{:?}", lexts);
@@ -198,26 +214,4 @@ fn fetch_extensions(val: &mut CJValidator, extpaths: Option<Values>) -> Result<(
     } else {
         Err(ls_errors)
     }
-}
-
-fn validate_cj(val: &CJValidator) -> Result<(), Vec<String>> {
-    let valsumm = val.validate();
-    // let _ = val.extra_root_properties()?;
-
-    Ok(())
-}
-
-fn validate_cjf(val: &CJValidator) -> Result<(), Vec<String>> {
-    let _ = val.validate_schema()?;
-    let _ = val.validate_extensions()?;
-    let _ = val.parent_children_consistency()?;
-    let _ = val.wrong_vertex_index()?;
-    let _ = val.semantics_arrays()?;
-    Ok(())
-}
-
-fn validate_cjf_warnings(val: &CJValidator) -> Result<(), Vec<String>> {
-    let _ = val.duplicate_vertices()?;
-    let _ = val.unused_vertices()?;
-    Ok(())
 }
