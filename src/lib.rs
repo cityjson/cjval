@@ -219,9 +219,10 @@ impl CJValidator {
     /// Will not return an error here if the &str is not a JSON,
     /// only when validate() is called can you see that error.
     /// ```rust
-    /// let s1 = std::fs::read_to_string("delft.city.json")
+    /// use cjval::CJValidator;
+    /// let s1 = std::fs::read_to_string("./data/cube.city.json")
     ///         .expect("Couldn't read CityJSON file");
-    /// let v = cjval::CJValidator::from_str(&s1);
+    /// let v = CJValidator::from_str(&s1);
     /// ```
     pub fn from_str(str_dataset: &str) -> Self {
         let l: Vec<Value> = Vec::new();
@@ -303,9 +304,10 @@ impl CJValidator {
     /// Add the content (&str) of an Extension.
     /// The library cannot download automatically the Extensions.
     /// ```rust
-    /// let sdata = std::fs::read_to_string("delft.city.json")
+    /// use cjval::CJValidator;
+    /// let sdata = std::fs::read_to_string("./data/cube.city.json")
     ///         .expect("Couldn't read CityJSON file");
-    /// let sext = std::fs::read_to_string("generic.ext.json")
+    /// let sext = std::fs::read_to_string("./data/generic.ext.json")
     ///         .expect("Couldn't read JSON file");
     /// let mut val = CJValidator::from_str(&sdata);
     /// let re = val.add_one_extension_from_str(&sext);
@@ -348,9 +350,10 @@ impl CJValidator {
     /// Return a IndexMap (a HashMap where keys are ordered) containing
     /// the check name and a ValSummary.
     /// ```rust
-    /// let s1 = std::fs::read_to_string("delft.city.json")
+    /// use cjval::CJValidator;
+    /// let s1 = std::fs::read_to_string("./data/many.json")
     ///     .expect("Couldn't read CityJSON file");
-    /// let v = cjval::CJValidator::from_str(&s1);
+    /// let v = CJValidator::from_str(&s1);
     /// let re = v.validate();
     /// for (criterion, sum) in re.iter() {
     ///     println!("=== {} ===", criterion);
