@@ -6,6 +6,7 @@ use indexmap::IndexMap;
 extern crate clap;
 use anyhow::{anyhow, Result};
 use clap::{App, AppSettings, Arg, Values};
+use std::fmt::Write;
 use std::io;
 use std::io::BufRead;
 use std::path::Path;
@@ -79,16 +80,21 @@ fn main() -> io::Result<()> {
             match re {
                 Ok(_) => {
                     let valsumm = val.validate();
-                    let status = get_status(valsumm);
+                    let status = get_status(&valsumm);
                     match status {
                         1 => println!("l.{}\t✅", i + 1),
                         0 => {
                             println!("l.{}\t🟡", i + 1);
-                            // if b_verbose {
-                            //     println!("{}", e.join(" | "));
-                            // }
+                            if b_verbose {
+                                println!("{}", get_errors_string(&valsumm));
+                            }
                         }
-                        -1 => println!("l.{}\t❌", i + 1),
+                        -1 => {
+                            println!("l.{}\t❌", i + 1);
+                            if b_verbose {
+                                println!("{}", get_errors_string(&valsumm));
+                            }
+                        }
                         _ => (),
                     }
                 }
@@ -105,24 +111,31 @@ fn main() -> io::Result<()> {
             match re {
                 Ok(_) => {
                     let valsumm = val.validate();
-                    let status = get_status(valsumm);
+                    let status = get_status(&valsumm);
                     match status {
                         1 => println!("l.{}\t✅", i + 1),
                         0 => {
-                            println!("l.{}\t🟡", i + 1);
-                            // if b_verbose {
-                            //     println!("{}", e.join(" | "));
-                            // }
+                            if b_verbose {
+                                println!("l.{}\t🟡\t{}", i + 1, get_errors_string(&valsumm));
+                            } else {
+                                println!("l.{}\t🟡", i + 1);
+                            }
                         }
-                        -1 => println!("l.{}\t❌", i + 1),
+                        -1 => {
+                            if b_verbose {
+                                println!("l.{}\t❌\t{}", i + 1, get_errors_string(&valsumm));
+                            } else {
+                                println!("l.{}\t❌", i + 1);
+                            }
+                        }
                         _ => (),
                     }
                 }
                 Err(e) => {
-                    println!("l.{}\t❌", i + 1);
                     if b_verbose {
-                        let e = format!("Invalid JSON file: {:?}", e);
-                        println!("{}", e);
+                        println!("l.{}\t❌\t{}", i + 1, format!("Invalid JSON file: {:?}", e));
+                    } else {
+                        println!("l.{}\t❌", i + 1);
                     }
                 }
             }
@@ -131,7 +144,7 @@ fn main() -> io::Result<()> {
     Ok(())
 }
 
-fn get_status(valsumm: IndexMap<String, ValSummary>) -> i8 {
+fn get_status(valsumm: &IndexMap<String, ValSummary>) -> i8 {
     let mut has_errors = false;
     let mut has_warnings = false;
     for (_criterion, summ) in valsumm.iter() {
@@ -150,6 +163,16 @@ fn get_status(valsumm: IndexMap<String, ValSummary>) -> i8 {
     } else {
         -1
     }
+}
+
+fn get_errors_string(valsumm: &IndexMap<String, ValSummary>) -> String {
+    let mut s = String::new();
+    for (_criterion, summ) in valsumm.iter() {
+        if summ.has_errors() == true {
+            write!(&mut s, "{} | ", summ).expect("Problem writing String");
+        }
+    }
+    s
 }
 
 fn fetch_extensions(val: &mut CJValidator, extpaths: Option<Values>) -> Result<(), Vec<String>> {
