@@ -153,7 +153,6 @@ impl fmt::Display for ValSummary {
                 }
             }
             None => (),
-            // None => fmt.write_str("--")?, //fmt.write_str("\n")?,
         }
         Ok(())
     }
