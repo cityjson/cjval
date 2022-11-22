@@ -44,7 +44,7 @@ It also verifies the following, these are not errors since the file is still con
 
 1. install the [Rust compiler](https://www.rust-lang.org/learn/get-started)
 2. `git clone https://github.com/cityjson/cjval.git`
-3. `cargo build --release --features build-binary`
+3. `cargo build --release --features build-binary` (this will ensure the binaries are compiled too)
 4. `./target/release/cjval myfile.json`
 
 
