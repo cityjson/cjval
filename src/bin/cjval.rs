@@ -72,10 +72,14 @@ fn main() {
         "{}",
         Style::new().bold().paint("=== Input CityJSON file ===")
     );
-    println!("  {:?}", p1);
+    println!("{:?}", p1);
 
     //-- Get the validator
     let mut val = CJValidator::from_str(&s1);
+
+    //-- print the schema version used
+    println!("{}", Style::new().bold().paint("=== CityJSON schemas ==="));
+    println!("v{} (builtin)", val.get_cityjson_schema_version());
 
     //-- Extensions
     println!("{}", Style::new().bold().paint("=== Extensions ==="));
@@ -89,10 +93,10 @@ fn main() {
                 let scanon = Path::new(s).canonicalize().unwrap();
                 let re = val.add_one_extension_from_str(&s2);
                 match re {
-                    Ok(()) => println!("\t- {}.. ok", scanon.to_str().unwrap()),
+                    Ok(()) => println!("- {}.. ok", scanon.to_str().unwrap()),
                     Err(e) => {
-                        println!("\t- {}.. ERROR", scanon.to_str().unwrap());
-                        println!("\t  ({})", e);
+                        println!("- {}.. ERROR", scanon.to_str().unwrap());
+                        println!("({})", e);
                         summary_and_bye(-1);
                     }
                 }
@@ -112,27 +116,27 @@ fn main() {
                         Ok(l) => {
                             let re = val.add_one_extension_from_str(&l);
                             match re {
-                                Ok(()) => println!("\t- {}.. ok", ext),
+                                Ok(()) => println!("- {}.. ok", ext),
                                 Err(e) => {
-                                    println!("\t- {}.. ERROR", ext);
-                                    println!("\t  ({})", e);
+                                    println!("- {}.. ERROR", ext);
+                                    println!("({})", e);
                                     summary_and_bye(-1);
                                 }
                             }
                         }
                         Err(e) => {
-                            println!("\t- {}.. ERROR \n\t{}", ext, e);
+                            println!("- {}.. ERROR \n\t{}", ext, e);
                             summary_and_bye(-1);
                         }
                     }
                 }
             } else {
-                println!("\t- NONE");
+                println!("none");
             }
         }
     }
     if val.get_input_cityjson_version() == 10 {
-        println!("(validation of Extensions is not supported in v1.0, upgrade to v1.1)");
+        println!("(validation of Extensions is not supported in CityJSON v1.0, upgrade to v1.1)");
     }
 
     let valsumm = val.validate();
