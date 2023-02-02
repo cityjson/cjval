@@ -334,7 +334,7 @@ impl CJValidator {
         if valsumm["extensions"].has_errors() {
             return false;
         }
-        if valsumm["parent_children_consistency"].has_errors() {
+        if valsumm["parents_children_consistency"].has_errors() {
             return false;
         }
         if valsumm["wrong_vertex_index"].has_errors() {
@@ -888,7 +888,7 @@ impl CJValidator {
         }
     }
 
-    // parent_children_consistency
+    // parents_children_consistency
     fn parents_children_consistency(&self) -> Result<(), Vec<String>> {
         let mut ls_errors: Vec<String> = Vec::new();
         let cos = self.j.get("CityObjects").unwrap().as_object().unwrap();
