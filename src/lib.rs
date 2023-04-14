@@ -705,6 +705,62 @@ impl CJValidator {
         }
     }
 
+    fn validate_ext_extrasemanticsurfaces(&self, jext: &Value) -> Result<(), Vec<String>> {
+        let mut ls_errors: Vec<String> = Vec::new();
+        //-- 1. build the schema file from the Extension file
+        let v = jext
+            .get("extraSemanticSurfaces")
+            .unwrap()
+            .as_object()
+            .unwrap();
+        let jexto = jext.as_object().unwrap();
+        for semsurf in v.keys() {
+            let mut schema = jext["extraSemanticSurfaces"][semsurf].clone();
+            schema["$schema"] = json!("http://json-schema.org/draft-07/schema#");
+            schema["$id"] = json!("https://www.cityjson.org/schemas/1.1.0/tmp.json");
+            for each in jexto.keys() {
+                let ss = each.as_str();
+                if EXTENSION_FIXED_NAMES.contains(&ss) == false {
+                    schema[ss] = jext[ss].clone();
+                }
+            }
+            let compiled = self.get_compiled_schema_extension(&schema);
+            let cos = self.j.get("CityObjects").unwrap().as_object().unwrap();
+            for key in cos.keys() {
+                //-- check geometry
+                let x = self.j["CityObjects"][key]["geometry"].as_array();
+                if x.is_some() {
+                    for (i, g) in x.unwrap().iter().enumerate() {
+                        let surfs = g["semantics"]["surfaces"].as_array();
+                        if surfs.is_some() {
+                            for (j, surf) in surfs.unwrap().iter().enumerate() {
+                                let tmp = surf.as_object().unwrap();
+                                if tmp["type"].as_str().unwrap() == semsurf {
+                                    let result = compiled.validate(
+                                        &self.j["CityObjects"][key]["geometry"][i]["semantics"]
+                                            ["surfaces"][j],
+                                    );
+                                    if let Err(errors) = result {
+                                        for error in errors {
+                                            let s: String =
+                                                format!("{} [path:{}]", error, error.instance_path);
+                                            ls_errors.push(s);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        if ls_errors.is_empty() {
+            Ok(())
+        } else {
+            Err(ls_errors)
+        }
+    }
+
     fn get_compiled_schema_extension(&self, schema: &Value) -> JSONSchema {
         let s_1 = include_str!("../schemas/11/cityobjects.schema.json");
         let s_2 = include_str!("../schemas/11/geomprimitives.schema.json");
@@ -755,21 +811,73 @@ impl CJValidator {
             if re.is_err() {
                 ls_errors.append(&mut re.err().unwrap());
             }
+            //-- 4. extraSemanticSurfaces
+            re = self.validate_ext_extrasemanticsurfaces(&ext);
+            if re.is_err() {
+                ls_errors.append(&mut re.err().unwrap());
+            }
         }
-        //-- 4. check if there are CityObjects that do not have a schema
+        //-- 5. check if there are CityObjects that do not have a schema
         let mut re = self.validate_ext_co_without_schema();
         if re.is_err() {
             ls_errors.append(&mut re.err().unwrap());
         }
-        //-- 5. check if there are extra root properties that do not have a schema
+        //-- 6. check if there are extra root properties that do not have a schema
         re = self.validate_ext_rootproperty_without_schema();
         if re.is_err() {
             ls_errors.append(&mut re.err().unwrap());
         }
-        //-- 6. check for the extra attributes w/o schemas
+        //-- 7. check for the extra attributes w/o schemas
         re = self.validate_ext_attribute_without_schema();
         if re.is_err() {
             ls_errors.append(&mut re.err().unwrap());
+        }
+        //-- 8. check for the semsurfs w/o schemas
+        re = self.validate_ext_semsurf_without_schema();
+        if re.is_err() {
+            ls_errors.append(&mut re.err().unwrap());
+        }
+
+        if ls_errors.is_empty() {
+            Ok(())
+        } else {
+            Err(ls_errors)
+        }
+    }
+
+    fn validate_ext_semsurf_without_schema(&self) -> Result<(), Vec<String>> {
+        let mut ls_errors: Vec<String> = Vec::new();
+        let mut newss: Vec<String> = Vec::new();
+        for jext in &self.jexts {
+            let v = jext
+                .get("extraSemanticSurfaces")
+                .unwrap()
+                .as_object()
+                .unwrap();
+            for ess in v.keys() {
+                newss.push(ess.to_string());
+            }
+        }
+        //-- fetch the COs
+        let cos = self.j.get("CityObjects").unwrap().as_object().unwrap();
+        for key in cos.keys() {
+            let x = self.j["CityObjects"][key]["geometry"].as_array();
+            if x.is_some() {
+                for g in x.unwrap() {
+                    let surfs = g["semantics"]["surfaces"].as_array();
+                    if surfs.is_some() {
+                        for surf in surfs.unwrap() {
+                            let tmp = surf.as_object().unwrap();
+                            let thetype = tmp["type"].as_str().unwrap().to_string();
+                            if &thetype[0..1] == "+" && newss.contains(&thetype) == false {
+                                let s: String =
+                                    format!("Semantic Surface '{}' doesn't have a schema", thetype);
+                                ls_errors.push(s);
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         if ls_errors.is_empty() {
