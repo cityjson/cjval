@@ -197,6 +197,11 @@ pub fn get_cityjson_schema_all_versions() -> Vec<String> {
     let schema: Value = serde_json::from_str(schema_str).unwrap();
     let vs = &schema["$id"].to_string();
     l.push(vs.get(34..39).unwrap().to_string());
+    //-- v2.0
+    let schema_str = include_str!("../schemas/20/cityjson.min.schema.json");
+    let schema: Value = serde_json::from_str(schema_str).unwrap();
+    let vs = &schema["$id"].to_string();
+    l.push(vs.get(34..39).unwrap().to_string());
     l
 }
 
@@ -251,13 +256,20 @@ impl CJValidator {
             v.cjfeature = true;
             //-- here we assume that it's latest v1.1, since v1.0 doesn't have this type
             v.version_file = 11;
+            // TODO: add v2.0 support
             let schema_str = include_str!("../schemas/11/cityjsonfeature.min.schema.json");
             v.jschema = serde_json::from_str(schema_str).unwrap();
             let vs = &v.jschema["$id"].to_string();
             v.version_schema = vs.get(34..39).unwrap().to_string();
         } else {
             //-- check cityjson version
-            if v.j["version"] == "1.1" {
+            if v.j["version"] == "2.0" {
+                v.version_file = 20;
+                let schema_str = include_str!("../schemas/20/cityjson.min.schema.json");
+                v.jschema = serde_json::from_str(schema_str).unwrap();
+                let vs = &v.jschema["$id"].to_string();
+                v.version_schema = vs.get(34..39).unwrap().to_string();
+            } else if v.j["version"] == "1.1" {
                 v.version_file = 11;
                 let schema_str = include_str!("../schemas/11/cityjson.min.schema.json");
                 v.jschema = serde_json::from_str(schema_str).unwrap();
@@ -543,7 +555,7 @@ impl CJValidator {
             //-- which cityjson version
             if self.version_file == 0 {
                 let s: String = format!(
-                    "CityJSON version {} not supported [only \"1.0\" and \"1.1\"]",
+                    "CityJSON version {} not supported [only \"1.0\", \"1.1\", \"2.0\"]",
                     self.j["version"]
                 );
                 return Err(vec![s]);
