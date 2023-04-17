@@ -215,6 +215,7 @@ pub struct CJValidator {
     // valsum: IndexMap<String, ValSummary>,
     json_syntax_error: Option<String>,
     duplicate_keys: bool,
+    is_cityjson: bool,
     version_file: i32,
     version_schema: String,
 }
@@ -236,9 +237,9 @@ impl CJValidator {
             j: json!(null),
             jschema: json!(null),
             jexts: l,
-            // valsum: vsum,
             json_syntax_error: None,
             duplicate_keys: false,
+            is_cityjson: true,
             version_file: 0,
             version_schema: "-1".to_string(),
         };
@@ -261,7 +262,7 @@ impl CJValidator {
             v.jschema = serde_json::from_str(schema_str).unwrap();
             let vs = &v.jschema["$id"].to_string();
             v.version_schema = vs.get(34..39).unwrap().to_string();
-        } else {
+        } else if v.j["type"] == "CityJSON" {
             //-- check cityjson version
             if v.j["version"] == "2.0" {
                 v.version_file = 20;
@@ -281,6 +282,8 @@ impl CJValidator {
                 v.jschema = serde_json::from_str(schema_str).unwrap();
                 v.version_schema = "1.0.3".to_string();
             }
+        } else {
+            v.is_cityjson = false;
         }
         //-- check for duplicate keys in CO object, Doc is the struct above
         //-- used for identifying duplicate keys
@@ -406,12 +409,6 @@ impl CJValidator {
         }
 
         //-- schema
-        if self.duplicate_keys == true {
-            vsum.get_mut("schema")
-                .unwrap()
-                .add_error("Duplicate keys in 'CityObjects'".to_string());
-            return vsum;
-        }
         let mut re = self.schema();
         match re {
             Ok(_) => vsum.get_mut("schema").unwrap().set_validity(true),
@@ -421,6 +418,12 @@ impl CJValidator {
                 }
                 return vsum;
             }
+        }
+        if self.duplicate_keys == true {
+            vsum.get_mut("schema")
+                .unwrap()
+                .add_error("Duplicate keys in 'CityObjects'".to_string());
+            return vsum;
         }
 
         //-- extensions
@@ -551,11 +554,16 @@ impl CJValidator {
 
     fn schema(&self) -> Result<(), Vec<String>> {
         let mut ls_errors: Vec<String> = Vec::new();
+        //-- if type == CityJSON
+        if self.is_cityjson == false {
+            let s: String = format!("Not a CityJSON file");
+            return Err(vec![s]);
+        }
         if self.cjfeature == false {
             //-- which cityjson version
             if self.version_file == 0 {
                 let s: String = format!(
-                    "CityJSON version {} not supported [only \"1.0\", \"1.1\", \"2.0\"]",
+                    "CityJSON version {} not supported (or missing) [only \"1.0\", \"1.1\", \"2.0\"]",
                     self.j["version"]
                 );
                 return Err(vec![s]);
