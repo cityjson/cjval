@@ -804,6 +804,17 @@ impl CJValidator {
     fn validate_extensions(&self) -> Result<(), Vec<String>> {
         let mut ls_errors: Vec<String> = Vec::new();
         for ext in &self.jexts {
+            //-- 0. check the version of CityJSON
+            let mut v: String = self.version_file.to_string();
+            v.insert(1, '.');
+            if ext["versionCityJSON"] != v {
+                let s: String = format!(
+                    "Extension 'versionCityJSON' != CityJSON version of file [{} != {}]",
+                    ext["versionCityJSON"].as_str().unwrap(),
+                    v
+                );
+                ls_errors.push(s);
+            }
             //-- 1. extraCityObjects
             let mut re = self.validate_ext_extracityobjects(&ext);
             if re.is_err() {
