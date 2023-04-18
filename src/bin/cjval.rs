@@ -80,7 +80,11 @@ fn main() {
 
     //-- print the schema version used
     println!("{}", Style::new().bold().paint("=== CityJSON schemas ==="));
-    println!("v{} (builtin)", val.get_cityjson_schema_version());
+    if val.get_input_cityjson_version() == 0 {
+        println!("none");
+    } else {
+        println!("v{} (builtin)", val.get_cityjson_schema_version());
+    }
 
     //-- Extensions
     println!("{}", Style::new().bold().paint("=== Extensions ==="));
