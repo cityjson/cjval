@@ -13,7 +13,7 @@ static CITYJSON_FILES: [&str; 4] = [
 
 fn main() {
     // Enable ANSI support for Windows
-    let desc = format!("{} (supports CityJSON v1.0 + v1.1)", crate_description!());
+    let desc = format!("Validation of CityJSON Extension files (supports CityJSON v2.0)");
     #[cfg(windows)]
     let _ = ansi_term::enable_ansi_support();
     let app = App::new(crate_name!())
