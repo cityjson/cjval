@@ -1174,7 +1174,6 @@ impl CJValidator {
                         let bs = g["boundaries"].as_array().unwrap().len();
                         let gm = g["material"].as_object().unwrap();
                         for m_name in gm.keys() {
-                            let mut vs: Vec<usize> = Vec::new();
                             let gmv = g["material"][m_name]["values"].as_array();
                             if gmv.is_some() {
                                 let x = gmv.unwrap();
@@ -1557,7 +1556,7 @@ impl CJValidator {
                             }
                         }
                     }
-                    if (g["type"] == "MultiSolid" || g["type"] == "CompositeSolid") {
+                    if g["type"] == "MultiSolid" || g["type"] == "CompositeSolid" {
                         //-- length of the sem-surfaces == # of surfaces
                         let mut bs: Vec<Vec<usize>> = Vec::new();
                         let solids = g["boundaries"].as_array().unwrap();
