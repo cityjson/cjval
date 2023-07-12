@@ -70,7 +70,8 @@ use std::fmt;
 //  # parents_children_consistency
 //  # wrong_vertex_index
 //  # semantics_arrays
-//
+//  # textures
+//  # materials
 //
 // #-- WARNINGS
 //  # extra_root_properties
@@ -358,6 +359,12 @@ impl CJValidator {
         if valsumm["semantics_arrays"].has_errors() {
             return false;
         }
+        if valsumm["materials"].has_errors() {
+            return false;
+        }
+        if valsumm["textures"].has_errors() {
+            return false;
+        }
         true
     }
 
@@ -392,6 +399,8 @@ impl CJValidator {
             ),
             ("wrong_vertex_index".to_string(), ValSummary::new()),
             ("semantics_arrays".to_string(), ValSummary::new()),
+            ("textures".to_string(), ValSummary::new()),
+            ("materials".to_string(), ValSummary::new()),
             ("extra_root_properties".to_string(), w1),
             ("duplicate_vertices".to_string(), w2),
             ("unused_vertices".to_string(), w3),
@@ -473,6 +482,26 @@ impl CJValidator {
             Err(errs) => {
                 for err in errs {
                     vsum.get_mut("semantics_arrays").unwrap().add_error(err);
+                }
+            }
+        }
+        //-- textures
+        re = self.textures();
+        match re {
+            Ok(_) => vsum.get_mut("textures").unwrap().set_validity(true),
+            Err(errs) => {
+                for err in errs {
+                    vsum.get_mut("textures").unwrap().add_error(err);
+                }
+            }
+        }
+        //-- materials
+        re = self.materials();
+        match re {
+            Ok(_) => vsum.get_mut("materials").unwrap().set_validity(true),
+            Err(errs) => {
+                for err in errs {
+                    vsum.get_mut("materials").unwrap().add_error(err);
                 }
             }
         }
@@ -1121,6 +1150,117 @@ impl CJValidator {
         } else {
             Err(ls_errors)
         }
+    }
+
+    fn materials(&self) -> Result<(), Vec<String>> {
+        let mut max_index: usize = 0;
+        let x = self.j["appearance"]["materials"].as_array();
+        if x.is_some() {
+            max_index = x.unwrap().len();
+        }
+        let mut ls_errors: Vec<String> = Vec::new();
+        let cos = self.j.get("CityObjects").unwrap().as_object().unwrap();
+        for theid in cos.keys() {
+            //-- check geometry
+            let x = self.j["CityObjects"][theid]["geometry"].as_array();
+            if x.is_some() {
+                let gs = x.unwrap();
+                let mut gi = 0;
+                for g in gs {
+                    if g.get("material").is_none() {
+                        continue;
+                    }
+                    if g["type"] == "MultiSurface" || g["type"] == "CompositeSurface" {
+                        let bs = g["boundaries"].as_array().unwrap().len();
+                        let gm = g["material"].as_object().unwrap();
+                        for m_name in gm.keys() {
+                            let mut vs: Vec<usize> = Vec::new();
+                            let gmv = g["material"][m_name]["values"].as_array();
+                            if gmv.is_some() {
+                                let x = gmv.unwrap();
+                                if x.len() != bs {
+                                    ls_errors.push(format!(
+                                        "Material \"values\" not same dimension as \"boundaries\"; #{} / geom-#{} / material-\"{}\"", theid, gi, m_name
+                                    ));
+                                }
+                                for each in x {
+                                    if (each.as_u64().is_some())
+                                        && (each.as_u64().unwrap() > (max_index - 1) as u64)
+                                    {
+                                        ls_errors.push(format!(
+                                            "Reference in material \"values\" overflows (max={}); #{} and geom-#{} / material-\"{}\"",
+                                            (max_index-1),theid, gi, m_name
+                                        ));
+                                    }
+                                }
+                            } else {
+                                let ifvalue = g["material"][m_name]["value"].as_u64();
+                                if ifvalue.is_some() {
+                                    if ifvalue.unwrap() > (max_index - 1) as u64 {
+                                        ls_errors.push(format!(
+                                        "Material \"value\" overflow; #{} / geom-#{} / material-\"{}\"", theid, gi, m_name
+                                        ));
+                                    }
+                                }
+                            }
+                        }
+                    } else if g["type"] == "Solid" {
+                        //-- length of the sem-surfaces == # of surfaces
+                        let mut bs: Vec<usize> = Vec::new();
+                        let shells = g["boundaries"].as_array().unwrap();
+                        for shell in shells {
+                            bs.push(shell.as_array().unwrap().len());
+                        }
+                        let gm = g["material"].as_object().unwrap();
+                        for m_name in gm.keys() {
+                            let mut vs: Vec<usize> = Vec::new();
+                            let gmv = g["material"][m_name]["values"].as_array();
+                            if gmv.is_some() {
+                                let x = gmv.unwrap();
+                                for each in x {
+                                    let xa = each.as_array().unwrap();
+                                    vs.push(xa.len());
+                                    for each2 in xa {
+                                        if (each2.as_u64().is_some())
+                                            && (each2.as_u64().unwrap() > (max_index - 1) as u64)
+                                        {
+                                            ls_errors.push(format!(
+                                                "Reference in material \"values\" overflows (max={}); #{} and geom-#{} / material-\"{}\"",
+                                                (max_index-1),theid, gi, m_name
+                                            ));
+                                        }
+                                    }
+                                }
+                            }
+                            let ifvalue = g["material"][m_name]["value"].as_u64();
+                            if ifvalue.is_some() {
+                                if ifvalue.unwrap() > (max_index - 1) as u64 {
+                                    ls_errors.push(format!(
+                                    "Material \"value\" overflow; #{} / geom-#{} / material-\"{}\"", theid, gi, m_name
+                                ));
+                                }
+                            } else {
+                                if bs.iter().eq(vs.iter()) == false {
+                                    ls_errors.push(format!(
+                                    "Material \"values\" not same dimension as \"boundaries\"; #{} / geom-#{} / material-\"{}\"", theid, gi, m_name
+                                ));
+                                }
+                            }
+                        }
+                    }
+                    gi += 1;
+                }
+            }
+        }
+        if ls_errors.is_empty() {
+            Ok(())
+        } else {
+            Err(ls_errors)
+        }
+    }
+
+    fn textures(&self) -> Result<(), Vec<String>> {
+        Ok(())
     }
 
     fn wrong_vertex_index(&self) -> Result<(), Vec<String>> {
