@@ -22,7 +22,7 @@ fn summary_and_bye(finalresult: i32) {
         println!("✅ File is valid");
     }
     println!("===================================");
-    std::process::exit(1);
+    std::process::exit(0);
 }
 
 fn main() {

@@ -68,6 +68,7 @@ fn main() {
     if valid == true {
         println!("👍");
     }
+    std::process::exit(0);
 }
 
 fn validate_all_ref(j: &Value, valid: &mut bool) {
