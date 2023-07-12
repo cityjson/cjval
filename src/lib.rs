@@ -1247,6 +1247,61 @@ impl CJValidator {
                                 }
                             }
                         }
+                    } else if g["type"] == "MultiSolid" || g["type"] == "CompositeSolid" {
+                        //-- length of the sem-surfaces == # of surfaces
+                        let mut bs: Vec<Vec<usize>> = Vec::new();
+                        let solids = g["boundaries"].as_array().unwrap();
+                        for solid in solids {
+                            let asolid = solid.as_array().unwrap();
+                            let mut tmp: Vec<usize> = Vec::new();
+                            for surface in asolid {
+                                tmp.push(surface.as_array().unwrap().len());
+                            }
+                            bs.push(tmp);
+                        }
+                        // println!("ms-bs: {:?}", bs);
+                        let gm = g["material"].as_object().unwrap();
+                        for m_name in gm.keys() {
+                            let mut vs: Vec<Vec<usize>> = Vec::new();
+                            let gmv = g["material"][m_name]["values"].as_array();
+                            if gmv.is_some() {
+                                let x = gmv.unwrap();
+                                for a1 in x {
+                                    let y = a1.as_array().unwrap();
+                                    let mut vs2: Vec<usize> = Vec::new();
+                                    for a2 in y {
+                                        let xa = a2.as_array().unwrap();
+                                        vs2.push(xa.len());
+                                        for each2 in xa {
+                                            if (each2.as_u64().is_some())
+                                                && (each2.as_u64().unwrap()
+                                                    > (max_index - 1) as u64)
+                                            {
+                                                ls_errors.push(format!(
+                                                    "Reference in material \"values\" overflows (max={}); #{} and geom-#{} / material-\"{}\"",
+                                                    (max_index-1),theid, gi, m_name
+                                                ));
+                                            }
+                                        }
+                                    }
+                                    vs.push(vs2);
+                                }
+                            }
+                            let ifvalue = g["material"][m_name]["value"].as_u64();
+                            if ifvalue.is_some() {
+                                if ifvalue.unwrap() > (max_index - 1) as u64 {
+                                    ls_errors.push(format!(
+                                    "Material \"value\" overflow; #{} / geom-#{} / material-\"{}\"", theid, gi, m_name
+                                ));
+                                }
+                            } else {
+                                if bs.iter().eq(vs.iter()) == false {
+                                    ls_errors.push(format!(
+                                    "Material \"values\" not same dimension as \"boundaries\"; #{} / geom-#{} / material-\"{}\"", theid, gi, m_name
+                                ));
+                                }
+                            }
+                        }
                     }
                     gi += 1;
                 }
@@ -1502,7 +1557,7 @@ impl CJValidator {
                             }
                         }
                     }
-                    if g["type"] == "MultiSolid" || g["type"] == "CompositeSolid" {
+                    if (g["type"] == "MultiSolid" || g["type"] == "CompositeSolid") {
                         //-- length of the sem-surfaces == # of surfaces
                         let mut bs: Vec<Vec<usize>> = Vec::new();
                         let solids = g["boundaries"].as_array().unwrap();
