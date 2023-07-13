@@ -181,6 +181,14 @@ struct GeomSol {
 struct GeomMSol {
     boundaries: Vec<Vec<Vec<Vec<Vec<usize>>>>>,
 }
+#[derive(Serialize, Deserialize, Debug)]
+struct TextureMSu {
+    values: Vec<Vec<Vec<usize>>>,
+}
+#[derive(Serialize, Deserialize, Debug)]
+struct TextureSol {
+    values: Vec<Vec<Vec<Vec<usize>>>>,
+}
 
 #[allow(non_snake_case)]
 #[derive(Deserialize, PartialEq)]
@@ -1324,9 +1332,6 @@ impl CJValidator {
         if x.is_some() {
             max_i_v = x.unwrap().len();
         }
-        // println!("{:?}", max_i_tex);
-        // println!("{:?}", max_i_v);
-
         let mut ls_errors: Vec<String> = Vec::new();
         let cos = self.j.get("CityObjects").unwrap().as_object().unwrap();
         for theid in cos.keys() {
@@ -1340,74 +1345,86 @@ impl CJValidator {
                         continue;
                     }
                     if g["type"] == "MultiSurface" || g["type"] == "CompositeSurface" {
-                        let mut bs: Vec<Vec<usize>> = Vec::new();
-                        let mut ts: Vec<Vec<usize>> = Vec::new();
-                        let surfaces = g["boundaries"].as_array().unwrap();
-                        for surface in surfaces {
-                            let sur1 = surface.as_array().unwrap();
-                            let mut tmp: Vec<usize> = Vec::new();
-                            for ring in sur1 {
-                                tmp.push(ring.as_array().unwrap().len());
+                        let gs: GeomMSu = serde_json::from_value(g.clone()).unwrap();
+                        let mut l: Vec<usize> = Vec::new();
+                        for x in gs.boundaries {
+                            for y in x {
+                                l.push(y.len());
                             }
-                            bs.push(tmp);
                         }
                         let tex = g["texture"].as_object().unwrap();
                         for m_name in tex.keys() {
-                            let gmv = g["texture"][m_name]["values"].as_array();
-                            if gmv.is_some() {
-                                let x = gmv.unwrap();
-                                for a in x {
-                                    let t1 = a.as_array().unwrap();
-                                    let mut tmp: Vec<usize> = Vec::new();
-                                    for b in t1 {
-                                        tmp.push(b.as_array().unwrap().len() - 1);
-                                        let mut t2 = b.as_array().unwrap().clone();
-                                        let fi = t2[0].as_u64().unwrap();
-                                        // println!("fi {:?}", b);
-                                        if fi > (max_i_tex - 1) as u64 {
+                            let ts: TextureMSu =
+                                serde_json::from_value(g["texture"][m_name].clone()).unwrap();
+                            let mut l2: Vec<usize> = Vec::new();
+                            for x in ts.values {
+                                for mut y in x {
+                                    l2.push(y.len() - 1);
+                                    if y[0] > (max_i_tex - 1) {
+                                        ls_errors.push(format!(
+                                                "/texture/values/ \"{}\" overflows for texture reference; #{} and geom-#{}",
+                                                y[0], theid, gi
+                                            ));
+                                    }
+                                    y.remove(0);
+                                    for each in y {
+                                        if each > (max_i_v - 1) {
                                             ls_errors.push(format!(
-                                                "Texture \"value\" overflow; #{} and geom-#{}",
-                                                theid, gi
+                                                    "/texture/values/ \"{}\" overflows for texture-vertices (max={}); #{} and geom-#{}",
+                                                    each, (max_i_v - 1), theid, gi
+                                                ));
+                                        }
+                                    }
+                                }
+                            }
+                            if l.iter().eq(l2.iter()) == false {
+                                ls_errors.push(format!(
+                                    "/texture/values/ not same structure as /boundaries; #{} and geom-#{}", theid, gi
+                                ));
+                            }
+                        }
+                    } else if g["type"] == "Solid" {
+                        let gs: GeomSol = serde_json::from_value(g.clone()).unwrap();
+                        let mut l: Vec<usize> = Vec::new();
+                        for x in gs.boundaries {
+                            for y in x {
+                                for z in y {
+                                    l.push(z.len());
+                                }
+                            }
+                        }
+                        let tex = g["texture"].as_object().unwrap();
+                        for m_name in tex.keys() {
+                            let ts: TextureSol =
+                                serde_json::from_value(g["texture"][m_name].clone()).unwrap();
+                            let mut l2: Vec<usize> = Vec::new();
+                            for x in ts.values {
+                                for y in x {
+                                    for mut z in y {
+                                        l2.push(z.len() - 1);
+                                        if z[0] > (max_i_tex - 1) {
+                                            ls_errors.push(format!(
+                                                "/texture/values/ \"{}\" overflows for texture reference; #{} and geom-#{}",
+                                                z[0], theid, gi
                                             ));
                                         }
-                                        t2.remove(0);
-                                        for tv in t2 {
-                                            if tv.as_u64().unwrap() > ((max_i_v - 1) as u64) {
+                                        z.remove(0);
+                                        for each in z {
+                                            if each > (max_i_v - 1) {
                                                 ls_errors.push(format!(
-                                                    "Texture-vertex \"value\" {} overflow (max={}); #{} and geom-#{}",
-                                                    tv.as_u64().unwrap(), (max_i_v - 1), theid, gi
+                                                    "/texture/values/ \"{}\" overflows for texture-vertices (max={}); #{} and geom-#{}",
+                                                    each, (max_i_v - 1), theid, gi
                                                 ));
                                             }
                                         }
                                     }
-                                    ts.push(tmp);
                                 }
                             }
-                            if bs.iter().eq(ts.iter()) == false {
+                            if l.iter().eq(l2.iter()) == false {
                                 ls_errors.push(format!(
-                                    "Texture \"values\" not same as \"boundaries\"; #{} and geom-#{}", theid, gi
+                                    "/texture/values/ not same structure as /boundaries; #{} and geom-#{}", theid, gi
                                 ));
                             }
-
-                            // if (x.len() + 1) != bs {
-                            //     ls_errors.push(format!(
-                            //         "Material \"values\" not same dimension as \"boundaries\"; #{} / geom-#{} / material-\"{}\"", theid, gi, m_name
-                            //     ));
-                            // }
-                            // let mut isfirst = true;
-                            // for each in x {
-                            //     println!("{:?}", each);
-                            //     if isfirst == true {
-                            //         if each.as_u64().unwrap() > (max_i_tex - 1) as u64 {
-                            //             ls_errors.push(format!(
-                            //                 "Reference in texture \"values\" overflows (max={}); #{} and geom-#{} / material-\"{}\"",
-                            //                 (max_i_tex-1),theid, gi, m_name
-                            //             ));
-                            //         }
-                            //         isfirst = false;
-                            //     }
-                            // }
-                            // }
                         }
                     }
                 }
