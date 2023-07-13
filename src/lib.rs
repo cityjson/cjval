@@ -183,7 +183,7 @@ struct GeomMSol {
 }
 #[derive(Serialize, Deserialize, Debug)]
 struct TextureMSu {
-    values: Option<Vec<Vec<Vec<usize>>>>,
+    values: Vec<Vec<Vec<Option<usize>>>>,
 }
 #[derive(Serialize, Deserialize, Debug)]
 struct TextureSol {
@@ -1360,35 +1360,43 @@ impl CJValidator {
                         for m_name in tex.keys() {
                             let ts: TextureMSu =
                                 serde_json::from_value(g["texture"][m_name].clone()).unwrap();
-                            // if ts.is_some() {
-
-                            // }
-                            // let mut l2: Vec<usize> = Vec::new();
-                            // for x in ts.values {
-                            //     for mut y in x {
-                            //         l2.push(y.len() - 1);
-                            //         if y[0] > (max_i_tex - 1) {
-                            //             ls_errors.push(format!(
-                            //                     "/texture/values/ \"{}\" overflows for texture reference; #{} and geom-#{}",
-                            //                     y[0], theid, gi
-                            //                 ));
-                            //         }
-                            //         y.remove(0);
-                            //         for each in y {
-                            //             if each > (max_i_v - 1) {
-                            //                 ls_errors.push(format!(
-                            //                         "/texture/values/ \"{}\" overflows for texture-vertices (max={}); #{} and geom-#{}",
-                            //                         each, (max_i_v - 1), theid, gi
-                            //                     ));
-                            //             }
-                            //         }
-                            //     }
-                            // }
-                            // if l.iter().eq(l2.iter()) == false {
-                            //     ls_errors.push(format!(
-                            //         "/texture/values/ not same structure as /boundaries; #{} and geom-#{}", theid, gi
-                            //     ));
-                            // }
+                            let mut l2: Vec<usize> = Vec::new();
+                            for x in ts.values {
+                                for mut y in x {
+                                    // println!("{:?}", y.len());
+                                    l2.push(y.len() - 1);
+                                    if y.len() > 1 {
+                                        if y[0].unwrap() > (max_i_tex - 1) {
+                                            ls_errors.push(format!(
+                                                    "/texture/values/ \"{}\" overflows for texture reference; #{} and geom-#{}",
+                                                    y[0].unwrap(), theid, gi
+                                                ));
+                                        }
+                                        y.remove(0);
+                                        for each in y {
+                                            if each.unwrap() > (max_i_v - 1) {
+                                                ls_errors.push(format!(
+                                                        "/texture/values/ \"{}\" overflows for texture-vertices (max={}); #{} and geom-#{}",
+                                                        each.unwrap(), (max_i_v - 1), theid, gi
+                                                    ));
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            if l.len() != l2.len() {
+                                ls_errors.push(format!(
+                                    "/texture/values/ not same structure as /boundaries; #{} and geom-#{}", theid, gi
+                                ));
+                            } else {
+                                for (i, _e) in l.iter().enumerate() {
+                                    if l[i] != l2[i] && l2[i] != 0 {
+                                        ls_errors.push(format!(
+                                            "/texture/values/ not same structure as /boundaries; #{} and geom-#{}", theid, gi
+                                        ));
+                                    }
+                                }
+                            }
                         }
                     } else if g["type"] == "Solid" {
                         let gs: GeomSol = serde_json::from_value(g.clone()).unwrap();
