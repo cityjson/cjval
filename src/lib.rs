@@ -1314,7 +1314,110 @@ impl CJValidator {
     }
 
     fn textures(&self) -> Result<(), Vec<String>> {
-        Ok(())
+        let mut max_i_tex: usize = 0;
+        let mut x = self.j["appearance"]["textures"].as_array();
+        if x.is_some() {
+            max_i_tex = x.unwrap().len();
+        }
+        let mut max_i_v: usize = 0;
+        x = self.j["appearance"]["vertices-texture"].as_array();
+        if x.is_some() {
+            max_i_v = x.unwrap().len();
+        }
+        // println!("{:?}", max_i_tex);
+        // println!("{:?}", max_i_v);
+
+        let mut ls_errors: Vec<String> = Vec::new();
+        let cos = self.j.get("CityObjects").unwrap().as_object().unwrap();
+        for theid in cos.keys() {
+            //-- check geometry
+            let x = self.j["CityObjects"][theid]["geometry"].as_array();
+            if x.is_some() {
+                let gs = x.unwrap();
+                let mut gi = 0;
+                for g in gs {
+                    if g.get("texture").is_none() {
+                        continue;
+                    }
+                    if g["type"] == "MultiSurface" || g["type"] == "CompositeSurface" {
+                        let mut bs: Vec<Vec<usize>> = Vec::new();
+                        let mut ts: Vec<Vec<usize>> = Vec::new();
+                        let surfaces = g["boundaries"].as_array().unwrap();
+                        for surface in surfaces {
+                            let sur1 = surface.as_array().unwrap();
+                            let mut tmp: Vec<usize> = Vec::new();
+                            for ring in sur1 {
+                                tmp.push(ring.as_array().unwrap().len());
+                            }
+                            bs.push(tmp);
+                        }
+                        let tex = g["texture"].as_object().unwrap();
+                        for m_name in tex.keys() {
+                            let gmv = g["texture"][m_name]["values"].as_array();
+                            if gmv.is_some() {
+                                let x = gmv.unwrap();
+                                for a in x {
+                                    let t1 = a.as_array().unwrap();
+                                    let mut tmp: Vec<usize> = Vec::new();
+                                    for b in t1 {
+                                        tmp.push(b.as_array().unwrap().len() - 1);
+                                        let mut t2 = b.as_array().unwrap().clone();
+                                        let fi = t2[0].as_u64().unwrap();
+                                        // println!("fi {:?}", b);
+                                        if fi > (max_i_tex - 1) as u64 {
+                                            ls_errors.push(format!(
+                                                "Texture \"value\" overflow; #{} and geom-#{}",
+                                                theid, gi
+                                            ));
+                                        }
+                                        t2.remove(0);
+                                        for tv in t2 {
+                                            if tv.as_u64().unwrap() > ((max_i_v - 1) as u64) {
+                                                ls_errors.push(format!(
+                                                    "Texture-vertex \"value\" {} overflow (max={}); #{} and geom-#{}",
+                                                    tv.as_u64().unwrap(), (max_i_v - 1), theid, gi
+                                                ));
+                                            }
+                                        }
+                                    }
+                                    ts.push(tmp);
+                                }
+                            }
+                            if bs.iter().eq(ts.iter()) == false {
+                                ls_errors.push(format!(
+                                    "Texture \"values\" not same as \"boundaries\"; #{} and geom-#{}", theid, gi
+                                ));
+                            }
+
+                            // if (x.len() + 1) != bs {
+                            //     ls_errors.push(format!(
+                            //         "Material \"values\" not same dimension as \"boundaries\"; #{} / geom-#{} / material-\"{}\"", theid, gi, m_name
+                            //     ));
+                            // }
+                            // let mut isfirst = true;
+                            // for each in x {
+                            //     println!("{:?}", each);
+                            //     if isfirst == true {
+                            //         if each.as_u64().unwrap() > (max_i_tex - 1) as u64 {
+                            //             ls_errors.push(format!(
+                            //                 "Reference in texture \"values\" overflows (max={}); #{} and geom-#{} / material-\"{}\"",
+                            //                 (max_i_tex-1),theid, gi, m_name
+                            //             ));
+                            //         }
+                            //         isfirst = false;
+                            //     }
+                            // }
+                            // }
+                        }
+                    }
+                }
+            }
+        }
+        if ls_errors.is_empty() {
+            Ok(())
+        } else {
+            Err(ls_errors)
+        }
     }
 
     fn wrong_vertex_index(&self) -> Result<(), Vec<String>> {
