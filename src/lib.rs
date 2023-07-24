@@ -1,8 +1,10 @@
 //! # cjval: a validator for CityJSON
 //!
-//! A library to validate the syntax of CityJSON objects (CityJSON + [CityJSONFeatures](https://www.cityjson.org/specs/#text-sequences-and-streaming-with-cityjsonfeature)).
+//! A library to validate the syntax of CityJSON objects (CityJSON +
+//! [CityJSONFeatures](https://www.cityjson.org/specs/#text-sequences-and-streaming-with-cityjsonfeature)).
 //!
-//! It validates against the [CityJSON schemas](https://www.cityjson.org/schemas) and additional functions have been implemented (because these can't be expressed with [JSON Schema](https://json-schema.org/)).
+//! It validates against the [CityJSON schemas](https://www.cityjson.org/schemas) and additional functions have been implemented
+//! (because these can't be expressed with [JSON Schema](https://json-schema.org/)).
 //!
 //! The following is error checks are performed:
 //!
@@ -12,6 +14,9 @@
 //!   1. *parents_children_consistency*: if a City Object references another in its `children`, this ensures that the child exists. And that the child has the parent in its `parents`
 //!   1. *wrong_vertex_index*: checks if all vertex indices exist in the list of vertices
 //!   1. *semantics_array*: checks if the arrays for the semantics in the geometries have the same shape as that of the geometry and if the values are consistent
+//!   1. *textures*: checks if the arrays for the textures are coherent (if the vertices exist + if the texture linked to exists)
+//!   1. *materials*: checks if the arrays for the materials are coherent with the geometry objects and if material linked to exists
+
 //!
 //! It also verifies the following, these are not errors since the file is still considered valid and usable, but they can make the file larger and some parsers might not understand all the properties:
 //!
