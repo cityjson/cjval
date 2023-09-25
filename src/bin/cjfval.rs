@@ -27,8 +27,8 @@ fn main() -> io::Result<()> {
     // Enable ANSI support for Windows
     let sversions: Vec<String> = cjval::get_cityjson_schema_all_versions();
     let desc = format!(
-        "{}\nSupports CityJSONFeature v1.1 (schemas v{} are used)",
-        "Validation of CityJSONFeature streams (JSONL)", sversions[1]
+        "{}\nSupports CityJSONFeature v2.0+v1.1 (schemas v{} + v{} are used)",
+        "Validation of CityJSONFeature streams (JSONL)", sversions[2], sversions[1]
     );
     #[cfg(windows)]
     let _ = ansi_term::enable_ansi_support();

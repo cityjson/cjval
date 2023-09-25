@@ -29,11 +29,11 @@ fn main() {
     // Enable ANSI support for Windows
     let sversions: Vec<String> = cjval::get_cityjson_schema_all_versions();
     let desc = format!(
-        "{}\nSupports CityJSON versions: 1.0 + 1.1 + 2.0 (schemas: v{} + v{} + v{} are used)",
+        "{}\nSupports CityJSON versions: 2.0 + 1.1 + 1.0 (schemas: v{} + v{} + v{} are used)",
         crate_description!(),
-        sversions[0],
+        sversions[2],
         sversions[1],
-        sversions[2]
+        sversions[0]
     );
     #[cfg(windows)]
     let _ = ansi_term::enable_ansi_support();
