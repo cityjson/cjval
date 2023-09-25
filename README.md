@@ -71,12 +71,12 @@ If the file contains one or more [Extensions](https://www.cityjson.org/extension
 ```json
 {
   "type": "CityJSON",
-  "version": "1.1",
+  "version": "2.0",
   "extensions":
   {
-    "Generic":
+    "Potato":
     {
-      "url": "https://www.cityjson.org/extensions/generic.ext.json",
+      "url": "https://www.cityjson.org/extensions/potato.ext.json",
       "version": "1.0"
     }
   }
