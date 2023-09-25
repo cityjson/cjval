@@ -761,6 +761,11 @@ impl CJValidator {
 
     fn validate_ext_extrasemanticsurfaces(&self, jext: &Value) -> Result<(), Vec<String>> {
         let mut ls_errors: Vec<String> = Vec::new();
+        //-- 0. check if "extraSemanticSurfaces" is in the file, if not then all good
+        let t = jext["extraSemanticSurfaces"].as_object();
+        if t.is_none() {
+            return Ok(());
+        }
         //-- 1. build the schema file from the Extension file
         let v = jext
             .get("extraSemanticSurfaces")
@@ -914,13 +919,12 @@ impl CJValidator {
         let mut ls_errors: Vec<String> = Vec::new();
         let mut newss: Vec<String> = Vec::new();
         for jext in &self.jexts {
-            let v = jext
-                .get("extraSemanticSurfaces")
-                .unwrap()
-                .as_object()
-                .unwrap();
-            for ess in v.keys() {
-                newss.push(ess.to_string());
+            let re = jext.get("extraSemanticSurfaces");
+            if re.is_some() {
+                let v = re.unwrap().as_object().unwrap();
+                for ess in v.keys() {
+                    newss.push(ess.to_string());
+                }
             }
         }
         //-- fetch the COs
