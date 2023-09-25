@@ -228,7 +228,8 @@ pub fn get_cityjson_schema_all_versions() -> Vec<String> {
 pub struct CJValidator {
     cjfeature: bool,
     j: Value,
-    jschema: Value,
+    jschema_cj: Value,
+    jschema_cjf: Value,
     jexts: Vec<Value>,
     // valsum: IndexMap<String, ValSummary>,
     json_syntax_error: Option<String>,
@@ -253,7 +254,8 @@ impl CJValidator {
         let mut v = CJValidator {
             cjfeature: false,
             j: json!(null),
-            jschema: json!(null),
+            jschema_cj: json!(null),
+            jschema_cjf: json!(null),
             jexts: l,
             json_syntax_error: None,
             duplicate_keys: false,
@@ -271,33 +273,30 @@ impl CJValidator {
             Err(e) => v.json_syntax_error = Some(e.to_string()),
         }
         //-- check the type
-        if v.j["type"] == "CityJSONFeature" {
-            v.cjfeature = true;
-            //-- here we assume that it's latest v1.1, since v1.0 doesn't have this type
-            v.version_file = 11;
-            // TODO: add v2.0 support
-            let schema_str = include_str!("../schemas/11/cityjsonfeature.min.schema.json");
-            v.jschema = serde_json::from_str(schema_str).unwrap();
-            let vs = &v.jschema["$id"].to_string();
-            v.version_schema = vs.get(34..39).unwrap().to_string();
-        } else if v.j["type"] == "CityJSON" {
+        if v.j["type"] == "CityJSON" {
             //-- check cityjson version
             if v.j["version"] == "2.0" {
                 v.version_file = 20;
                 let schema_str = include_str!("../schemas/20/cityjson.min.schema.json");
-                v.jschema = serde_json::from_str(schema_str).unwrap();
-                let vs = &v.jschema["$id"].to_string();
+                v.jschema_cj = serde_json::from_str(schema_str).unwrap();
+                let vs = &v.jschema_cj["$id"].to_string();
                 v.version_schema = vs.get(34..39).unwrap().to_string();
+                //-- for CityJSONFeature
+                let schemaf_str = include_str!("../schemas/20/cityjsonfeature.min.schema.json");
+                v.jschema_cjf = serde_json::from_str(schemaf_str).unwrap();
             } else if v.j["version"] == "1.1" {
                 v.version_file = 11;
                 let schema_str = include_str!("../schemas/11/cityjson.min.schema.json");
-                v.jschema = serde_json::from_str(schema_str).unwrap();
-                let vs = &v.jschema["$id"].to_string();
+                v.jschema_cj = serde_json::from_str(schema_str).unwrap();
+                let vs = &v.jschema_cj["$id"].to_string();
                 v.version_schema = vs.get(34..39).unwrap().to_string();
+                //-- for CityJSONFeature
+                let schemaf_str = include_str!("../schemas/11/cityjsonfeature.min.schema.json");
+                v.jschema_cjf = serde_json::from_str(schemaf_str).unwrap();
             } else if v.j["version"] == "1.0" {
                 v.version_file = 10;
                 let schema_str = include_str!("../schemas/10/cityjson.min.schema.json");
-                v.jschema = serde_json::from_str(schema_str).unwrap();
+                v.jschema_cj = serde_json::from_str(schema_str).unwrap();
                 v.version_schema = "1.0.3".to_string();
             }
         } else {
@@ -314,7 +313,7 @@ impl CJValidator {
         v
     }
 
-    pub fn replace_cjfeature(&mut self, str_cjf: &str) -> Result<(), String> {
+    pub fn from_str_cjfeature(&mut self, str_cjf: &str) -> Result<(), String> {
         //-- parse the cjf and convert to JSON
         let re: Result<Value, _> = serde_json::from_str(&str_cjf);
         if re.is_err() {
@@ -326,11 +325,21 @@ impl CJValidator {
         }
         self.j = j;
         self.cjfeature = true;
-        self.version_file = 11;
-        let schema_str = include_str!("../schemas/11/cityjsonfeature.min.schema.json");
-        self.jschema = serde_json::from_str(schema_str).unwrap();
-        let vs = &self.jschema["$id"].to_string();
-        self.version_schema = vs.get(34..39).unwrap().to_string();
+        // println!("{:?}", self.version_file);
+        // if self.version == "2.0" {
+        //     v.version_file = 20;
+        //     let schema_str = include_str!("../schemas/20/cityjsonfeature.min.schema.json");
+        //     self.jschema = serde_json::from_str(schema_str).unwrap();
+        //     let vs = &v.jschema["$id"].to_string();
+        //     self.version_schema = vs.get(34..39).unwrap().to_string();
+        // } else if v.version == "1.1" {
+        //     self.version_file = 11;
+        //     let schema_str = include_str!("../schemas/11/cityjsonfeature.min.schema.json");
+        //     v.jschema = serde_json::from_str(schema_str).unwrap();
+        //     let vs = &v.jschema["$id"].to_string();
+        //     v.version_schema = vs.get(34..39).unwrap().to_string();
+        // }
+
         Ok(())
     }
 
@@ -615,15 +624,30 @@ impl CJValidator {
                 return Err(vec![s]);
             }
         }
-        let compiled = JSONSchema::options()
-            .with_draft(Draft::Draft7)
-            .compile(&self.jschema)
-            .expect("A valid schema");
-        let result = compiled.validate(&self.j);
-        if let Err(errors) = result {
-            for error in errors {
-                let s: String = format!("{} [path:{}]", error, error.instance_path);
-                ls_errors.push(s);
+
+        if self.cjfeature == false {
+            let compiled = JSONSchema::options()
+                .with_draft(Draft::Draft7)
+                .compile(&self.jschema_cj)
+                .expect("A valid schema");
+            let result = compiled.validate(&self.j);
+            if let Err(errors) = result {
+                for error in errors {
+                    let s: String = format!("{} [path:{}]", error, error.instance_path);
+                    ls_errors.push(s);
+                }
+            }
+        } else {
+            let compiled = JSONSchema::options()
+                .with_draft(Draft::Draft7)
+                .compile(&self.jschema_cjf)
+                .expect("A valid schema");
+            let result = compiled.validate(&self.j);
+            if let Err(errors) = result {
+                for error in errors {
+                    let s: String = format!("{} [path:{}]", error, error.instance_path);
+                    ls_errors.push(s);
+                }
             }
         }
         if ls_errors.is_empty() {

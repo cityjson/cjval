@@ -107,7 +107,7 @@ fn main() -> io::Result<()> {
             }
             b_metadata = true;
         } else {
-            let re = val.replace_cjfeature(&l);
+            let re = val.from_str_cjfeature(&l);
             match re {
                 Ok(_) => {
                     let valsumm = val.validate();
