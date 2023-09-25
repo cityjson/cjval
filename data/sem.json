@@ -21,7 +21,7 @@
               "slope": 66.6
             },
             {
-              "type": "+PatioDoor",
+              "type": "+RoofWall",
               "parent": 0,
               "colour": "blue"
             }
@@ -124,7 +124,7 @@
           0.0
       ]
   },
-  "version": "1.1",
+  "version": "2.0",
   "vertices": [
     [
       10,
