@@ -74,7 +74,7 @@ fn main() -> io::Result<()> {
             continue;
         }
         if !b_metadata {
-            // TODO: what is no metadata-first-line?
+            // TODO: what if no metadata-first-line?
             val = CJValidator::from_str(&l);
             let re = fetch_extensions(&mut val, matches.values_of("PATH"));
             match re {
