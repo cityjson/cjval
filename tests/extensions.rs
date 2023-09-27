@@ -40,7 +40,7 @@ fn extension_generic() {
     assert!(re["schema"].is_valid());
     assert!(!re["extensions"].is_valid());
 
-    let s = std::fs::read_to_string("schemas/extensions/generic.ext.json").unwrap();
+    let s = std::fs::read_to_string("schemas/extensions/11/generic.ext.json").unwrap();
     let _ = v.add_one_extension_from_str(&s);
     re = v.validate();
     assert!(re["extensions"].is_valid());
@@ -64,7 +64,7 @@ fn extension_noise() {
     let re = v.validate();
     assert!(re["schema"].is_valid());
 
-    let sschema = std::fs::read_to_string("schemas/extensions/noise.ext.json").unwrap();
+    let sschema = std::fs::read_to_string("schemas/extensions/11/noise.ext.json").unwrap();
     let _ = v.add_one_extension_from_str(&sschema);
     let rev = v.validate();
     assert!(rev["extensions"].is_valid());
