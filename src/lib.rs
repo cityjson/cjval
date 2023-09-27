@@ -905,10 +905,12 @@ impl CJValidator {
             if re.is_err() {
                 ls_errors.append(&mut re.err().unwrap());
             }
-            //-- 4. extraSemanticSurfaces
-            re = self.validate_ext_extrasemanticsurfaces(&ext);
-            if re.is_err() {
-                ls_errors.append(&mut re.err().unwrap());
+            if self.version_file >= 20 {
+                //-- 4. extraSemanticSurfaces
+                re = self.validate_ext_extrasemanticsurfaces(&ext);
+                if re.is_err() {
+                    ls_errors.append(&mut re.err().unwrap());
+                }
             }
         }
         //-- 5. check if there are CityObjects that do not have a schema
@@ -927,9 +929,11 @@ impl CJValidator {
             ls_errors.append(&mut re.err().unwrap());
         }
         //-- 8. check for the semsurfs w/o schemas
-        re = self.validate_ext_semsurf_without_schema();
-        if re.is_err() {
-            ls_errors.append(&mut re.err().unwrap());
+        if self.version_file >= 20 {
+            re = self.validate_ext_semsurf_without_schema();
+            if re.is_err() {
+                ls_errors.append(&mut re.err().unwrap());
+            }
         }
 
         if ls_errors.is_empty() {
