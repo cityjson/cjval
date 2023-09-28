@@ -29,10 +29,11 @@ fn main() {
     // Enable ANSI support for Windows
     let sversions: Vec<String> = cjval::get_cityjson_schema_all_versions();
     let desc = format!(
-        "{}\nSupports CityJSON v1.0 + v1.1 (schemas v{} + v{} are used)",
+        "{}\nSupports CityJSON versions: 2.0 + 1.1 + 1.0 (schemas: v{} + v{} + v{} are used)",
         crate_description!(),
-        sversions[0],
-        sversions[1]
+        sversions[2],
+        sversions[1],
+        sversions[0]
     );
     #[cfg(windows)]
     let _ = ansi_term::enable_ansi_support();
@@ -79,7 +80,11 @@ fn main() {
 
     //-- print the schema version used
     println!("{}", Style::new().bold().paint("=== CityJSON schemas ==="));
-    println!("v{} (builtin)", val.get_cityjson_schema_version());
+    if val.get_input_cityjson_version() == 0 {
+        println!("none");
+    } else {
+        println!("v{} (builtin)", val.get_cityjson_schema_version());
+    }
 
     //-- Extensions
     println!("{}", Style::new().bold().paint("=== Extensions ==="));

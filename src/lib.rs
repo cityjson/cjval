@@ -1,8 +1,10 @@
 //! # cjval: a validator for CityJSON
 //!
-//! A library to validate the syntax of CityJSON objects (CityJSON + [CityJSONFeatures](https://www.cityjson.org/specs/#text-sequences-and-streaming-with-cityjsonfeature)).
+//! A library to validate the syntax of CityJSON objects (CityJSON +
+//! [CityJSONFeatures](https://www.cityjson.org/specs/#text-sequences-and-streaming-with-cityjsonfeature)).
 //!
-//! It validates against the [CityJSON schemas](https://www.cityjson.org/schemas) and additional functions have been implemented (because these can't be expressed with [JSON Schema](https://json-schema.org/)).
+//! It validates against the [CityJSON schemas](https://www.cityjson.org/schemas) and additional functions have been implemented
+//! (because these can't be expressed with [JSON Schema](https://json-schema.org/)).
 //!
 //! The following is error checks are performed:
 //!
@@ -12,6 +14,9 @@
 //!   1. *parents_children_consistency*: if a City Object references another in its `children`, this ensures that the child exists. And that the child has the parent in its `parents`
 //!   1. *wrong_vertex_index*: checks if all vertex indices exist in the list of vertices
 //!   1. *semantics_array*: checks if the arrays for the semantics in the geometries have the same shape as that of the geometry and if the values are consistent
+//!   1. *textures*: checks if the arrays for the textures are coherent (if the vertices exist + if the texture linked to exists)
+//!   1. *materials*: checks if the arrays for the materials are coherent with the geometry objects and if material linked to exists
+
 //!
 //! It also verifies the following, these are not errors since the file is still considered valid and usable, but they can make the file larger and some parsers might not understand all the properties:
 //!
@@ -70,7 +75,8 @@ use std::fmt;
 //  # parents_children_consistency
 //  # wrong_vertex_index
 //  # semantics_arrays
-//
+//  # textures
+//  # materials
 //
 // #-- WARNINGS
 //  # extra_root_properties
@@ -180,6 +186,18 @@ struct GeomSol {
 struct GeomMSol {
     boundaries: Vec<Vec<Vec<Vec<Vec<usize>>>>>,
 }
+#[derive(Serialize, Deserialize, Debug)]
+struct TextureMSu {
+    values: Vec<Vec<Vec<Option<usize>>>>,
+}
+#[derive(Serialize, Deserialize, Debug)]
+struct TextureSol {
+    values: Vec<Vec<Vec<Vec<usize>>>>,
+}
+#[derive(Serialize, Deserialize, Debug)]
+struct TextureMSol {
+    values: Vec<Vec<Vec<Vec<Vec<usize>>>>>,
+}
 
 #[allow(non_snake_case)]
 #[derive(Deserialize, PartialEq)]
@@ -197,6 +215,11 @@ pub fn get_cityjson_schema_all_versions() -> Vec<String> {
     let schema: Value = serde_json::from_str(schema_str).unwrap();
     let vs = &schema["$id"].to_string();
     l.push(vs.get(34..39).unwrap().to_string());
+    //-- v2.0
+    let schema_str = include_str!("../schemas/20/cityjson.min.schema.json");
+    let schema: Value = serde_json::from_str(schema_str).unwrap();
+    let vs = &schema["$id"].to_string();
+    l.push(vs.get(34..39).unwrap().to_string());
     l
 }
 
@@ -205,11 +228,13 @@ pub fn get_cityjson_schema_all_versions() -> Vec<String> {
 pub struct CJValidator {
     cjfeature: bool,
     j: Value,
-    jschema: Value,
+    jschema_cj: Value,
+    jschema_cjf: Value,
     jexts: Vec<Value>,
     // valsum: IndexMap<String, ValSummary>,
     json_syntax_error: Option<String>,
     duplicate_keys: bool,
+    is_cityjson: bool,
     version_file: i32,
     version_schema: String,
 }
@@ -229,11 +254,12 @@ impl CJValidator {
         let mut v = CJValidator {
             cjfeature: false,
             j: json!(null),
-            jschema: json!(null),
+            jschema_cj: json!(null),
+            jschema_cjf: json!(null),
             jexts: l,
-            // valsum: vsum,
             json_syntax_error: None,
             duplicate_keys: false,
+            is_cityjson: true,
             version_file: 0,
             version_schema: "-1".to_string(),
         };
@@ -247,28 +273,34 @@ impl CJValidator {
             Err(e) => v.json_syntax_error = Some(e.to_string()),
         }
         //-- check the type
-        if v.j["type"] == "CityJSONFeature" {
-            v.cjfeature = true;
-            //-- here we assume that it's latest v1.1, since v1.0 doesn't have this type
-            v.version_file = 11;
-            let schema_str = include_str!("../schemas/11/cityjsonfeature.min.schema.json");
-            v.jschema = serde_json::from_str(schema_str).unwrap();
-            let vs = &v.jschema["$id"].to_string();
-            v.version_schema = vs.get(34..39).unwrap().to_string();
-        } else {
+        if v.j["type"] == "CityJSON" {
             //-- check cityjson version
-            if v.j["version"] == "1.1" {
+            if v.j["version"] == "2.0" {
+                v.version_file = 20;
+                let schema_str = include_str!("../schemas/20/cityjson.min.schema.json");
+                v.jschema_cj = serde_json::from_str(schema_str).unwrap();
+                let vs = &v.jschema_cj["$id"].to_string();
+                v.version_schema = vs.get(34..39).unwrap().to_string();
+                //-- for CityJSONFeature
+                let schemaf_str = include_str!("../schemas/20/cityjsonfeature.min.schema.json");
+                v.jschema_cjf = serde_json::from_str(schemaf_str).unwrap();
+            } else if v.j["version"] == "1.1" {
                 v.version_file = 11;
                 let schema_str = include_str!("../schemas/11/cityjson.min.schema.json");
-                v.jschema = serde_json::from_str(schema_str).unwrap();
-                let vs = &v.jschema["$id"].to_string();
+                v.jschema_cj = serde_json::from_str(schema_str).unwrap();
+                let vs = &v.jschema_cj["$id"].to_string();
                 v.version_schema = vs.get(34..39).unwrap().to_string();
+                //-- for CityJSONFeature
+                let schemaf_str = include_str!("../schemas/11/cityjsonfeature.min.schema.json");
+                v.jschema_cjf = serde_json::from_str(schemaf_str).unwrap();
             } else if v.j["version"] == "1.0" {
                 v.version_file = 10;
                 let schema_str = include_str!("../schemas/10/cityjson.min.schema.json");
-                v.jschema = serde_json::from_str(schema_str).unwrap();
+                v.jschema_cj = serde_json::from_str(schema_str).unwrap();
                 v.version_schema = "1.0.3".to_string();
             }
+        } else {
+            v.is_cityjson = false;
         }
         //-- check for duplicate keys in CO object, Doc is the struct above
         //-- used for identifying duplicate keys
@@ -281,7 +313,7 @@ impl CJValidator {
         v
     }
 
-    pub fn replace_cjfeature(&mut self, str_cjf: &str) -> Result<(), String> {
+    pub fn from_str_cjfeature(&mut self, str_cjf: &str) -> Result<(), String> {
         //-- parse the cjf and convert to JSON
         let re: Result<Value, _> = serde_json::from_str(&str_cjf);
         if re.is_err() {
@@ -293,11 +325,21 @@ impl CJValidator {
         }
         self.j = j;
         self.cjfeature = true;
-        self.version_file = 11;
-        let schema_str = include_str!("../schemas/11/cityjsonfeature.min.schema.json");
-        self.jschema = serde_json::from_str(schema_str).unwrap();
-        let vs = &self.jschema["$id"].to_string();
-        self.version_schema = vs.get(34..39).unwrap().to_string();
+        // println!("{:?}", self.version_file);
+        // if self.version == "2.0" {
+        //     v.version_file = 20;
+        //     let schema_str = include_str!("../schemas/20/cityjsonfeature.min.schema.json");
+        //     self.jschema = serde_json::from_str(schema_str).unwrap();
+        //     let vs = &v.jschema["$id"].to_string();
+        //     self.version_schema = vs.get(34..39).unwrap().to_string();
+        // } else if v.version == "1.1" {
+        //     self.version_file = 11;
+        //     let schema_str = include_str!("../schemas/11/cityjsonfeature.min.schema.json");
+        //     v.jschema = serde_json::from_str(schema_str).unwrap();
+        //     let vs = &v.jschema["$id"].to_string();
+        //     v.version_schema = vs.get(34..39).unwrap().to_string();
+        // }
+
         Ok(())
     }
 
@@ -343,6 +385,12 @@ impl CJValidator {
         if valsumm["semantics_arrays"].has_errors() {
             return false;
         }
+        if valsumm["materials"].has_errors() {
+            return false;
+        }
+        if valsumm["textures"].has_errors() {
+            return false;
+        }
         true
     }
 
@@ -377,6 +425,8 @@ impl CJValidator {
             ),
             ("wrong_vertex_index".to_string(), ValSummary::new()),
             ("semantics_arrays".to_string(), ValSummary::new()),
+            ("textures".to_string(), ValSummary::new()),
+            ("materials".to_string(), ValSummary::new()),
             ("extra_root_properties".to_string(), w1),
             ("duplicate_vertices".to_string(), w2),
             ("unused_vertices".to_string(), w3),
@@ -394,12 +444,6 @@ impl CJValidator {
         }
 
         //-- schema
-        if self.duplicate_keys == true {
-            vsum.get_mut("schema")
-                .unwrap()
-                .add_error("Duplicate keys in 'CityObjects'".to_string());
-            return vsum;
-        }
         let mut re = self.schema();
         match re {
             Ok(_) => vsum.get_mut("schema").unwrap().set_validity(true),
@@ -409,6 +453,12 @@ impl CJValidator {
                 }
                 return vsum;
             }
+        }
+        if self.duplicate_keys == true {
+            vsum.get_mut("schema")
+                .unwrap()
+                .add_error("Duplicate keys in 'CityObjects'".to_string());
+            return vsum;
         }
 
         //-- extensions
@@ -458,6 +508,26 @@ impl CJValidator {
             Err(errs) => {
                 for err in errs {
                     vsum.get_mut("semantics_arrays").unwrap().add_error(err);
+                }
+            }
+        }
+        //-- textures
+        re = self.textures();
+        match re {
+            Ok(_) => vsum.get_mut("textures").unwrap().set_validity(true),
+            Err(errs) => {
+                for err in errs {
+                    vsum.get_mut("textures").unwrap().add_error(err);
+                }
+            }
+        }
+        //-- materials
+        re = self.materials();
+        match re {
+            Ok(_) => vsum.get_mut("materials").unwrap().set_validity(true),
+            Err(errs) => {
+                for err in errs {
+                    vsum.get_mut("materials").unwrap().add_error(err);
                 }
             }
         }
@@ -539,25 +609,45 @@ impl CJValidator {
 
     fn schema(&self) -> Result<(), Vec<String>> {
         let mut ls_errors: Vec<String> = Vec::new();
+        //-- if type == CityJSON
+        if self.is_cityjson == false {
+            let s: String = format!("Not a CityJSON file");
+            return Err(vec![s]);
+        }
         if self.cjfeature == false {
             //-- which cityjson version
             if self.version_file == 0 {
                 let s: String = format!(
-                    "CityJSON version {} not supported [only \"1.0\" and \"1.1\"]",
+                    "CityJSON version {} not supported (or missing) [only \"1.0\", \"1.1\", \"2.0\"]",
                     self.j["version"]
                 );
                 return Err(vec![s]);
             }
         }
-        let compiled = JSONSchema::options()
-            .with_draft(Draft::Draft7)
-            .compile(&self.jschema)
-            .expect("A valid schema");
-        let result = compiled.validate(&self.j);
-        if let Err(errors) = result {
-            for error in errors {
-                let s: String = format!("{} [path:{}]", error, error.instance_path);
-                ls_errors.push(s);
+
+        if self.cjfeature == false {
+            let compiled = JSONSchema::options()
+                .with_draft(Draft::Draft7)
+                .compile(&self.jschema_cj)
+                .expect("A valid schema");
+            let result = compiled.validate(&self.j);
+            if let Err(errors) = result {
+                for error in errors {
+                    let s: String = format!("{} [path:{}]", error, error.instance_path);
+                    ls_errors.push(s);
+                }
+            }
+        } else {
+            let compiled = JSONSchema::options()
+                .with_draft(Draft::Draft7)
+                .compile(&self.jschema_cjf)
+                .expect("A valid schema");
+            let result = compiled.validate(&self.j);
+            if let Err(errors) = result {
+                for error in errors {
+                    let s: String = format!("{} [path:{}]", error, error.instance_path);
+                    ls_errors.push(s);
+                }
             }
         }
         if ls_errors.is_empty() {
@@ -693,6 +783,67 @@ impl CJValidator {
         }
     }
 
+    fn validate_ext_extrasemanticsurfaces(&self, jext: &Value) -> Result<(), Vec<String>> {
+        let mut ls_errors: Vec<String> = Vec::new();
+        //-- 0. check if "extraSemanticSurfaces" is in the file, if not then all good
+        let t = jext["extraSemanticSurfaces"].as_object();
+        if t.is_none() {
+            return Ok(());
+        }
+        //-- 1. build the schema file from the Extension file
+        let v = jext
+            .get("extraSemanticSurfaces")
+            .unwrap()
+            .as_object()
+            .unwrap();
+        let jexto = jext.as_object().unwrap();
+        for semsurf in v.keys() {
+            let mut schema = jext["extraSemanticSurfaces"][semsurf].clone();
+            schema["$schema"] = json!("http://json-schema.org/draft-07/schema#");
+            schema["$id"] = json!("https://www.cityjson.org/schemas/1.1.0/tmp.json");
+            for each in jexto.keys() {
+                let ss = each.as_str();
+                if EXTENSION_FIXED_NAMES.contains(&ss) == false {
+                    schema[ss] = jext[ss].clone();
+                }
+            }
+            let compiled = self.get_compiled_schema_extension(&schema);
+            let cos = self.j.get("CityObjects").unwrap().as_object().unwrap();
+            for key in cos.keys() {
+                //-- check geometry
+                let x = self.j["CityObjects"][key]["geometry"].as_array();
+                if x.is_some() {
+                    for (i, g) in x.unwrap().iter().enumerate() {
+                        let surfs = g["semantics"]["surfaces"].as_array();
+                        if surfs.is_some() {
+                            for (j, surf) in surfs.unwrap().iter().enumerate() {
+                                let tmp = surf.as_object().unwrap();
+                                if tmp["type"].as_str().unwrap() == semsurf {
+                                    let result = compiled.validate(
+                                        &self.j["CityObjects"][key]["geometry"][i]["semantics"]
+                                            ["surfaces"][j],
+                                    );
+                                    if let Err(errors) = result {
+                                        for error in errors {
+                                            let s: String =
+                                                format!("{} [path:{}]", error, error.instance_path);
+                                            ls_errors.push(s);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        if ls_errors.is_empty() {
+            Ok(())
+        } else {
+            Err(ls_errors)
+        }
+    }
+
     fn get_compiled_schema_extension(&self, schema: &Value) -> JSONSchema {
         let s_1 = include_str!("../schemas/11/cityobjects.schema.json");
         let s_2 = include_str!("../schemas/11/geomprimitives.schema.json");
@@ -728,6 +879,17 @@ impl CJValidator {
     fn validate_extensions(&self) -> Result<(), Vec<String>> {
         let mut ls_errors: Vec<String> = Vec::new();
         for ext in &self.jexts {
+            //-- 0. check the version of CityJSON
+            let mut v: String = self.version_file.to_string();
+            v.insert(1, '.');
+            if ext["versionCityJSON"] != v {
+                let s: String = format!(
+                    "Extension 'versionCityJSON' != CityJSON version of file [{} != {}]",
+                    ext["versionCityJSON"].as_str().unwrap(),
+                    v
+                );
+                ls_errors.push(s);
+            }
             //-- 1. extraCityObjects
             let mut re = self.validate_ext_extracityobjects(&ext);
             if re.is_err() {
@@ -743,21 +905,76 @@ impl CJValidator {
             if re.is_err() {
                 ls_errors.append(&mut re.err().unwrap());
             }
+            if self.version_file >= 20 {
+                //-- 4. extraSemanticSurfaces
+                re = self.validate_ext_extrasemanticsurfaces(&ext);
+                if re.is_err() {
+                    ls_errors.append(&mut re.err().unwrap());
+                }
+            }
         }
-        //-- 4. check if there are CityObjects that do not have a schema
+        //-- 5. check if there are CityObjects that do not have a schema
         let mut re = self.validate_ext_co_without_schema();
         if re.is_err() {
             ls_errors.append(&mut re.err().unwrap());
         }
-        //-- 5. check if there are extra root properties that do not have a schema
+        //-- 6. check if there are extra root properties that do not have a schema
         re = self.validate_ext_rootproperty_without_schema();
         if re.is_err() {
             ls_errors.append(&mut re.err().unwrap());
         }
-        //-- 6. check for the extra attributes w/o schemas
+        //-- 7. check for the extra attributes w/o schemas
         re = self.validate_ext_attribute_without_schema();
         if re.is_err() {
             ls_errors.append(&mut re.err().unwrap());
+        }
+        //-- 8. check for the semsurfs w/o schemas
+        if self.version_file >= 20 {
+            re = self.validate_ext_semsurf_without_schema();
+            if re.is_err() {
+                ls_errors.append(&mut re.err().unwrap());
+            }
+        }
+
+        if ls_errors.is_empty() {
+            Ok(())
+        } else {
+            Err(ls_errors)
+        }
+    }
+
+    fn validate_ext_semsurf_without_schema(&self) -> Result<(), Vec<String>> {
+        let mut ls_errors: Vec<String> = Vec::new();
+        let mut newss: Vec<String> = Vec::new();
+        for jext in &self.jexts {
+            let re = jext.get("extraSemanticSurfaces");
+            if re.is_some() {
+                let v = re.unwrap().as_object().unwrap();
+                for ess in v.keys() {
+                    newss.push(ess.to_string());
+                }
+            }
+        }
+        //-- fetch the COs
+        let cos = self.j.get("CityObjects").unwrap().as_object().unwrap();
+        for key in cos.keys() {
+            let x = self.j["CityObjects"][key]["geometry"].as_array();
+            if x.is_some() {
+                for g in x.unwrap() {
+                    let surfs = g["semantics"]["surfaces"].as_array();
+                    if surfs.is_some() {
+                        for surf in surfs.unwrap() {
+                            let tmp = surf.as_object().unwrap();
+                            let thetype = tmp["type"].as_str().unwrap().to_string();
+                            if &thetype[0..1] == "+" && newss.contains(&thetype) == false {
+                                let s: String =
+                                    format!("Semantic Surface '{}' doesn't have a schema", thetype);
+                                ls_errors.push(s);
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         if ls_errors.is_empty() {
@@ -975,6 +1192,342 @@ impl CJValidator {
                 uniques.insert(s);
             } else {
                 ls_errors.push(format!("Vertex ({}, {}, {}) duplicated", v[0], v[1], v[2]));
+            }
+        }
+        if ls_errors.is_empty() {
+            Ok(())
+        } else {
+            Err(ls_errors)
+        }
+    }
+
+    fn materials(&self) -> Result<(), Vec<String>> {
+        let mut max_index: usize = 0;
+        let x = self.j["appearance"]["materials"].as_array();
+        if x.is_some() {
+            max_index = x.unwrap().len();
+        }
+        let mut ls_errors: Vec<String> = Vec::new();
+        let cos = self.j.get("CityObjects").unwrap().as_object().unwrap();
+        for theid in cos.keys() {
+            //-- check geometry
+            let x = self.j["CityObjects"][theid]["geometry"].as_array();
+            if x.is_some() {
+                let gs = x.unwrap();
+                let mut gi = 0;
+                for g in gs {
+                    if g.get("material").is_none() {
+                        continue;
+                    }
+                    if g["type"] == "MultiSurface" || g["type"] == "CompositeSurface" {
+                        let bs = g["boundaries"].as_array().unwrap().len();
+                        let gm = g["material"].as_object().unwrap();
+                        for m_name in gm.keys() {
+                            let gmv = g["material"][m_name]["values"].as_array();
+                            if gmv.is_some() {
+                                let x = gmv.unwrap();
+                                if x.len() != bs {
+                                    ls_errors.push(format!(
+                                        "Material \"values\" not same dimension as \"boundaries\"; #{} / geom-#{} / material-\"{}\"", theid, gi, m_name
+                                    ));
+                                }
+                                for each in x {
+                                    if (each.as_u64().is_some())
+                                        && (each.as_u64().unwrap() > (max_index - 1) as u64)
+                                    {
+                                        ls_errors.push(format!(
+                                            "Reference in material \"values\" overflows (max={}); #{} and geom-#{} / material-\"{}\"",
+                                            (max_index-1),theid, gi, m_name
+                                        ));
+                                    }
+                                }
+                            } else {
+                                let ifvalue = g["material"][m_name]["value"].as_u64();
+                                if ifvalue.is_some() {
+                                    if ifvalue.unwrap() > (max_index - 1) as u64 {
+                                        ls_errors.push(format!(
+                                        "Material \"value\" overflow; #{} / geom-#{} / material-\"{}\"", theid, gi, m_name
+                                        ));
+                                    }
+                                }
+                            }
+                        }
+                    } else if g["type"] == "Solid" {
+                        //-- length of the sem-surfaces == # of surfaces
+                        let mut bs: Vec<usize> = Vec::new();
+                        let shells = g["boundaries"].as_array().unwrap();
+                        for shell in shells {
+                            bs.push(shell.as_array().unwrap().len());
+                        }
+                        let gm = g["material"].as_object().unwrap();
+                        for m_name in gm.keys() {
+                            let mut vs: Vec<usize> = Vec::new();
+                            let gmv = g["material"][m_name]["values"].as_array();
+                            if gmv.is_some() {
+                                let x = gmv.unwrap();
+                                for each in x {
+                                    let xa = each.as_array().unwrap();
+                                    vs.push(xa.len());
+                                    for each2 in xa {
+                                        if (each2.as_u64().is_some())
+                                            && (each2.as_u64().unwrap() > (max_index - 1) as u64)
+                                        {
+                                            ls_errors.push(format!(
+                                                "Reference in material \"values\" overflows (max={}); #{} and geom-#{} / material-\"{}\"",
+                                                (max_index-1),theid, gi, m_name
+                                            ));
+                                        }
+                                    }
+                                }
+                            }
+                            let ifvalue = g["material"][m_name]["value"].as_u64();
+                            if ifvalue.is_some() {
+                                if ifvalue.unwrap() > (max_index - 1) as u64 {
+                                    ls_errors.push(format!(
+                                    "Material \"value\" overflow; #{} / geom-#{} / material-\"{}\"", theid, gi, m_name
+                                ));
+                                }
+                            } else {
+                                if bs.iter().eq(vs.iter()) == false {
+                                    ls_errors.push(format!(
+                                    "Material \"values\" not same dimension as \"boundaries\"; #{} / geom-#{} / material-\"{}\"", theid, gi, m_name
+                                ));
+                                }
+                            }
+                        }
+                    } else if g["type"] == "MultiSolid" || g["type"] == "CompositeSolid" {
+                        //-- length of the sem-surfaces == # of surfaces
+                        let mut bs: Vec<Vec<usize>> = Vec::new();
+                        let solids = g["boundaries"].as_array().unwrap();
+                        for solid in solids {
+                            let asolid = solid.as_array().unwrap();
+                            let mut tmp: Vec<usize> = Vec::new();
+                            for surface in asolid {
+                                tmp.push(surface.as_array().unwrap().len());
+                            }
+                            bs.push(tmp);
+                        }
+                        // println!("ms-bs: {:?}", bs);
+                        let gm = g["material"].as_object().unwrap();
+                        for m_name in gm.keys() {
+                            let mut vs: Vec<Vec<usize>> = Vec::new();
+                            let gmv = g["material"][m_name]["values"].as_array();
+                            if gmv.is_some() {
+                                let x = gmv.unwrap();
+                                for a1 in x {
+                                    let y = a1.as_array().unwrap();
+                                    let mut vs2: Vec<usize> = Vec::new();
+                                    for a2 in y {
+                                        let xa = a2.as_array().unwrap();
+                                        vs2.push(xa.len());
+                                        for each2 in xa {
+                                            if (each2.as_u64().is_some())
+                                                && (each2.as_u64().unwrap()
+                                                    > (max_index - 1) as u64)
+                                            {
+                                                ls_errors.push(format!(
+                                                    "Reference in material \"values\" overflows (max={}); #{} and geom-#{} / material-\"{}\"",
+                                                    (max_index-1),theid, gi, m_name
+                                                ));
+                                            }
+                                        }
+                                    }
+                                    vs.push(vs2);
+                                }
+                            }
+                            let ifvalue = g["material"][m_name]["value"].as_u64();
+                            if ifvalue.is_some() {
+                                if ifvalue.unwrap() > (max_index - 1) as u64 {
+                                    ls_errors.push(format!(
+                                    "Material \"value\" overflow; #{} / geom-#{} / material-\"{}\"", theid, gi, m_name
+                                ));
+                                }
+                            } else {
+                                if bs.iter().eq(vs.iter()) == false {
+                                    ls_errors.push(format!(
+                                    "Material \"values\" not same dimension as \"boundaries\"; #{} / geom-#{} / material-\"{}\"", theid, gi, m_name
+                                ));
+                                }
+                            }
+                        }
+                    }
+                    gi += 1;
+                }
+            }
+        }
+        if ls_errors.is_empty() {
+            Ok(())
+        } else {
+            Err(ls_errors)
+        }
+    }
+
+    fn textures(&self) -> Result<(), Vec<String>> {
+        let mut max_i_tex: usize = 0;
+        let mut x = self.j["appearance"]["textures"].as_array();
+        if x.is_some() {
+            max_i_tex = x.unwrap().len();
+        }
+        let mut max_i_v: usize = 0;
+        x = self.j["appearance"]["vertices-texture"].as_array();
+        if x.is_some() {
+            max_i_v = x.unwrap().len();
+        }
+        let mut ls_errors: Vec<String> = Vec::new();
+        let cos = self.j.get("CityObjects").unwrap().as_object().unwrap();
+        for theid in cos.keys() {
+            //-- check geometry
+            let x = self.j["CityObjects"][theid]["geometry"].as_array();
+            if x.is_some() {
+                let gs = x.unwrap();
+                let mut gi = 0;
+                for g in gs {
+                    if g.get("texture").is_none() {
+                        continue;
+                    }
+                    if g["type"] == "MultiSurface" || g["type"] == "CompositeSurface" {
+                        let gs: GeomMSu = serde_json::from_value(g.clone()).unwrap();
+                        let mut l: Vec<usize> = Vec::new();
+                        for x in gs.boundaries {
+                            for y in x {
+                                l.push(y.len());
+                            }
+                        }
+                        let tex = g["texture"].as_object().unwrap();
+                        for m_name in tex.keys() {
+                            let ts: TextureMSu =
+                                serde_json::from_value(g["texture"][m_name].clone()).unwrap();
+                            let mut l2: Vec<usize> = Vec::new();
+                            for x in ts.values {
+                                for mut y in x {
+                                    // println!("{:?}", y.len());
+                                    l2.push(y.len() - 1);
+                                    if y.len() > 1 {
+                                        if y[0].unwrap() > (max_i_tex - 1) {
+                                            ls_errors.push(format!(
+                                                    "/texture/values/ \"{}\" overflows for texture reference; #{} and geom-#{}",
+                                                    y[0].unwrap(), theid, gi
+                                                ));
+                                        }
+                                        y.remove(0);
+                                        for each in y {
+                                            if each.unwrap() > (max_i_v - 1) {
+                                                ls_errors.push(format!(
+                                                        "/texture/values/ \"{}\" overflows for texture-vertices (max={}); #{} and geom-#{}",
+                                                        each.unwrap(), (max_i_v - 1), theid, gi
+                                                    ));
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            if l.len() != l2.len() {
+                                ls_errors.push(format!(
+                                    "/texture/values/ not same structure as /boundaries; #{} and geom-#{}", theid, gi
+                                ));
+                            } else {
+                                for (i, _e) in l.iter().enumerate() {
+                                    if l[i] != l2[i] && l2[i] != 0 {
+                                        ls_errors.push(format!(
+                                            "/texture/values/ not same structure as /boundaries; #{} and geom-#{}", theid, gi
+                                        ));
+                                    }
+                                }
+                            }
+                        }
+                    } else if g["type"] == "Solid" {
+                        let gs: GeomSol = serde_json::from_value(g.clone()).unwrap();
+                        let mut l: Vec<usize> = Vec::new();
+                        for x in gs.boundaries {
+                            for y in x {
+                                for z in y {
+                                    l.push(z.len());
+                                }
+                            }
+                        }
+                        let tex = g["texture"].as_object().unwrap();
+                        for m_name in tex.keys() {
+                            let ts: TextureSol =
+                                serde_json::from_value(g["texture"][m_name].clone()).unwrap();
+                            let mut l2: Vec<usize> = Vec::new();
+                            for x in ts.values {
+                                for y in x {
+                                    for mut z in y {
+                                        l2.push(z.len() - 1);
+                                        if z[0] > (max_i_tex - 1) {
+                                            ls_errors.push(format!(
+                                                "/texture/values/ \"{}\" overflows for texture reference; #{} and geom-#{}",
+                                                z[0], theid, gi
+                                            ));
+                                        }
+                                        z.remove(0);
+                                        for each in z {
+                                            if each > (max_i_v - 1) {
+                                                ls_errors.push(format!(
+                                                    "/texture/values/ \"{}\" overflows for texture-vertices (max={}); #{} and geom-#{}",
+                                                    each, (max_i_v - 1), theid, gi
+                                                ));
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            if l.iter().eq(l2.iter()) == false {
+                                ls_errors.push(format!(
+                                    "/texture/values/ not same structure as /boundaries; #{} and geom-#{}", theid, gi
+                                ));
+                            }
+                        }
+                    } else if g["type"] == "MultiSolid" || g["type"] == "CompositeSolid" {
+                        let gs: GeomMSol = serde_json::from_value(g.clone()).unwrap();
+                        let mut l: Vec<usize> = Vec::new();
+                        for x in gs.boundaries {
+                            for y in x {
+                                for z in y {
+                                    for w in z {
+                                        l.push(w.len());
+                                    }
+                                }
+                            }
+                        }
+                        let tex = g["texture"].as_object().unwrap();
+                        for m_name in tex.keys() {
+                            let ts: TextureMSol =
+                                serde_json::from_value(g["texture"][m_name].clone()).unwrap();
+                            let mut l2: Vec<usize> = Vec::new();
+                            for x in ts.values {
+                                for y in x {
+                                    for z in y {
+                                        for mut w in z {
+                                            l2.push(w.len() - 1);
+                                            if w[0] > (max_i_tex - 1) {
+                                                ls_errors.push(format!(
+                                                    "/texture/values/ \"{}\" overflows for texture reference; #{} and geom-#{}",
+                                                    w[0], theid, gi
+                                                ));
+                                            }
+                                            w.remove(0);
+                                            for each in w {
+                                                if each > (max_i_v - 1) {
+                                                    ls_errors.push(format!(
+                                                        "/texture/values/ \"{}\" overflows for texture-vertices (max={}); #{} and geom-#{}",
+                                                        each, (max_i_v - 1), theid, gi
+                                                    ));
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            if l.iter().eq(l2.iter()) == false {
+                                ls_errors.push(format!(
+                                    "/texture/values/ not same structure as /boundaries; #{} and geom-#{}", theid, gi
+                                ));
+                            }
+                        }
+                    }
+                    gi += 1;
+                }
             }
         }
         if ls_errors.is_empty() {

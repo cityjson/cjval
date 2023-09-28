@@ -13,7 +13,7 @@ static CITYJSON_FILES: [&str; 4] = [
 
 fn main() {
     // Enable ANSI support for Windows
-    let desc = format!("{} (supports CityJSON v1.0 + v1.1)", crate_description!());
+    let desc = format!("Validation of CityJSON Extension files (supports CityJSON v2.0+v1.1)");
     #[cfg(windows)]
     let _ = ansi_term::enable_ansi_support();
     let app = App::new(crate_name!())
@@ -43,9 +43,24 @@ fn main() {
     }
     let j: Value = re.unwrap();
 
+    let schema;
     //-- fetch the correct schema
-    let schema_str = include_str!("../../schemas/extensions/extension.schema.json");
-    let schema = serde_json::from_str(schema_str).unwrap();
+    match j["versionCityJSON"].as_str() {
+        Some("1.1") => {
+            let schema_str = include_str!("../../schemas/extensions/11/extension.schema.json");
+            schema = serde_json::from_str(schema_str).unwrap();
+        }
+        Some("2.0") => {
+            let schema_str = include_str!("../../schemas/extensions/20/extension.schema.json");
+            schema = serde_json::from_str(schema_str).unwrap();
+        }
+        _ => {
+            println!("ERROR: the \"versionCityJSON\" property must be \"1.1\" or \"2.0\"");
+            println!("❌");
+            return;
+        }
+    }
+    // let schema = serde_json::from_str(schema_str).unwrap();
     let compiled = JSONSchema::options()
         .with_draft(Draft::Draft7)
         .compile(&schema)
@@ -63,10 +78,11 @@ fn main() {
 
     //-- validate the URLs and $ref, only a few allowed
     validate_all_ref(&j, &mut valid);
-    // yo(&j, &mut valid);
 
     if valid == true {
-        println!("👍");
+        println!("✅");
+    } else {
+        println!("❌");
     }
     std::process::exit(0);
 }

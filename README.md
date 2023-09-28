@@ -11,11 +11,13 @@ It validates against the [CityJSON schemas](https://www.cityjson.org/schemas) an
 The following is error checks are performed:
 
   1. *JSON syntax*: is the file a valid JSON file?
-  1. *CityJSON schemas*: validation against the schemas (CityJSON v1.0 or v1.1)
+  1. *CityJSON schemas*: validation against the schemas (CityJSON v1.0 + v1.1 + v2.0)
   1. *Extension schemas*: validate against the extra schemas if there's an Extension in the input file 
   1. *parents_children_consistency*: if a City Object references another in its `children`, this ensures that the child exists. And that the child has the parent in its `parents`
   1. *wrong_vertex_index*: checks if all vertex indices exist in the list of vertices
   1. *semantics_array*: checks if the arrays for the semantics in the geometries have the same shape as that of the geometry and if the values are consistent
+  1. *textures*: checks if the arrays for the textures are coherent (if the vertices exist + if the texture linked to exists)
+  1. *materials*: checks if the arrays for the materials are coherent with the geometry objects and if material linked to exists
 
 It also verifies the following, these are not errors since the file is still considered valid and usable, but they can make the file larger and some parsers might not understand all the properties:
 
@@ -23,12 +25,13 @@ It also verifies the following, these are not errors since the file is still con
   1. *duplicate_vertices*: duplicated vertices in `vertices` are allowed, but they take up spaces and decreases the topological relationships explicitly in the file. If there are any, [cjio](https://github.com/cityjson/cjio) has the operator `clean` to fix this automatically.
   1. *unused_vertices*: vertices that are not referenced in the file, they take extra space. If there are any, [cjio](https://github.com/cityjson/cjio) has the operator `clean` to fix this automatically.
 
+
 ## Library + 3 binaries
 
 `cjval` is a library and has 3 different binaries:
 
   1. `cjval` to validate a CityJSON file (it downloads automatically Extensions)
-  2. `cjfval` to validate a stream of CityJSONFeature (from stdin)
+  2. `cjfval` to validate a [CityJSON Lines](https://cityjson.org/cityjsonl/) file, that is a stream of CityJSONFeature (from stdin)
   3. `cjvalext` to validate a [CityJSON Extension file](https://www.cityjson.org/specs/#the-extension-file)
 
 
@@ -50,7 +53,7 @@ It also verifies the following, these are not errors since the file is still con
 
 ## Web application
 
-The code is use at [https://validator.cityjson.org](https://validator.cityjson.org), that is it is compiled as WebAssembly ([WASM code here](https://github.com/cityjson/cjval_wasm)).
+The code is uses at [https://validator.cityjson.org](https://validator.cityjson.org), it is compiled as a WebAssembly ([WASM code here](https://github.com/cityjson/cjval_wasm)) and a simple GUI was built.
 
 
 ## CLI Usage
@@ -68,19 +71,19 @@ If the file contains one or more [Extensions](https://www.cityjson.org/extension
 ```json
 {
   "type": "CityJSON",
-  "version": "1.1",
+  "version": "2.0",
   "extensions":
   {
-    "Generic":
+    "Potato":
     {
-      "url": "https://www.cityjson.org/extensions/generic.ext.json",
+      "url": "https://www.cityjson.org/extensions/potato.ext.json",
       "version": "1.0"
     }
   }
 ...  
 ```
 
-then `cjval` will fetch/download automatically the schema(s).
+then `cjval` will fetch/download automatically the Extension schema files.
 
 If instead you want to use your own local Extension schema(s), you can pass them as argument with the argument `-e` and this will overwrite the automatic download:
 

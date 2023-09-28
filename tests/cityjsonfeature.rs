@@ -141,7 +141,7 @@ fn cjfeature_valid() {
     assert!(re["schema"].is_valid());
 
     j = get_second_line();
-    v = CJValidator::from_str(&j.to_string());
+    let _ = v.from_str_cjfeature(&j.to_string());
     re = v.validate();
     assert!(re["schema"].is_valid());
 }
@@ -150,8 +150,14 @@ fn cjfeature_valid() {
 // so this cannot be fully tested
 #[test]
 fn cjfeature_extension() {
-    let j = get_third_line();
-    let v: CJValidator = CJValidator::from_str(&j.to_string());
-    let re = v.validate();
+    let mut j = get_first_line();
+    let mut v: CJValidator = CJValidator::from_str(&j.to_string());
+    let mut re = v.validate();
+    assert!(re["schema"].is_valid());
+
+    j = get_third_line();
+    let _ = v.from_str_cjfeature(&j.to_string());
+    re = v.validate();
+    // println!("{:?}", re);
     assert!(re["schema"].is_valid());
 }
