@@ -1,7 +1,19 @@
 # Changelog
 
 
-## [0.5.] - 2022-11-04
+
+## [0.6.0] - 2023-09-28
+### Added
+- support for CityJSON v2.0 (schemas v2.0.0 added)
+- full support for CityJSONL with cjfval, the stream must come from cjio (or equivalent)
+- more unit tests
+### Modified
+- validation of textures and material coordinates
+- cjfval is faster: schemas are not read for each line anymore
+- fixed some bugs
+
+
+## [0.5.0] - 2022-11-04
 ### Added
 - cjfval binary to validate CityJSONFeatures
 - the docs is now added with examples how to use the library
