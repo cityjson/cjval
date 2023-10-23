@@ -1,4 +1,4 @@
-# cjval: a validator for CityJSON 
+# cjval: a schema validator for CityJSON 
 
 [![crates.io](https://img.shields.io/crates/v/cjval.svg)](https://crates.io/crates/cjval)
 [![GitHub license](https://img.shields.io/github/license/cityjson/cjval)](https://github.com/cityjson/cjval/blob/main/LICENSE)
