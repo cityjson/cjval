@@ -1,6 +1,9 @@
 # Changelog
 
 
+## [0.6.1] - 2024-02-05
+### Modified
+- fix bug with textures and inner-rings and `[[null]] values (bug #13)
 
 ## [0.6.0] - 2023-09-28
 ### Added
