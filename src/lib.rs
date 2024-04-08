@@ -666,7 +666,11 @@ impl CJValidator {
             // println!("==>{:?}", eco);
             let mut schema = jext["extraCityObjects"][eco].clone();
             schema["$schema"] = json!("http://json-schema.org/draft-07/schema#");
-            schema["$id"] = json!("https://www.cityjson.org/schemas/1.1.0/tmp.json");
+            if self.version_file == 11 {
+                schema["$id"] = json!("https://www.cityjson.org/schemas/1.1.0/tmp.json");
+            } else if self.version_file == 20 {
+                schema["$id"] = json!("https://www.cityjson.org/schemas/2.0.0/tmp.json");
+            }
             for each in jexto.keys() {
                 let ss = each.as_str();
                 if EXTENSION_FIXED_NAMES.contains(&ss) == false {
@@ -674,7 +678,7 @@ impl CJValidator {
                 }
             }
             // println!("=>{}", serde_json::to_string(&schema).unwrap());
-            let compiled = self.get_compiled_schema_extension(&schema);
+            let compiled = self.get_compiled_schema_extension(&schema).unwrap();
             //-- 2. fetch the CO
             let cos = self.j.get("CityObjects").unwrap().as_object().unwrap();
             for co in cos.keys() {
@@ -718,7 +722,7 @@ impl CJValidator {
                     schema[ss] = jext[ss].clone();
                 }
             }
-            let compiled = self.get_compiled_schema_extension(&schema);
+            let compiled = self.get_compiled_schema_extension(&schema).unwrap();
 
             for k in self.j.as_object().unwrap().keys() {
                 if k == rp {
@@ -756,7 +760,7 @@ impl CJValidator {
                         schema[ss] = jext[ss].clone();
                     }
                 }
-                let compiled = self.get_compiled_schema_extension(&schema);
+                let compiled = self.get_compiled_schema_extension(&schema).unwrap();
                 let cos = self.j.get("CityObjects").unwrap().as_object().unwrap();
                 for oneco in cos.keys() {
                     let tmp = cos.get(oneco).unwrap().as_object().unwrap();
@@ -807,7 +811,7 @@ impl CJValidator {
                     schema[ss] = jext[ss].clone();
                 }
             }
-            let compiled = self.get_compiled_schema_extension(&schema);
+            let compiled = self.get_compiled_schema_extension(&schema).unwrap();
             let cos = self.j.get("CityObjects").unwrap().as_object().unwrap();
             for key in cos.keys() {
                 //-- check geometry
@@ -844,36 +848,70 @@ impl CJValidator {
         }
     }
 
-    fn get_compiled_schema_extension(&self, schema: &Value) -> JSONSchema {
-        let s_1 = include_str!("../schemas/11/cityobjects.schema.json");
-        let s_2 = include_str!("../schemas/11/geomprimitives.schema.json");
-        let s_3 = include_str!("../schemas/11/appearance.schema.json");
-        let s_4 = include_str!("../schemas/11/geomtemplates.schema.json");
-        let schema_1 = serde_json::from_str(s_1).unwrap();
-        let schema_2 = serde_json::from_str(s_2).unwrap();
-        let schema_3 = serde_json::from_str(s_3).unwrap();
-        let schema_4 = serde_json::from_str(s_4).unwrap();
-        let compiled = JSONSchema::options()
-            .with_draft(Draft::Draft7)
-            .with_document(
-                "https://www.cityjson.org/schemas/1.1.0/cityobjects.schema.json".to_string(),
-                schema_1,
-            )
-            .with_document(
-                "https://www.cityjson.org/schemas/1.1.0/geomprimitives.schema.json".to_string(),
-                schema_2,
-            )
-            .with_document(
-                "https://www.cityjson.org/schemas/1.1.0/appearance.schema.json".to_string(),
-                schema_3,
-            )
-            .with_document(
-                "https://www.cityjson.org/schemas/1.1.0/geomtemplates.schema.json".to_string(),
-                schema_4,
-            )
-            .compile(&schema)
-            .expect("A valid schema");
-        return compiled;
+    fn get_compiled_schema_extension(&self, schema: &Value) -> Option<JSONSchema> {
+        if self.version_file == 11 {
+            let s_1 = include_str!("../schemas/11/cityobjects.schema.json");
+            let s_2 = include_str!("../schemas/11/geomprimitives.schema.json");
+            let s_3 = include_str!("../schemas/11/appearance.schema.json");
+            let s_4 = include_str!("../schemas/11/geomtemplates.schema.json");
+            let schema_1 = serde_json::from_str(s_1).unwrap();
+            let schema_2 = serde_json::from_str(s_2).unwrap();
+            let schema_3 = serde_json::from_str(s_3).unwrap();
+            let schema_4 = serde_json::from_str(s_4).unwrap();
+            let compiled = JSONSchema::options()
+                .with_draft(Draft::Draft7)
+                .with_document(
+                    "https://www.cityjson.org/schemas/1.1.0/cityobjects.schema.json".to_string(),
+                    schema_1,
+                )
+                .with_document(
+                    "https://www.cityjson.org/schemas/1.1.0/geomprimitives.schema.json".to_string(),
+                    schema_2,
+                )
+                .with_document(
+                    "https://www.cityjson.org/schemas/1.1.0/appearance.schema.json".to_string(),
+                    schema_3,
+                )
+                .with_document(
+                    "https://www.cityjson.org/schemas/1.1.0/geomtemplates.schema.json".to_string(),
+                    schema_4,
+                )
+                .compile(&schema)
+                .expect("A valid schema");
+            return Some(compiled);
+        } else if self.version_file == 20 {
+            let s_1 = include_str!("../schemas/20/cityobjects.schema.json");
+            let s_2 = include_str!("../schemas/20/geomprimitives.schema.json");
+            let s_3 = include_str!("../schemas/20/appearance.schema.json");
+            let s_4 = include_str!("../schemas/20/geomtemplates.schema.json");
+            let schema_1 = serde_json::from_str(s_1).unwrap();
+            let schema_2 = serde_json::from_str(s_2).unwrap();
+            let schema_3 = serde_json::from_str(s_3).unwrap();
+            let schema_4 = serde_json::from_str(s_4).unwrap();
+            let compiled = JSONSchema::options()
+                .with_draft(Draft::Draft7)
+                .with_document(
+                    "https://www.cityjson.org/schemas/2.0.0/cityobjects.schema.json".to_string(),
+                    schema_1,
+                )
+                .with_document(
+                    "https://www.cityjson.org/schemas/2.0.0/geomprimitives.schema.json".to_string(),
+                    schema_2,
+                )
+                .with_document(
+                    "https://www.cityjson.org/schemas/2.0.0/appearance.schema.json".to_string(),
+                    schema_3,
+                )
+                .with_document(
+                    "https://www.cityjson.org/schemas/2.0.0/geomtemplates.schema.json".to_string(),
+                    schema_4,
+                )
+                .compile(&schema)
+                .expect("A valid schema");
+            return Some(compiled);
+        } else {
+            return None;
+        }
     }
 
     fn validate_extensions(&self) -> Result<(), Vec<String>> {
