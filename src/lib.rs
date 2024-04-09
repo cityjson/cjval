@@ -715,7 +715,11 @@ impl CJValidator {
             // println!("==>{:?}", eco);
             let mut schema = jext["extraRootProperties"][rp].clone();
             schema["$schema"] = json!("http://json-schema.org/draft-07/schema#");
-            schema["$id"] = json!("https://www.cityjson.org/schemas/1.1.0/tmp.json");
+            if self.version_file == 11 {
+                schema["$id"] = json!("https://www.cityjson.org/schemas/1.1.0/tmp.json");
+            } else if self.version_file == 20 {
+                schema["$id"] = json!("https://www.cityjson.org/schemas/2.0.0/tmp.json");
+            }
             for each in jexto.keys() {
                 let ss = each.as_str();
                 if EXTENSION_FIXED_NAMES.contains(&ss) == false {
@@ -753,7 +757,11 @@ impl CJValidator {
             for eatt in jext["extraAttributes"][cotype].as_object().unwrap().keys() {
                 let mut schema = jext["extraAttributes"][cotype][eatt.as_str()].clone();
                 schema["$schema"] = json!("http://json-schema.org/draft-07/schema#");
-                schema["$id"] = json!("https://www.cityjson.org/schemas/1.1.0/tmp.json");
+                if self.version_file == 11 {
+                    schema["$id"] = json!("https://www.cityjson.org/schemas/1.1.0/tmp.json");
+                } else if self.version_file == 20 {
+                    schema["$id"] = json!("https://www.cityjson.org/schemas/2.0.0/tmp.json");
+                }
                 for each in jexto.keys() {
                     let ss = each.as_str();
                     if EXTENSION_FIXED_NAMES.contains(&ss) == false {
@@ -804,7 +812,11 @@ impl CJValidator {
         for semsurf in v.keys() {
             let mut schema = jext["extraSemanticSurfaces"][semsurf].clone();
             schema["$schema"] = json!("http://json-schema.org/draft-07/schema#");
-            schema["$id"] = json!("https://www.cityjson.org/schemas/1.1.0/tmp.json");
+            if self.version_file == 11 {
+                schema["$id"] = json!("https://www.cityjson.org/schemas/1.1.0/tmp.json");
+            } else if self.version_file == 20 {
+                schema["$id"] = json!("https://www.cityjson.org/schemas/2.0.0/tmp.json");
+            }
             for each in jexto.keys() {
                 let ss = each.as_str();
                 if EXTENSION_FIXED_NAMES.contains(&ss) == false {
