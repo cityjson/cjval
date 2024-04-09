@@ -168,7 +168,7 @@ fn extension_20() {
     assert!(re["extensions"].is_valid());
 
     *j.pointer_mut("/CityObjects/un/geometry/0/lod").unwrap() = json!("1.5");
-    println!("{:?}", j);
+    // println!("{:?}", j);
     v = CJValidator::from_str(&j.to_string());
     re = v.validate();
     assert!(re["schema"].is_valid());
