@@ -1,6 +1,14 @@
 # Changelog
 
 
+## [0.7.0] - 2024-04-09
+### Modified
+- support for CityJSON schemas v2.0.1
+- cjfval renamed to cjseqval (because now it's called CityJSON Sequences)material coordinates
+- fixed bugs for CityJSON v2.0 files having extensions (schemas v1.1 were used)
+- fixed some bugs 
+- improved the CLI output
+
 ## [0.6.1] - 2024-02-05
 ### Modified
 - fix bug with textures and inner-rings and `[[null]] values (bug #13)
@@ -15,7 +23,6 @@
 - cjfval is faster: schemas are not read for each line anymore
 - fixed some bugs
 
-
 ## [0.5.0] - 2022-11-04
 ### Added
 - cjfval binary to validate CityJSONFeatures
@@ -25,7 +32,6 @@
 - modified the return values of most functions, now Result are used
 - upgraded the schemas to v1.1.3
 - fixed some bugs
-
 
 ## [0.4.3] - 2022-08-16
 ### Modified
@@ -41,7 +47,6 @@
 - fix bugs related to the warnings for ignoring vertices in GeometryTemplate and "address" and MultiPoint and MultiLineString 
 - now uses CityJSON schemas v1.1.1
 
-
 ## [0.4.0] - 2022-01-05
 ### Added
 - unit tests for Extensions
@@ -50,12 +55,22 @@
 - fixed a few bugs (double report of some errors)
 - fixed a bug: City Objects in Extensions can be reused by other COs
 
-
 ## [0.3.1] - 2021-10-27
 ### Added
 - better docs + unit tests
 
-
 ## [0.3.0] - 2021-10-27
 ### Added
 - first version that works with Extensions
+
+[0.7.0]: https://github.com/hugoledoux/cjval/compare/0.6.1...0.7.0
+[0.6.1]: https://github.com/hugoledoux/cjval/compare/0.6.0...0.6.1
+[0.6.0]: https://github.com/hugoledoux/cjval/compare/0.5.0...0.6.0
+[0.5.0]: https://github.com/hugoledoux/cjval/compare/0.4.3...0.5.0
+[0.4.3]: https://github.com/hugoledoux/cjval/compare/0.4.2...0.4.3
+[0.4.2]: https://github.com/hugoledoux/cjval/compare/0.4.1...0.4.2
+[0.4.1]: https://github.com/hugoledoux/cjval/compare/0.4.0...0.4.1
+[0.4.0]: https://github.com/hugoledoux/cjval/compare/0.3.1...0.4.0
+[0.3.1]: https://github.com/hugoledoux/cjval/compare/0.3.0...0.3.1
+[0.3.0]: https://github.com/hugoledoux/cjval/compare/0.2.0...0.3.0
+
