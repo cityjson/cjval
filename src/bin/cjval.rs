@@ -29,7 +29,7 @@ fn main() {
     // Enable ANSI support for Windows
     let sversions: Vec<String> = cjval::get_cityjson_schema_all_versions();
     let desc = format!(
-        "{}\nSupports CityJSON versions: 2.0 + 1.1 + 1.0 (schemas: v{} + v{} + v{} are used)",
+        "{}\nSupports CityJSON versions: 2.0 + 1.1 + 1.0\n(schemas: v{} + v{} + v{} are used)",
         crate_description!(),
         sversions[2],
         sversions[1],
@@ -149,7 +149,12 @@ fn main() {
     let mut has_errors = false;
     let mut has_warnings = false;
     for (criterion, summ) in valsumm.iter() {
-        println!("=== {} ===", criterion);
+        println!(
+            "{} {} {} ",
+            Style::new().bold().paint("==="),
+            Style::new().bold().paint(criterion),
+            Style::new().bold().paint("===")
+        );
         println!("{}", summ);
         if summ.has_errors() == true {
             if summ.is_warning() == true {
