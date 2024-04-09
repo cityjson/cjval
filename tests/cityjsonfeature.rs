@@ -1,12 +1,13 @@
 use crate::cjval::CJValidator;
 use cjval;
+use serde_json::json;
 use serde_json::Value;
 
 fn get_first_line() -> Value {
     let j_1 = r#"
         {
           "type": "CityJSON",
-          "version": "1.1",
+          "version": "2.0",
           "CityObjects": {},
           "vertices": [],
           "transform": {
@@ -33,7 +34,7 @@ fn get_first_line() -> Value {
           },
           "extensions": {
             "Generic": {
-              "url": "https://cityjson.org/extensions/download/generic.ext.json",
+              "url": "https://cityjson.org/extensions/download/v20/generic.ext.json",
               "version": "1.0"
             }
           }
@@ -106,8 +107,8 @@ fn get_third_line() -> Value {
                       [ [7, 6, 5, 4 ] ]
                     ]
                   ],
-                  "lod": "1",
-                  "type": "Solid999"
+                  "lod": "2.2",
+                  "type": "Solid"
                 }
               ],
               "attributes": {
@@ -146,18 +147,36 @@ fn cjfeature_valid() {
     assert!(re["schema"].is_valid());
 }
 
-// the extensions are not downloaded automatically in the lib (because WASM)
-// so this cannot be fully tested
+#[test]
+fn cjfeature_invalid() {
+    let mut j = get_first_line();
+    let mut v: CJValidator = CJValidator::from_str(&j.to_string());
+    let mut re = v.validate();
+    assert!(re["schema"].is_valid());
+
+    j = get_second_line();
+    let _ = v.from_str_cjfeature(&j.to_string());
+    re = v.validate();
+    assert!(re["schema"].is_valid());
+
+    *j.pointer_mut("/CityObjects/id-1/geometry/0/lod").unwrap() = json!("1.5");
+    let _ = v.from_str_cjfeature(&j.to_string());
+    re = v.validate();
+    assert!(!re["schema"].is_valid());
+}
+
 #[test]
 fn cjfeature_extension() {
     let mut j = get_first_line();
     let mut v: CJValidator = CJValidator::from_str(&j.to_string());
+    let s = std::fs::read_to_string("schemas/extensions/20/generic.ext.json").unwrap();
+    let _ = v.add_one_extension_from_str(&s);
     let mut re = v.validate();
     assert!(re["schema"].is_valid());
 
     j = get_third_line();
     let _ = v.from_str_cjfeature(&j.to_string());
     re = v.validate();
-    // println!("{:?}", re);
     assert!(re["schema"].is_valid());
+    assert!(re["extensions"].is_valid());
 }
