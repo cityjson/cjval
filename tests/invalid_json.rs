@@ -50,7 +50,7 @@ fn version() {
         }
         "#;
     let mut j: Value = serde_json::from_str(&j_mininal).unwrap();
-    *j.get_mut("version").unwrap() = json!("1.0");
+    *j.get_mut("version").unwrap() = json!("2.0");
     let mut v: CJValidator = CJValidator::from_str(&j.to_string());
     let mut re = v.validate();
     assert!(re["schema"].is_valid());
