@@ -37,8 +37,8 @@ path = "src/bin/cjval.rs"
 required-features = ["build-binary"]
 
 [[bin]]
-name = "cjfval"
-path = "src/bin/cjfval.rs"
+name = "cjseqval"
+path = "src/bin/cjseqval.rs"
 required-features = ["build-binary"]
 
 [[bin]]
