@@ -1,15 +1,26 @@
+use ansi_term::Colour::Red;
 use ansi_term::Style;
 use cjval::CJValidator;
 
-#[macro_use]
 extern crate clap;
 
-use std::path::Path;
+use std::path::PathBuf;
 use url::Url;
 
-use clap::{App, AppSettings, Arg};
+use clap::Parser;
 
 use anyhow::{anyhow, Result};
+
+#[derive(Parser)]
+#[command(version, about = "Validation of a CityJSON file", long_about = None)]
+struct Cli {
+    /// CityJSON input file
+    inputfile: PathBuf,
+    /// Read the CityJSON Extensions files locally instead of downloading them.
+    /// More than one can be given.
+    #[arg(short, long)]
+    extensionfiles: Vec<PathBuf>,
+}
 
 fn summary_and_bye(finalresult: i32) {
     println!("\n");
@@ -26,49 +37,19 @@ fn summary_and_bye(finalresult: i32) {
 }
 
 fn main() {
-    // Enable ANSI support for Windows
-    let sversions: Vec<String> = cjval::get_cityjson_schema_all_versions();
-    let desc = format!(
-        "{}\nSupports CityJSON versions: 2.0 + 1.1 + 1.0\n(schemas: v{} + v{} + v{} are used)",
-        crate_description!(),
-        sversions[2],
-        sversions[1],
-        sversions[0]
-    );
-    #[cfg(windows)]
-    let _ = ansi_term::enable_ansi_support();
-    let app = App::new(crate_name!())
-        .setting(AppSettings::ColorAuto)
-        .setting(AppSettings::ColoredHelp)
-        .setting(AppSettings::DeriveDisplayOrder)
-        // .setting(AppSettings::UnifiedHelpMessage)
-        .max_term_width(90)
-        .version(crate_version!())
-        .about(&*desc)
-        .arg(
-            Arg::with_name("INPUT")
-                .required(true)
-                .help("CityJSON file to validate."),
-        )
-        .arg(
-            Arg::with_name("PATH")
-                .short("e")
-                .long("extensionfile")
-                .multiple(true)
-                .takes_value(true)
-                .help(
-                    "Read the CityJSON Extensions files locally. More than one can \
-                     be given. By default the Extension schemas are automatically \
-                     downloaded, this overwrites this behaviour",
-                ),
-        );
-    let matches = app.get_matches();
+    let cli = Cli::parse();
 
-    let p1 = Path::new(matches.value_of("INPUT").unwrap())
-        .canonicalize()
-        .unwrap();
-    let s1 = std::fs::read_to_string(&matches.value_of("INPUT").unwrap())
-        .expect("Couldn't read CityJSON file");
+    if !cli.inputfile.exists() {
+        eprintln!(
+            "ERROR: Input file {} doesn't exist",
+            cli.inputfile.display()
+        );
+        std::process::exit(0);
+    }
+
+    let p1 = cli.inputfile.canonicalize().unwrap();
+
+    let s1 = std::fs::read_to_string(&p1).expect("Couldn't read CityJSON file");
     println!(
         "{}",
         Style::new().bold().paint("=== Input CityJSON file ===")
@@ -88,26 +69,28 @@ fn main() {
 
     //-- Extensions
     println!("{}", Style::new().bold().paint("=== Extensions ==="));
+    if val.get_input_cityjson_version() == 10 {
+        println!("(validation of Extensions is not supported in CityJSON v1.0, upgrade to v1.1)");
+    }
     if val.get_input_cityjson_version() >= 11 {
         //-- if argument "-e" is passed then do not download
-        if let Some(efiles) = matches.values_of("PATH") {
-            let l: Vec<&str> = efiles.collect();
-            let is_valid = true;
-            for s in l {
-                let s2 = std::fs::read_to_string(s).expect("Couldn't read Extension file");
-                let scanon = Path::new(s).canonicalize().unwrap();
-                let re = val.add_one_extension_from_str(&s2);
-                match re {
-                    Ok(()) => println!("- {}.. ok", scanon.to_str().unwrap()),
-                    Err(e) => {
-                        println!("- {}.. ERROR", scanon.to_str().unwrap());
-                        println!("({})", e);
-                        summary_and_bye(-1);
+        if cli.extensionfiles.len() > 0 {
+            for fext in cli.extensionfiles {
+                if fext.exists() {
+                    let fexts =
+                        std::fs::read_to_string(&fext).expect("Couldn't read Extension file");
+                    let re = val.add_one_extension_from_str(&fexts);
+                    match re {
+                        Ok(()) => println!("- {}.. ok", fext.to_str().unwrap()),
+                        Err(e) => {
+                            println!("- {}.. {}", fext.to_str().unwrap(), Red.paint("ERROR"));
+                            println!("({})", e);
+                            summary_and_bye(-1);
+                        }
                     }
+                } else {
+                    println!("- {}.. {}", fext.to_str().unwrap(), Red.paint("ERROR"));
                 }
-            }
-            if is_valid == false {
-                summary_and_bye(-1);
             }
         } else {
             //-- download automatically the Extensions
@@ -123,14 +106,14 @@ fn main() {
                             match re {
                                 Ok(()) => println!("- {}.. ok", ext),
                                 Err(e) => {
-                                    println!("- {}.. ERROR", ext);
+                                    println!("- {}.. {}", ext, Red.paint("ERROR"));
                                     println!("({})", e);
                                     summary_and_bye(-1);
                                 }
                             }
                         }
                         Err(e) => {
-                            println!("- {}.. ERROR \n\t{}", ext, e);
+                            println!("- {}.. {} \n\t{}", ext, e, Red.paint("ERROR"));
                             summary_and_bye(-1);
                         }
                     }
@@ -140,12 +123,8 @@ fn main() {
             }
         }
     }
-    if val.get_input_cityjson_version() == 10 {
-        println!("(validation of Extensions is not supported in CityJSON v1.0, upgrade to v1.1)");
-    }
 
     let valsumm = val.validate();
-
     let mut has_errors = false;
     let mut has_warnings = false;
     for (criterion, summ) in valsumm.iter() {

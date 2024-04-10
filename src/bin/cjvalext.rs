@@ -1,8 +1,16 @@
-#[macro_use]
 extern crate clap;
-use clap::{App, AppSettings, Arg};
+use clap::Parser;
+use std::path::PathBuf;
+
 use jsonschema::{Draft, JSONSchema};
 use serde_json::Value;
+
+#[derive(Parser)]
+#[command(version, about = "Validation of a CityJSON Extension file", long_about = None)]
+struct Cli {
+    /// CityJSON Extension file
+    inputfile: PathBuf,
+}
 
 static CITYJSON_FILES: [&str; 4] = [
     "cityobjects.schema.json",
@@ -12,30 +20,18 @@ static CITYJSON_FILES: [&str; 4] = [
 ];
 
 fn main() {
-    // Enable ANSI support for Windows
-    let desc = format!("Validation of CityJSON Extension files (supports CityJSON v2.0+v1.1)");
-    #[cfg(windows)]
-    let _ = ansi_term::enable_ansi_support();
-    let app = App::new(crate_name!())
-        .setting(AppSettings::ColorAuto)
-        .setting(AppSettings::ColoredHelp)
-        .setting(AppSettings::DeriveDisplayOrder)
-        // .setting(AppSettings::UnifiedHelpMessage)
-        .max_term_width(90)
-        .version(crate_version!())
-        .about(&*desc)
-        .arg(
-            Arg::with_name("INPUT")
-                .required(true)
-                .help("CityJSON Extension file (*.ext.json) to validate."),
-        );
-    let matches = app.get_matches();
-
+    let cli = Cli::parse();
     let mut valid = true;
-
+    if !cli.inputfile.exists() {
+        eprintln!(
+            "ERROR: Input file {} doesn't exist",
+            cli.inputfile.display()
+        );
+        std::process::exit(0);
+    }
     //-- fetch the instance (the Extension)
-    let s1 = std::fs::read_to_string(&matches.value_of("INPUT").unwrap())
-        .expect("Couldn't read CityJSON Extension file");
+    let p1 = cli.inputfile.canonicalize().unwrap();
+    let s1 = std::fs::read_to_string(&p1).expect("Couldn't read the file");
     let re: Result<Value, _> = serde_json::from_str(&s1);
     if re.is_err() {
         valid = false;

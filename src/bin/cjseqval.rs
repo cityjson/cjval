@@ -1,16 +1,26 @@
-// use ansi_term::Style;
 use cjval::CJValidator;
 use cjval::ValSummary;
 use indexmap::IndexMap;
-#[macro_use]
+use std::path::PathBuf;
+
 extern crate clap;
 use anyhow::{anyhow, Result};
-use clap::{App, AppSettings, Arg, Values};
+use clap::Parser;
 use std::fmt::Write;
 use std::io;
 use std::io::BufRead;
-use std::path::Path;
 use url::Url;
+
+#[derive(Parser)]
+#[command(version, about = "Validation of a CityJSONSeq", long_about = None)]
+struct Cli {
+    #[arg(short, long)]
+    verbose: bool,
+    /// Read the CityJSON Extensions files locally instead of downloading them.
+    /// More than one can be given.
+    #[arg(short, long)]
+    extensionfiles: Vec<PathBuf>,
+}
 
 #[tokio::main]
 async fn download_extension(theurl: &str) -> Result<String> {
@@ -24,46 +34,8 @@ async fn download_extension(theurl: &str) -> Result<String> {
 }
 
 fn main() -> io::Result<()> {
-    // Enable ANSI support for Windows
-    let sversions: Vec<String> = cjval::get_cityjson_schema_all_versions();
-    let desc = format!(
-        "Validation of CityJSON Sequences (CityJSONSeq)\nSupports CityJSONFeature v2.0+v1.1 (schemas v{} + v{} are used)", sversions[2], sversions[1]
-    );
-    #[cfg(windows)]
-    let _ = ansi_term::enable_ansi_support();
-    let app = App::new("cjseqval")
-        .setting(AppSettings::ColorAuto)
-        .setting(AppSettings::ColoredHelp)
-        .setting(AppSettings::DeriveDisplayOrder)
-        // .setting(AppSettings::UnifiedHelpMessage)
-        .max_term_width(90)
-        .version(crate_version!())
-        .about(&*desc)
-        .arg(
-            Arg::with_name("verbose")
-                .long("verbose")
-                .multiple(true)
-                .help("Explain in detail the errors and warnings"),
-        )
-        .arg(
-            Arg::with_name("PATH")
-                .short("e")
-                .long("extensionfile")
-                .multiple(true)
-                .takes_value(true)
-                .help(
-                    "Read the CityJSON Extensions files locally. More than one can \
-                     be given. By default the Extension schemas are automatically \
-                     downloaded, this overwrites this behaviour",
-                ),
-        );
-    let matches = app.get_matches();
-    // let extfiles = matches.values_of("PATH");
-
-    let mut b_verbose = false;
-    if matches.occurrences_of("verbose") > 0 {
-        b_verbose = true;
-    }
+    let cli = Cli::parse();
+    let b_verbose = cli.verbose;
     let mut b_metadata = false;
     let mut val = CJValidator::from_str("{}");
     let stdin = std::io::stdin();
@@ -75,7 +47,7 @@ fn main() -> io::Result<()> {
         if !b_metadata {
             // TODO: what if no metadata-first-line?
             val = CJValidator::from_str(&l);
-            let re = fetch_extensions(&mut val, matches.values_of("PATH"));
+            let re = fetch_extensions(&mut val, &cli.extensionfiles);
             match re {
                 Ok(_) => {
                     let valsumm = val.validate();
@@ -174,57 +146,58 @@ fn get_errors_string(valsumm: &IndexMap<String, ValSummary>) -> String {
     s
 }
 
-fn fetch_extensions(val: &mut CJValidator, extpaths: Option<Values>) -> Result<(), Vec<String>> {
+fn fetch_extensions(val: &mut CJValidator, extpaths: &Vec<PathBuf>) -> Result<(), Vec<String>> {
     let mut b_valid = true;
     let mut ls_errors: Vec<String> = Vec::new();
     //-- Extensions
     if val.get_input_cityjson_version() >= 11 {
-        match extpaths {
-            Some(efiles) => {
-                let l: Vec<&str> = efiles.collect();
-                for s in l {
-                    let s2 = std::fs::read_to_string(s).expect("Couldn't read Extension file");
-                    let scanon = Path::new(s).canonicalize().unwrap();
+        if extpaths.len() > 0 {
+            for s in extpaths {
+                if s.exists() {
+                    let s2 = std::fs::read_to_string(&s).expect("Couldn't read Extension file");
                     let re = val.add_one_extension_from_str(&s2);
                     match re {
                         Ok(_) => (),
                         Err(e) => {
                             let s = format!(
                                 "Error with Extension file: {} ({})",
-                                scanon.to_str().unwrap(),
+                                s.to_str().unwrap(),
                                 e
                             );
                             ls_errors.push(s);
                             b_valid = false;
                         }
                     }
+                } else {
+                    let s = format!("Extension file: {} doesn't exist", s.to_str().unwrap());
+                    ls_errors.push(s);
+                    b_valid = false;
                 }
             }
-            None => {
-                //-- download automatically the Extensions
-                let re = val.get_extensions_urls();
-                if re.is_some() {
-                    let lexts = re.unwrap();
-                    // println!("{:?}", lexts);
-                    for ext in lexts {
-                        let o = download_extension(&ext);
-                        match o {
-                            Ok(l) => {
-                                let re = val.add_one_extension_from_str(&l);
-                                match re {
-                                    Ok(_) => (),
-                                    Err(error) => {
-                                        b_valid = false;
-                                        let s: String = format!("{}", error);
-                                        ls_errors.push(s);
-                                    }
+        } else {
+            //-- download automatically the Extensions
+            let re = val.get_extensions_urls();
+            if re.is_some() {
+                let lexts = re.unwrap();
+                // println!("{:?}", lexts);
+                for ext in lexts {
+                    let o = download_extension(&ext);
+                    match o {
+                        Ok(l) => {
+                            let re = val.add_one_extension_from_str(&l);
+                            match re {
+                                Ok(_) => (),
+                                Err(error) => {
+                                    b_valid = false;
+                                    let s: String = format!("{}", error);
+                                    ls_errors.push(s);
                                 }
                             }
-                            Err(error) => {
-                                let s: String = format!("{}", error);
-                                ls_errors.push(s);
-                                b_valid = false;
-                            }
+                        }
+                        Err(error) => {
+                            let s: String = format!("{}", error);
+                            ls_errors.push(s);
+                            b_valid = false;
                         }
                     }
                 }
