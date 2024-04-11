@@ -3,11 +3,12 @@
 
 ## [0.7.0] - 2024-04-09
 ### Modified
+- cjfval renamed to cjseqval (because now it's called CityJSON Sequences)
 - support for CityJSON schemas v2.0.1
-- cjfval renamed to cjseqval (because now it's called CityJSON Sequences)material coordinates
 - fixed bugs for CityJSON v2.0 files having extensions (schemas v1.1 were used)
 - fixed some bugs 
 - improved the CLI output
+- move to an newer version of the CLI parser "clap"
 
 ## [0.6.1] - 2024-02-05
 ### Modified
