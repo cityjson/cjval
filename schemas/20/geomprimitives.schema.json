@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://www.cityjson.org/schemas/2.0.0/geomprimitives.schema.json",
-  "title": "CityJSON geometric primitives schema v2.0.0",
+  "$id": "https://www.cityjson.org/schemas/2.0.1/geomprimitives.schema.json",
+  "title": "CityJSON geometric primitives schema v2.0.1",
   "Semantics": {
     "type": "object",
     "properties": {
@@ -104,7 +104,19 @@
           }
         ]
       }
-    }
+    },
+    "required": [ 
+      "type"
+    ]
+  },
+  "Lods": {
+      "enum": [
+        "0",   "1",   "2",   "3", 
+        "0.0", "0.1", "0.2", "0.3", 
+        "1.0", "1.1", "1.2", "1.3", 
+        "2.0", "2.1", "2.2", "2.3", 
+        "3.0", "3.1", "3.2", "3.3"
+      ]
   },
   "Solid": {
     "type": "object",
@@ -115,8 +127,7 @@
         ]
       },
       "lod": {
-        "type": "string",
-        "pattern": "^(\\d\\.)(\\d)$|^(\\d)$"
+        "$ref": "#/Lods" 
       },
       "boundaries": {
         "type": "array",
@@ -128,10 +139,14 @@
               "type": "array",
               "items": {
                 "type": "integer"
-              }
-            }
-          }
-        }
+              },
+              "minItems": 1
+            },
+            "minItems": 1
+          },
+          "minItems": 1
+        },
+        "minItems": 1
       },
       "semantics": {
         "type": "object",
@@ -250,8 +265,7 @@
         ]
       },
       "lod": {
-        "type": "string",
-        "pattern": "^(\\d\\.)(\\d)$|^(\\d)$"
+        "$ref": "#/Lods" 
       },
       "boundaries": {
         "type": "array",
@@ -265,11 +279,16 @@
                 "type": "array",
                 "items": {
                   "type": "integer"
-                }
-              }
-            }
-          }
-        }
+                },
+                "minItems": 1
+              },
+              "minItems": 1
+            },
+            "minItems": 1
+          },
+          "minItems": 1
+        },
+        "minItems": 1
       },
       "semantics": {
         "type": "object",
@@ -403,8 +422,7 @@
         ]
       },
       "lod": {
-        "type": "string",
-        "pattern": "^(\\d\\.)(\\d)$|^(\\d)$"
+        "$ref": "#/Lods" 
       },
       "boundaries": {
         "type": "array",
@@ -418,11 +436,16 @@
                 "type": "array",
                 "items": {
                   "type": "integer"
-                }
-              }
-            }
-          }
-        }
+                },
+                "minItems": 1
+              },
+              "minItems": 1
+            },
+            "minItems": 1
+          },
+          "minItems": 1
+        },
+        "minItems": 1
       },
       "semantics": {
         "type": "object",
@@ -556,8 +579,7 @@
         ]
       },
       "lod": {
-        "type": "string",
-        "pattern": "^(\\d\\.)(\\d)$|^(\\d)$"
+        "$ref": "#/Lods" 
       },
       "boundaries": {
         "type": "array",
@@ -567,9 +589,12 @@
             "type": "array",
             "items": {
               "type": "integer"
-            }
-          }
-        }
+            },
+            "minItems": 1
+          },
+          "minItems": 1
+        },
+        "minItems": 1
       },
       "semantics": {
         "type": "object",
@@ -673,8 +698,7 @@
         ]
       },
       "lod": {
-        "type": "string",
-        "pattern": "^(\\d\\.)(\\d)$|^(\\d)$"
+        "$ref": "#/Lods" 
       },
       "boundaries": {
         "type": "array",
@@ -684,9 +708,12 @@
             "type": "array",
             "items": {
               "type": "integer"
-            }
-          }
-        }
+            },
+            "minItems": 1
+          },
+          "minItems": 1
+        },
+        "minItems": 1
       },
       "semantics": {
         "type": "object",
@@ -790,8 +817,7 @@
         ]
       },
       "lod": {
-        "type": "string",
-        "pattern": "^(\\d\\.)(\\d)$|^(\\d)$"
+        "$ref": "#/Lods" 
       },
       "boundaries": {
         "type": "array",
@@ -799,8 +825,10 @@
           "type": "array",
           "items": {
             "type": "integer"
-          }
-        }
+          },
+          "minItems": 1
+        },
+        "minItems": 1
       },
       "semantics": {
         "type": "object",
@@ -846,14 +874,14 @@
         ]
       },
       "lod": {
-        "type": "string",
-        "pattern": "^(\\d\\.)(\\d)$|^(\\d)$"
+        "$ref": "#/Lods" 
       },
       "boundaries": {
         "type": "array",
         "items": {
           "type": "integer"
-        }
+        },
+        "minItems": 1
       },
       "semantics": {
         "type": "object",
