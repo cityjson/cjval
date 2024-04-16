@@ -31,3 +31,11 @@ fn valid_multisurface_inner_rings() {
     let re = v.validate();
     assert!(re["textures"].is_valid());
 }
+
+#[test]
+fn valid_solid_with_null() {
+    let sdata = std::fs::read_to_string("data/texture5.city.json").unwrap();
+    let v: CJValidator = CJValidator::from_str(&sdata);
+    let re = v.validate();
+    assert!(re["textures"].is_valid());
+}

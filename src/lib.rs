@@ -1537,7 +1537,7 @@ impl CJValidator {
                             }
                             if l != l2 {
                                 for (i, _e) in l.iter().enumerate() {
-                                    if l[i] != l2[i] && l2[i][0] != 0 {
+                                    if l[i] != l2[i] && l2[i][0] != -1 {
                                         ls_errors.push(format!(
                                             "/texture/values/ not same structure as /boundaries; #{} and geom-#{} and surface-#{}", theid, gi, i
                                         ));
@@ -1598,7 +1598,7 @@ impl CJValidator {
                             }
                             if l != l2 {
                                 for (i, _e) in l.iter().enumerate() {
-                                    if l[i] != l2[i] && l2[i][0] != 0 {
+                                    if l[i] != l2[i] && l2[i][0] != -1 {
                                         ls_errors.push(format!(
                                             "/texture/values/ not same structure as /boundaries; #{} and geom-#{} and surface-#{}", theid, gi, i
                                         ));
