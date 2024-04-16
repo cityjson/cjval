@@ -1,6 +1,11 @@
 # Changelog
 
 
+## [0.7.1] - 2024-04-16
+### Modified
+- fix a bug where Solid with textures having null values were wrongly validated
+
+
 ## [0.7.0] - 2024-04-09
 ### Modified
 - cjfval renamed to cjseqval (because now it's called CityJSON Sequences)
@@ -64,6 +69,7 @@
 ### Added
 - first version that works with Extensions
 
+[0.7.1]: https://github.com/hugoledoux/cjval/compare/0.7.0...0.7.1
 [0.7.0]: https://github.com/hugoledoux/cjval/compare/0.6.1...0.7.0
 [0.6.1]: https://github.com/hugoledoux/cjval/compare/0.6.0...0.6.1
 [0.6.0]: https://github.com/hugoledoux/cjval/compare/0.5.0...0.6.0
