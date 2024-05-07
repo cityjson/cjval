@@ -4,6 +4,7 @@ use cjval::CJValidator;
 
 extern crate clap;
 
+use std::collections::HashMap;
 use std::path::PathBuf;
 use url::Url;
 
@@ -22,6 +23,32 @@ struct Cli {
     /// More than one can be given.
     #[arg(short, long)]
     extensionfiles: Vec<PathBuf>,
+}
+
+fn main() {
+    let cli = Cli::parse();
+
+    match cli.inputfile {
+        Some(ifile) => {
+            if !ifile.exists() {
+                eprintln!("ERROR: Input file {} doesn't exist", ifile.display());
+                std::process::exit(0);
+            }
+            if let Some(ext) = ifile.extension() {
+                if ext != "json" && ext != "jsonl" {
+                    eprintln!(
+                        "ERROR: file extension {} not supported (only .json and .jsonl)",
+                        ext.to_str().unwrap()
+                    );
+                    std::process::exit(0);
+                }
+            }
+            process_cityjson_file(&ifile, &cli.extensionfiles, cli.verbose);
+        }
+        None => {
+            println!("stdin input");
+        }
+    }
 }
 
 fn summary_and_bye(finalresult: i32, verbose: bool) {
@@ -48,31 +75,84 @@ fn summary_and_bye(finalresult: i32, verbose: bool) {
     std::process::exit(0);
 }
 
-fn main() {
-    let cli = Cli::parse();
-
-    match cli.inputfile {
-        Some(ifile) => {
-            if !ifile.exists() {
-                eprintln!("ERROR: Input file {} doesn't exist", ifile.display());
-                std::process::exit(0);
-            }
-            if let Some(ext) = ifile.extension() {
-                if ext != "json" && ext != "jsonl" {
-                    eprintln!(
-                        "ERROR: file extension {} not supported (only .json and .jsonl)",
-                        ext.to_str().unwrap()
-                    );
-                    std::process::exit(0);
-                }
-            }
-            process_cityjson_file(&ifile, &cli.extensionfiles, cli.verbose);
-        }
-        None => {
-            println!("none");
-        }
-    }
-}
+// fn process_cjseq_stream(verbose: bool) {
+//     let mut b_metadata = false;
+//     let mut val = CJValidator::from_str("{}");
+//     let stdin = std::io::stdin();
+//     for (i, line) in stdin.lock().lines().enumerate() {
+//         let l = line.unwrap();
+//         if l.is_empty() {
+//             continue;
+//         }
+//         if !b_metadata {
+//             // TODO: what if no metadata-first-line?
+//             val = CJValidator::from_str(&l);
+//             let re = fetch_extensions(&mut val, &cli.extensionfiles);
+//             match re {
+//                 Ok(_) => {
+//                     let valsumm = val.validate();
+//                     let status = get_status(&valsumm);
+//                     match status {
+//                         1 => println!("l.{}\t✅", i + 1),
+//                         0 => {
+//                             println!("l.{}\t🟡", i + 1);
+//                             if b_verbose {
+//                                 println!("{}", get_errors_string(&valsumm));
+//                             }
+//                         }
+//                         -1 => {
+//                             println!("l.{}\t❌", i + 1);
+//                             if b_verbose {
+//                                 println!("{}", get_errors_string(&valsumm));
+//                             }
+//                         }
+//                         _ => (),
+//                     }
+//                 }
+//                 Err(e) => {
+//                     println!("l.{}\t❌", i + 1);
+//                     if b_verbose {
+//                         println!("{}", e.join(" | "));
+//                     }
+//                 }
+//             }
+//             b_metadata = true;
+//         } else {
+//             let re = val.from_str_cjfeature(&l);
+//             match re {
+//                 Ok(_) => {
+//                     let valsumm = val.validate();
+//                     let status = get_status(&valsumm);
+//                     match status {
+//                         1 => println!("l.{}\t✅", i + 1),
+//                         0 => {
+//                             if b_verbose {
+//                                 println!("l.{}\t🟡\t{}", i + 1, get_errors_string(&valsumm));
+//                             } else {
+//                                 println!("l.{}\t🟡", i + 1);
+//                             }
+//                         }
+//                         -1 => {
+//                             if b_verbose {
+//                                 println!("l.{}\t❌\t{}", i + 1, get_errors_string(&valsumm));
+//                             } else {
+//                                 println!("l.{}\t❌", i + 1);
+//                             }
+//                         }
+//                         _ => (),
+//                     }
+//                 }
+//                 Err(e) => {
+//                     if b_verbose {
+//                         println!("l.{}\t❌\t{}", i + 1, format!("Invalid JSON file: {:?}", e));
+//                     } else {
+//                         println!("l.{}\t❌", i + 1);
+//                     }
+//                 }
+//             }
+//         }
+//     }
+// }
 
 fn process_cityjson_file(ifile: &PathBuf, extpaths: &Vec<PathBuf>, verbose: bool) {
     let p1 = ifile.canonicalize().unwrap();
@@ -100,7 +180,30 @@ fn process_cityjson_file(ifile: &PathBuf, extpaths: &Vec<PathBuf>, verbose: bool
     }
 
     //-- Extensions
-    fetch_extensions(&mut val, &extpaths, verbose);
+    if verbose {
+        println!("{}", Style::new().bold().paint("=== Extensions ==="));
+    }
+    let re = fetch_extensions(&mut val, &extpaths);
+    match re {
+        Ok(x) => {
+            if verbose {
+                for (ext, s) in &x {
+                    println!(" - {ext}... {s}");
+                }
+                if x.is_empty() {
+                    println!("none");
+                }
+            }
+        }
+        Err(x) => {
+            if verbose {
+                for (ext, s) in &x {
+                    println!(" - {ext}... {s}");
+                }
+            }
+            summary_and_bye(-1, verbose);
+        }
+    }
 
     let valsumm = val.validate();
     let mut has_errors = false;
@@ -134,40 +237,52 @@ fn process_cityjson_file(ifile: &PathBuf, extpaths: &Vec<PathBuf>, verbose: bool
     }
 }
 
-fn fetch_extensions(val: &mut CJValidator, extpaths: &Vec<PathBuf>, verbose: bool) {
+fn fetch_extensions(
+    val: &mut CJValidator,
+    extpaths: &Vec<PathBuf>,
+) -> Result<HashMap<String, String>, HashMap<String, String>> {
     let mut b_valid = true;
+    let mut d_errors: HashMap<String, String> = HashMap::new();
     // let mut ls_errors: Vec<String> = Vec::new();
     //-- Extensions
-    if val.get_input_cityjson_version() == 10 && verbose {
-        println!("(validation of Extensions is not supported in CityJSON v1.0, upgrade to v1.1)");
-    }
+    // if val.get_input_cityjson_version() == 10 && verbose {
+    //     println!("(validation of Extensions is not supported in CityJSON v1.0, upgrade to v1.1)");
+    // }
     if val.get_input_cityjson_version() >= 11 {
         //-- if argument "-e" is passed then do not download
         if extpaths.len() > 0 {
             for fext in extpaths {
+                let s = format!("{}", fext.to_str().unwrap());
+                d_errors.insert(s, "ok".to_string());
+            }
+            for fext in extpaths {
+                let sf = format!("{}", fext.to_str().unwrap());
                 if fext.exists() {
                     let fexts =
                         std::fs::read_to_string(&fext).expect("Couldn't read Extension file");
                     let re = val.add_one_extension_from_str(&fexts);
                     match re {
-                        Ok(()) => {
-                            if verbose {
-                                println!("- {}.. ok", fext.to_str().unwrap())
-                            }
-                        }
+                        Ok(_) => (),
                         Err(e) => {
-                            if verbose {
-                                println!("- {}.. {}", fext.to_str().unwrap(), Red.paint("ERROR"));
-                                println!("({})", e);
+                            let s = format!(
+                                "Error with Extension file: {} ({})",
+                                fext.to_str().unwrap(),
+                                e
+                            );
+                            if let Some(x) = d_errors.get_mut(&sf) {
+                                *x = s;
                             }
-                            summary_and_bye(-1, verbose);
+                            b_valid = false;
                         }
                     }
                 } else {
-                    if verbose {
-                        println!("- {}.. {}", fext.to_str().unwrap(), Red.paint("ERROR"));
+                    let s = format!("Extension file: {} doesn't exist", fext.to_str().unwrap());
+                    if let Some(x) = d_errors.get_mut(&sf) {
+                        *x = s;
                     }
-                    summary_and_bye(-1, verbose);
+
+                    b_valid = false;
+                    // summary_and_bye(-1, verbose);
                 }
             }
         } else {
@@ -176,40 +291,44 @@ fn fetch_extensions(val: &mut CJValidator, extpaths: &Vec<PathBuf>, verbose: boo
             if re.is_some() {
                 let lexts = re.unwrap();
                 // println!("{:?}", lexts);
+                for ext in &lexts {
+                    let s = format!("{}", ext);
+                    d_errors.insert(s, "ok".to_string());
+                }
                 for ext in lexts {
+                    let s2 = format!("{}", ext);
                     let o = download_extension(&ext);
                     match o {
                         Ok(l) => {
                             let re = val.add_one_extension_from_str(&l);
                             match re {
-                                Ok(()) => {
-                                    if verbose {
-                                        println!("- {}.. ok", ext);
+                                Ok(_) => (),
+                                Err(error) => {
+                                    b_valid = false;
+                                    let s: String = format!("{}", error);
+                                    // ls_errors.push(s);
+                                    if let Some(x) = d_errors.get_mut(&s2) {
+                                        *x = s;
                                     }
-                                }
-                                Err(e) => {
-                                    if verbose {
-                                        println!("- {}.. {}", ext, Red.paint("ERROR"));
-                                        println!("({})", e);
-                                    }
-                                    summary_and_bye(-1, verbose);
                                 }
                             }
                         }
-                        Err(e) => {
-                            if verbose {
-                                println!("- {}.. {} \n\t{}", ext, e, Red.paint("ERROR"));
+                        Err(error) => {
+                            let s: String = format!("{}", error);
+                            if let Some(x) = d_errors.get_mut(&s2) {
+                                *x = s;
                             }
-                            summary_and_bye(-1, verbose);
+                            b_valid = false;
                         }
                     }
                 }
-            } else {
-                if verbose {
-                    println!("none");
-                }
             }
         }
+    }
+    if b_valid {
+        Ok(d_errors)
+    } else {
+        Err(d_errors)
     }
 }
 
