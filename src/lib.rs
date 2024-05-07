@@ -226,15 +226,14 @@ pub fn get_cityjson_schema_all_versions() -> Vec<String> {
 /// A validator for CityJSON and CityJSONFeature
 #[derive(Debug)]
 pub struct CJValidator {
-    cjfeature: bool,
     j: Value,
     jschema_cj: Value,
     jschema_cjf: Value,
     jexts: Vec<Value>,
-    // valsum: IndexMap<String, ValSummary>,
     json_syntax_error: Option<String>,
     duplicate_keys: bool,
     is_cityjson: bool,
+    is_cjfeature: bool,
     version_file: i32,
     version_schema: String,
 }
@@ -252,7 +251,6 @@ impl CJValidator {
     pub fn from_str(str_dataset: &str) -> Self {
         let l: Vec<Value> = Vec::new();
         let mut v = CJValidator {
-            cjfeature: false,
             j: json!(null),
             jschema_cj: json!(null),
             jschema_cjf: json!(null),
@@ -260,6 +258,7 @@ impl CJValidator {
             json_syntax_error: None,
             duplicate_keys: false,
             is_cityjson: true,
+            is_cjfeature: false,
             version_file: 0,
             version_schema: "-1".to_string(),
         };
@@ -268,7 +267,7 @@ impl CJValidator {
         match re {
             Ok(j) => {
                 v.j = j;
-                // TODO: what is j.is_null() is true?
+                // TODO: what if j.is_null() is true?
             }
             Err(e) => v.json_syntax_error = Some(e.to_string()),
         }
@@ -324,7 +323,7 @@ impl CJValidator {
             return Err("Not a CityJSONFeature object".to_string());
         }
         self.j = j;
-        self.cjfeature = true;
+        self.is_cjfeature = true;
         // println!("{:?}", self.version_file);
         // if self.version == "2.0" {
         //     v.version_file = 20;
@@ -595,12 +594,29 @@ impl CJValidator {
         }
     }
 
+    pub fn is_cityjson(&self) -> bool {
+        self.is_cityjson
+    }
+
     pub fn is_cityjsonfeature(&self) -> bool {
-        self.cjfeature
+        self.is_cjfeature
     }
 
     pub fn get_input_cityjson_version(&self) -> i32 {
         self.version_file
+    }
+
+    pub fn get_cjseq_feature_id(&self) -> String {
+        if self.is_cjfeature {
+            match self.j.get("id") {
+                Some(x) => {
+                    return x.as_str().unwrap().to_string();
+                }
+                None => return "".to_string(),
+            }
+        } else {
+            return "".to_string();
+        }
     }
 
     pub fn get_cityjson_schema_version(&self) -> String {
@@ -614,7 +630,7 @@ impl CJValidator {
             let s: String = format!("Not a CityJSON file");
             return Err(vec![s]);
         }
-        if self.cjfeature == false {
+        if self.is_cjfeature == false {
             //-- which cityjson version
             if self.version_file == 0 {
                 let s: String = format!(
@@ -625,7 +641,7 @@ impl CJValidator {
             }
         }
 
-        if self.cjfeature == false {
+        if self.is_cjfeature == false {
             let compiled = JSONSchema::options()
                 .with_draft(Draft::Draft7)
                 .compile(&self.jschema_cj)
@@ -1125,7 +1141,7 @@ impl CJValidator {
     }
 
     fn extra_root_properties(&self) -> Result<(), Vec<String>> {
-        if self.cjfeature {
+        if self.is_cjfeature {
             return Ok(());
         };
         let mut ls_warnings: Vec<String> = Vec::new();

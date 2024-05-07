@@ -1,10 +1,13 @@
-use ansi_term::Colour::Red;
 use ansi_term::Style;
 use cjval::CJValidator;
+use cjval::ValSummary;
+use indexmap::IndexMap;
 
 extern crate clap;
 
 use std::collections::HashMap;
+use std::fmt::Write as fmtwrite;
+use std::io::BufRead;
 use std::path::PathBuf;
 use url::Url;
 
@@ -34,19 +37,17 @@ fn main() {
                 eprintln!("ERROR: Input file {} doesn't exist", ifile.display());
                 std::process::exit(0);
             }
-            if let Some(ext) = ifile.extension() {
-                if ext != "json" && ext != "jsonl" {
-                    eprintln!(
-                        "ERROR: file extension {} not supported (only .json and .jsonl)",
-                        ext.to_str().unwrap()
-                    );
+            let fext = ifile.extension().unwrap().to_str().unwrap();
+            match fext {
+                "json" | "JSON" => process_cityjson_file(&ifile, &cli.extensionfiles, cli.verbose),
+                _ => {
+                    eprintln!("ERROR: file extension .{} not supported (only .json)", fext);
                     std::process::exit(0);
                 }
             }
-            process_cityjson_file(&ifile, &cli.extensionfiles, cli.verbose);
         }
         None => {
-            println!("stdin input");
+            let _ = process_cjseq_stream(&cli.extensionfiles, cli.verbose);
         }
     }
 }
@@ -75,84 +76,134 @@ fn summary_and_bye(finalresult: i32, verbose: bool) {
     std::process::exit(0);
 }
 
-// fn process_cjseq_stream(verbose: bool) {
-//     let mut b_metadata = false;
-//     let mut val = CJValidator::from_str("{}");
-//     let stdin = std::io::stdin();
-//     for (i, line) in stdin.lock().lines().enumerate() {
-//         let l = line.unwrap();
-//         if l.is_empty() {
-//             continue;
-//         }
-//         if !b_metadata {
-//             // TODO: what if no metadata-first-line?
-//             val = CJValidator::from_str(&l);
-//             let re = fetch_extensions(&mut val, &cli.extensionfiles);
-//             match re {
-//                 Ok(_) => {
-//                     let valsumm = val.validate();
-//                     let status = get_status(&valsumm);
-//                     match status {
-//                         1 => println!("l.{}\t✅", i + 1),
-//                         0 => {
-//                             println!("l.{}\t🟡", i + 1);
-//                             if b_verbose {
-//                                 println!("{}", get_errors_string(&valsumm));
-//                             }
-//                         }
-//                         -1 => {
-//                             println!("l.{}\t❌", i + 1);
-//                             if b_verbose {
-//                                 println!("{}", get_errors_string(&valsumm));
-//                             }
-//                         }
-//                         _ => (),
-//                     }
-//                 }
-//                 Err(e) => {
-//                     println!("l.{}\t❌", i + 1);
-//                     if b_verbose {
-//                         println!("{}", e.join(" | "));
-//                     }
-//                 }
-//             }
-//             b_metadata = true;
-//         } else {
-//             let re = val.from_str_cjfeature(&l);
-//             match re {
-//                 Ok(_) => {
-//                     let valsumm = val.validate();
-//                     let status = get_status(&valsumm);
-//                     match status {
-//                         1 => println!("l.{}\t✅", i + 1),
-//                         0 => {
-//                             if b_verbose {
-//                                 println!("l.{}\t🟡\t{}", i + 1, get_errors_string(&valsumm));
-//                             } else {
-//                                 println!("l.{}\t🟡", i + 1);
-//                             }
-//                         }
-//                         -1 => {
-//                             if b_verbose {
-//                                 println!("l.{}\t❌\t{}", i + 1, get_errors_string(&valsumm));
-//                             } else {
-//                                 println!("l.{}\t❌", i + 1);
-//                             }
-//                         }
-//                         _ => (),
-//                     }
-//                 }
-//                 Err(e) => {
-//                     if b_verbose {
-//                         println!("l.{}\t❌\t{}", i + 1, format!("Invalid JSON file: {:?}", e));
-//                     } else {
-//                         println!("l.{}\t❌", i + 1);
-//                     }
-//                 }
-//             }
-//         }
-//     }
-// }
+fn process_cjseq_stream(extpaths: &Vec<PathBuf>, verbose: bool) {
+    let mut b_metadata = false;
+    let mut val = CJValidator::from_str("{}");
+    let stdin = std::io::stdin();
+    for (i, line) in stdin.lock().lines().enumerate() {
+        let l = line.unwrap();
+        if l.is_empty() {
+            continue;
+        }
+        if !b_metadata {
+            val = CJValidator::from_str(&l);
+            if val.is_cityjson() == false {
+                //-- therefore not a CityJSON first line
+                println!("{}\t❌\t[metadata]\t{}", i + 1, "ERROR: invalid CityJSONSeq stream, 1st object should be a CityJSON object, see https://www.cityjson.org/cityjsonseq/");
+                break;
+            }
+            let re = fetch_extensions(&mut val, &extpaths);
+            match re {
+                Ok(_) => {
+                    let valsumm = val.validate();
+                    let status = get_status(&valsumm);
+                    match status {
+                        1 => {
+                            if !verbose {
+                                println!("{}\t✅", i + 1);
+                            } else {
+                                println!(
+                                    "{}\t✅\t[metadata]\t{}",
+                                    i + 1,
+                                    get_errors_string(&valsumm)
+                                );
+                            }
+                        }
+                        0 => {
+                            if !verbose {
+                                println!("{}\t🟡", i + 1);
+                            } else {
+                                println!(
+                                    "{}\t🟡\t[metadata]\t{}",
+                                    i + 1,
+                                    get_errors_string(&valsumm)
+                                );
+                            }
+                        }
+                        -1 => {
+                            if !verbose {
+                                println!("{}\t❌", i + 1);
+                            } else {
+                                println!(
+                                    "{}\t❌\t[metadata]\t{}",
+                                    i + 1,
+                                    get_errors_string(&valsumm)
+                                );
+                            }
+                        }
+                        _ => (),
+                    }
+                }
+                Err(e) => {
+                    if !verbose {
+                        println!("{}\t❌", i + 1);
+                    } else {
+                        let mut s = String::from("");
+                        for (_ext, s2) in &e {
+                            s = s + " | " + s2;
+                        }
+                        println!("{}\t❌\t[metadata]\t{}", i + 1, s);
+                    }
+                }
+            }
+            b_metadata = true;
+        } else {
+            let re = val.from_str_cjfeature(&l);
+            match re {
+                Ok(_) => {
+                    let valsumm = val.validate();
+                    let status = get_status(&valsumm);
+                    match status {
+                        1 => {
+                            if !verbose {
+                                println!("{}\t✅", i + 1);
+                            } else {
+                                println!("{}\t✅\t[{}]", i + 1, val.get_cjseq_feature_id());
+                            }
+                        }
+                        0 => {
+                            if !verbose {
+                                println!("{}\t🟡", i + 1);
+                            } else {
+                                println!(
+                                    "{}\t🟡\t[{}]\t{}",
+                                    i + 1,
+                                    val.get_cjseq_feature_id(),
+                                    get_errors_string(&valsumm)
+                                );
+                            }
+                        }
+                        -1 => {
+                            if !verbose {
+                                println!("{}\t❌", i + 1);
+                            } else {
+                                println!(
+                                    "{}\t❌\t[{}]\t{}",
+                                    i + 1,
+                                    val.get_cjseq_feature_id(),
+                                    get_errors_string(&valsumm)
+                                );
+                            }
+                        }
+                        _ => (),
+                    }
+                }
+                Err(e) => {
+                    if !verbose {
+                        println!("{}\t❌", i + 1);
+                    } else {
+                        println!(
+                            "{}\t❌\t[{}]\t{}",
+                            i + 1,
+                            val.get_cjseq_feature_id(),
+                            format!("Invalid JSON object: {:?}", e)
+                        );
+                    }
+                }
+            }
+        }
+    }
+}
 
 fn process_cityjson_file(ifile: &PathBuf, extpaths: &Vec<PathBuf>, verbose: bool) {
     let p1 = ifile.canonicalize().unwrap();
@@ -205,6 +256,7 @@ fn process_cityjson_file(ifile: &PathBuf, extpaths: &Vec<PathBuf>, verbose: bool
         }
     }
 
+    //-- perform validation
     let valsumm = val.validate();
     let mut has_errors = false;
     let mut has_warnings = false;
@@ -243,9 +295,9 @@ fn fetch_extensions(
 ) -> Result<HashMap<String, String>, HashMap<String, String>> {
     let mut b_valid = true;
     let mut d_errors: HashMap<String, String> = HashMap::new();
-    // let mut ls_errors: Vec<String> = Vec::new();
     //-- Extensions
     // if val.get_input_cityjson_version() == 10 && verbose {
+    // TODO: extension and v1.0?
     //     println!("(validation of Extensions is not supported in CityJSON v1.0, upgrade to v1.1)");
     // }
     if val.get_input_cityjson_version() >= 11 {
@@ -332,9 +384,39 @@ fn fetch_extensions(
     }
 }
 
+fn get_errors_string(valsumm: &IndexMap<String, ValSummary>) -> String {
+    let mut s = String::new();
+    for (_criterion, summ) in valsumm.iter() {
+        if summ.has_errors() == true {
+            write!(&mut s, "{} | ", summ).expect("Problem writing String");
+        }
+    }
+    s
+}
+
+fn get_status(valsumm: &IndexMap<String, ValSummary>) -> i8 {
+    let mut has_errors = false;
+    let mut has_warnings = false;
+    for (_criterion, summ) in valsumm.iter() {
+        if summ.has_errors() == true {
+            if summ.is_warning() == true {
+                has_warnings = true;
+            } else {
+                has_errors = true;
+            }
+        }
+    }
+    if has_errors == false && has_warnings == false {
+        1
+    } else if has_errors == false && has_warnings == true {
+        0
+    } else {
+        -1
+    }
+}
+
 #[tokio::main]
 async fn download_extension(theurl: &str) -> Result<String> {
-    // println!("{:?}", jext);
     let u = Url::parse(theurl).unwrap();
     let res = reqwest::get(u).await?;
     if res.status().is_success() {
