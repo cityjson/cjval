@@ -28,12 +28,10 @@ It also verifies the following, these are not errors since the file is still con
 
 ## Library + 3 binaries
 
-`cjval` is a library and has 3 different binaries:
+`cjval` is a library, and has 2 different binaries:
 
-  1. `cjval` to validate a CityJSON file (it downloads automatically Extensions)
-  2. `cjseqval` to validate a [CityJSONSeq](https://cityjson.org/cityjsonseq/) file, that is a stream of CityJSONFeature (from stdin)
+  1. `cjval` to validate a CityJSON file or a CityJSONSeq stream (it downloads automatically Extensions)
   3. `cjvalext` to validate a [CityJSON Extension file](https://www.cityjson.org/specs/#the-extension-file)
-
 
 ## Installation/compilation
 
@@ -58,7 +56,7 @@ The code is uses at [https://validator.cityjson.org](https://validator.cityjson.
 
 ## CLI Usage
 
-### cjval
+### For CityJSON files
 
 The [CityJSON schemas](https://www.cityjson.org/schemas/) are built-in the binary, so it suffices to:
 
@@ -90,11 +88,11 @@ If instead you want to use your own local Extension schema(s), you can pass them
     $ cjval myfile.city.json -e ./myextensions/generic.ext.json
 
 
-### cjseqval
+### For CityJSONSeq
 
 To validate a stream of [CityJSONFeature](https://www.cityjson.org/cityjsonseq/) (this uses [cjseq](https://github.com/cityjson/cjseq) to generate a stream from a CityJSON file):
 
-    $ cjseq cat -f myfile.city.json | cjfval --verbose
+    $ cjseq cat -f myfile.city.json | cjval --verbose
 
 and you'll get a short report per line (which is one `CityJSON` followed by several `CityJSONFeature`).
 
