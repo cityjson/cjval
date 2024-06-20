@@ -16,7 +16,12 @@ use clap::Parser;
 use anyhow::{anyhow, Result};
 
 #[derive(Parser)]
-#[command(version, about = "Validation of a CityJSON file", long_about = None)]
+#[command(
+    about = "Schema-validation of CityJSON+CityJSONSeq datasets", 
+    override_usage = "'cjval myfile.city.json' OR 'cat mystream.city.jsonl | cvjal'", 
+    version,
+    long_about = None
+)]
 struct Cli {
     /// CityJSON input file
     inputfile: Option<PathBuf>,

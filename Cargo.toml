@@ -1,7 +1,7 @@
 [package]
 name = "cjval"
 version = "0.8.0"
-description = "Schema-validation of CityJSON + CityJSONSeq datasets"
+description = "Schema-validation of CityJSON+CityJSONSeq datasets"
 authors = ["Hugo Ledoux <h.ledoux@tudelft.nl>"]
 edition = "2021"
 license = "MIT"
