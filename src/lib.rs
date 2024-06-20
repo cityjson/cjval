@@ -604,9 +604,6 @@ impl CJValidator {
         {
             return true;
         }
-        // empty()) && (self.j["vertices"].empty()) {
-        // return true;
-        // }
         false
     }
 
