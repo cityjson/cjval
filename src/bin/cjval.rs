@@ -170,7 +170,9 @@ fn process_cjseq_stream(extpaths: &Vec<PathBuf>, verbose: bool) {
                             }
                         }
                         0 => {
-                            finalresult = 0;
+                            if finalresult == 1 {
+                                finalresult = 0;
+                            }
                             println!(
                                 "{}\t🟡\t[{}]\t{}",
                                 i + 1,
