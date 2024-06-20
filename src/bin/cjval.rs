@@ -92,7 +92,12 @@ fn process_cjseq_stream(extpaths: &Vec<PathBuf>, verbose: bool) {
             val = CJValidator::from_str(&l);
             if val.is_cityjson() == false {
                 //-- therefore not a CityJSON first line
-                println!("{}\t❌\t[metadata]\t{}", i + 1, "ERROR: 1st object should be a CityJSON object, see https://www.cityjson.org/cityjsonseq/");
+                println!("{}\t❌\t[1st-line for metadata]\t{}", i + 1, "ERROR: 1st line should be a CityJSON object, see https://www.cityjson.org/cityjsonseq/");
+                finalresult = -1;
+                break;
+            }
+            if val.is_empty_cityjson() == false {
+                println!("{}\t❌\t[1st-line for metadata]\t{}", i + 1, "ERROR: 1st line should be an CityJSON object with empty \"CityObjects\" and \"vertices\", see https://www.cityjson.org/cityjsonseq/");
                 finalresult = -1;
                 break;
             }
@@ -103,14 +108,9 @@ fn process_cjseq_stream(extpaths: &Vec<PathBuf>, verbose: bool) {
                     let status = get_status(&valsumm);
                     match status {
                         1 => {
-                            if val.is_empty_cityjson() == false {
-                                println!("{}\t❌\t[metadata]\t{}", i + 1, "ERROR: 1st object should be an CityJSON object with empty \"CityObjects\" and \"vertices\", see https://www.cityjson.org/cityjsonseq/");
-                                finalresult = -1;
-                                break;
-                            }
                             if verbose {
                                 println!(
-                                    "{}\t✅\t[metadata]\t{}",
+                                    "{}\t✅\t[1st-line for metadata]\t{}",
                                     i + 1,
                                     get_errors_string(&valsumm)
                                 );
@@ -122,7 +122,7 @@ fn process_cjseq_stream(extpaths: &Vec<PathBuf>, verbose: bool) {
                                 println!("{}\t🟡", i + 1);
                             } else {
                                 println!(
-                                    "{}\t🟡\t[metadata]\t{}",
+                                    "{}\t🟡\t[1st-line for metadata]\t{}",
                                     i + 1,
                                     get_errors_string(&valsumm)
                                 );
@@ -134,7 +134,7 @@ fn process_cjseq_stream(extpaths: &Vec<PathBuf>, verbose: bool) {
                                 println!("{}\t❌", i + 1);
                             } else {
                                 println!(
-                                    "{}\t❌\t[metadata]\t{}",
+                                    "{}\t❌\t[1st-line for metadata]\t{}",
                                     i + 1,
                                     get_errors_string(&valsumm)
                                 );
@@ -152,7 +152,7 @@ fn process_cjseq_stream(extpaths: &Vec<PathBuf>, verbose: bool) {
                         for (_ext, s2) in &e {
                             s = s + " | " + s2;
                         }
-                        println!("{}\t❌\t[metadata]\t{}", i + 1, s);
+                        println!("{}\t❌\t[1st-line for metadata]\t{}", i + 1, s);
                     }
                 }
             }
