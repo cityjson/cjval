@@ -598,6 +598,18 @@ impl CJValidator {
         self.is_cityjson
     }
 
+    pub fn is_empty_cityjson(&self) -> bool {
+        if (self.j["CityObjects"].as_object().unwrap().is_empty())
+            && (self.j["vertices"].as_array().unwrap().is_empty())
+        {
+            return true;
+        }
+        // empty()) && (self.j["vertices"].empty()) {
+        // return true;
+        // }
+        false
+    }
+
     pub fn is_cityjsonfeature(&self) -> bool {
         self.is_cjfeature
     }

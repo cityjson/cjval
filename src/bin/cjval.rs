@@ -99,9 +99,12 @@ fn process_cjseq_stream(extpaths: &Vec<PathBuf>, verbose: bool) {
                     let status = get_status(&valsumm);
                     match status {
                         1 => {
-                            if !verbose {
-                                println!("{}\t✅", i + 1);
-                            } else {
+                            if val.is_empty_cityjson() == false {
+                                println!("{}\t❌\t[metadata]\t{}", i + 1, "ERROR: 1st object should be an CityJSON object with empty \"CityObjects\" and \"vertices\", see https://www.cityjson.org/cityjsonseq/");
+                                finalresult = -1;
+                                break;
+                            }
+                            if verbose {
                                 println!(
                                     "{}\t✅\t[metadata]\t{}",
                                     i + 1,
@@ -110,6 +113,7 @@ fn process_cjseq_stream(extpaths: &Vec<PathBuf>, verbose: bool) {
                             }
                         }
                         0 => {
+                            finalresult = 0;
                             if !verbose {
                                 println!("{}\t🟡", i + 1);
                             } else {
