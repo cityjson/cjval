@@ -80,16 +80,20 @@ fn process_cjseq_stream(extpaths: &Vec<PathBuf>, verbose: bool) {
     let mut b_metadata = false;
     let mut val = CJValidator::from_str("{}");
     let stdin = std::io::stdin();
+    let mut finalresult: i8 = 1;
+    let mut linetotal: u64 = 0;
     for (i, line) in stdin.lock().lines().enumerate() {
         let l = line.unwrap();
         if l.is_empty() {
             continue;
         }
+        linetotal += 1;
         if !b_metadata {
             val = CJValidator::from_str(&l);
             if val.is_cityjson() == false {
                 //-- therefore not a CityJSON first line
-                println!("{}\t❌\t[metadata]\t{}", i + 1, "ERROR: invalid CityJSONSeq stream, 1st object should be a CityJSON object, see https://www.cityjson.org/cityjsonseq/");
+                println!("{}\t❌\t[metadata]\t{}", i + 1, "ERROR: 1st object should be a CityJSON object, see https://www.cityjson.org/cityjsonseq/");
+                finalresult = -1;
                 break;
             }
             let re = fetch_extensions(&mut val, &extpaths);
@@ -125,6 +129,7 @@ fn process_cjseq_stream(extpaths: &Vec<PathBuf>, verbose: bool) {
                             }
                         }
                         -1 => {
+                            finalresult = -1;
                             if !verbose {
                                 println!("{}\t❌", i + 1);
                             } else {
@@ -139,6 +144,7 @@ fn process_cjseq_stream(extpaths: &Vec<PathBuf>, verbose: bool) {
                     }
                 }
                 Err(e) => {
+                    finalresult = -1;
                     if !verbose {
                         println!("{}\t❌", i + 1);
                     } else {
@@ -159,54 +165,54 @@ fn process_cjseq_stream(extpaths: &Vec<PathBuf>, verbose: bool) {
                     let status = get_status(&valsumm);
                     match status {
                         1 => {
-                            if !verbose {
-                                println!("{}\t✅", i + 1);
-                            } else {
+                            if verbose {
                                 println!("{}\t✅\t[{}]", i + 1, val.get_cjseq_feature_id());
                             }
                         }
                         0 => {
-                            if !verbose {
-                                println!("{}\t🟡", i + 1);
-                            } else {
-                                println!(
-                                    "{}\t🟡\t[{}]\t{}",
-                                    i + 1,
-                                    val.get_cjseq_feature_id(),
-                                    get_errors_string(&valsumm)
-                                );
-                            }
+                            finalresult = 0;
+                            println!(
+                                "{}\t🟡\t[{}]\t{}",
+                                i + 1,
+                                val.get_cjseq_feature_id(),
+                                get_errors_string(&valsumm)
+                            );
                         }
                         -1 => {
-                            if !verbose {
-                                println!("{}\t❌", i + 1);
-                            } else {
-                                println!(
-                                    "{}\t❌\t[{}]\t{}",
-                                    i + 1,
-                                    val.get_cjseq_feature_id(),
-                                    get_errors_string(&valsumm)
-                                );
-                            }
+                            finalresult = -1;
+                            println!(
+                                "{}\t❌\t[{}]\t{}",
+                                i + 1,
+                                val.get_cjseq_feature_id(),
+                                get_errors_string(&valsumm)
+                            );
                         }
                         _ => (),
                     }
                 }
                 Err(e) => {
-                    if !verbose {
-                        println!("{}\t❌", i + 1);
-                    } else {
-                        println!(
-                            "{}\t❌\t[{}]\t{}",
-                            i + 1,
-                            val.get_cjseq_feature_id(),
-                            format!("Invalid JSON object: {:?}", e)
-                        );
-                    }
+                    finalresult = -1;
+                    println!(
+                        "{}\t❌\t[{}]\t{}",
+                        i + 1,
+                        val.get_cjseq_feature_id(),
+                        format!("Invalid JSON object: {:?}", e)
+                    );
                 }
             }
         }
     }
+    println!("\n");
+    println!("============= SUMMARY =============");
+    println!("Total lines: {:?}", linetotal);
+    if finalresult == -1 {
+        println!("❌ CityJSONSeq has invalid objects");
+    } else if finalresult == 0 {
+        println!("🟡  CityJSONSeq is valid but has warnings");
+    } else {
+        println!("✅ CityJSONSeq is valid");
+    }
+    println!("===================================");
 }
 
 fn process_cityjson_file(ifile: &PathBuf, extpaths: &Vec<PathBuf>, verbose: bool) {
@@ -264,8 +270,9 @@ fn process_cityjson_file(ifile: &PathBuf, extpaths: &Vec<PathBuf>, verbose: bool
     let valsumm = val.validate();
     let mut has_errors = false;
     let mut has_warnings = false;
-    if verbose {
-        for (criterion, summ) in valsumm.iter() {
+
+    for (criterion, summ) in valsumm.iter() {
+        if verbose {
             println!(
                 "{} {} {} ",
                 Style::new().bold().paint("==="),
@@ -273,12 +280,12 @@ fn process_cityjson_file(ifile: &PathBuf, extpaths: &Vec<PathBuf>, verbose: bool
                 Style::new().bold().paint("===")
             );
             println!("{}", summ);
-            if summ.has_errors() == true {
-                if summ.is_warning() == true {
-                    has_warnings = true;
-                } else {
-                    has_errors = true;
-                }
+        }
+        if summ.has_errors() == true {
+            if summ.is_warning() == true {
+                has_warnings = true;
+            } else {
+                has_errors = true;
             }
         }
     }
