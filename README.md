@@ -94,13 +94,21 @@ cjval myfile.city.json -e ./myextensions/generic.ext.json
 
 ### For CityJSONSeq
 
-To validate a stream of [CityJSONFeature](https://www.cityjson.org/cityjsonseq/) (this uses [cjseq](https://github.com/cityjson/cjseq) to generate a stream from a CityJSON file):
+To validate a stream of [CityJSONFeature](https://www.cityjson.org/cityjsonseq/), you need to 'cat' the file:
+
+```sh
+cat mystream.city.jsonl | cjval --verbose
+```
+
+Or you can use [cjseq](https://github.com/cityjson/cjseq) to generate the stream from a CityJSON file:
 
 ```sh
 cjseq cat -f myfile.city.json | cjval --verbose
 ```
 
 and you'll get a short report per line (which is one `CityJSON` followed by several `CityJSONFeature`).
+
+`--verbose` is used to get a detailed report per line, if not used then only lines with errors are reported.
 
 
 ## Contributors
