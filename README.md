@@ -1,9 +1,9 @@
-# cjval: schema-validation of CityJSON + CityJSONSeq files
+# cjval: schema-validation of CityJSON + CityJSONSeq datasets
 
 [![crates.io](https://img.shields.io/crates/v/cjval.svg)](https://crates.io/crates/cjval)
 [![GitHub license](https://img.shields.io/github/license/cityjson/cjval)](https://github.com/cityjson/cjval/blob/main/LICENSE)
 
-A library to validate the syntax of CityJSON objects (CityJSON + [CityJSONSeq](https://www.cityjson.org/cityjsonseq)).
+A Rust library and binaries to validate the syntax of CityJSON objects (CityJSON + [CityJSONSeq](https://www.cityjson.org/cityjsonseq)).
 
 It validates against the [CityJSON schemas](https://www.cityjson.org/schemas) and additional functions have been implemented (because these checks cannot be expressed with [JSON Schemas](https://json-schema.org/)).
 
@@ -18,14 +18,14 @@ The following error checks are performed:
   1. *textures*: checks if the arrays for the textures are coherent (if the vertices exist + if the texture  exists)
   1. *materials*: checks if the arrays for the materials are coherent with the geometry objects and if the material exists
 
-It also verifies the following, these are not errors since the file is still considered valid and usable, but they can make the file larger and some parsers might not understand all the properties:
+It also verifies the following, these are not errors but warnings since the file is still considered valid and usable, but they can make the file larger and some parsers might not understand all the properties:
 
   1. *extra_root_properties*: if CityJSON has extra root properties, these should be documented in an Extension. If not this warning is returned
   1. *duplicate_vertices*: duplicated vertices in `"vertices"` are allowed, but they take up spaces and decreases the topological relationships explicitly in the file. If there are any, [cjio](https://github.com/cityjson/cjio) has the operator `clean` to fix this automatically.
   1. *unused_vertices*: vertices that are not referenced in the file, they take extra space. If there are any, [cjio](https://github.com/cityjson/cjio) has the operator `clean` to fix this automatically.
 
 
-## Library + 2 binaries
+## A Rust library + 2 binaries
 
 `cjval` is a library, and has 2 different binaries:
 

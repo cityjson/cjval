@@ -1,6 +1,11 @@
 # Changelog
 
 
+## [0.8.0] - 2024-06-20
+### Modified
+- cjseqval removed as a standalone binary, now you can do the same with cjval (stdin is for CityJSONSeq)
+- the reporting of the errors for CityJSONSeq is better, and contains a summary
+
 ## [0.7.1] - 2024-04-16
 ### Modified
 - fix a bug where Solid with textures having null values were wrongly validated
