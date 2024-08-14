@@ -1483,7 +1483,7 @@ impl CJValidator {
                                     } else {
                                         l3.push(y.len() as i64 - 1);
                                     }
-                                    if y.len() > 1 {
+                                    if y.len() > 1 && y[0].is_some() {
                                         if y[0].unwrap() > (max_i_tex - 1) {
                                             ls_errors.push(format!(
                                                     "/texture/values/ \"{}\" overflows for texture reference; #{} and geom-#{}",
@@ -1539,7 +1539,7 @@ impl CJValidator {
                                         } else {
                                             l3.push(z.len() as i64 - 1);
                                         }
-                                        if z.len() > 1 {
+                                        if z.len() > 1 && z[0].is_some() {
                                             if z[0].unwrap() > (max_i_tex - 1) {
                                                 ls_errors.push(format!(
                                                 "/texture/values/ \"{}\" overflows for texture reference; #{} and geom-#{}",
@@ -1599,7 +1599,7 @@ impl CJValidator {
                                             } else {
                                                 l3.push(w.len() as i64 - 1);
                                             }
-                                            if w.len() > 1 {
+                                            if w.len() > 1 && w[0].is_some() {
                                                 if w[0].unwrap() > (max_i_tex - 1) {
                                                     ls_errors.push(format!(
                                                     "/texture/values/ \"{}\" overflows for texture reference; #{} and geom-#{}",

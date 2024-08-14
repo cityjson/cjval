@@ -39,3 +39,19 @@ fn valid_solid_with_null() {
     let re = v.validate();
     assert!(re["textures"].is_valid());
 }
+
+#[test]
+fn invalid_with_float_as_indices() {
+    let sdata = std::fs::read_to_string("data/texture6.city.json").unwrap();
+    let v: CJValidator = CJValidator::from_str(&sdata);
+    let re = v.validate();
+    assert!(!re["textures"].is_valid());
+}
+
+#[test]
+fn valid_with_many_null() {
+    let sdata = std::fs::read_to_string("data/texture7.city.json").unwrap();
+    let v: CJValidator = CJValidator::from_str(&sdata);
+    let re = v.validate();
+    assert!(re["textures"].is_valid());
+}
