@@ -1,6 +1,10 @@
 # Changelog
 
 
+## [0.8.1] - 2024-08-14
+### Modified
+- fix a bug where cjval crashed if the textures for a geom where containing `[null, null, null]` instead of one null. The specs allow several so it's fine, I guess. Now it reports valid. 
+
 ## [0.8.0] - 2024-06-20
 ### Modified
 - cjseqval removed as a standalone binary, now you can do the same with cjval (stdin is for CityJSONSeq)
