@@ -21,15 +21,15 @@ The following error checks are performed:
 It also verifies the following, these are not errors but warnings since the file is still considered valid and usable, but they can make the file larger and some parsers might not understand all the properties:
 
   1. *extra_root_properties*: if CityJSON has extra root properties, these should be documented in an Extension. If not this warning is returned
-  1. *duplicate_vertices*: duplicated vertices in `"vertices"` are allowed, but they take up spaces and decreases the topological relationships explicitly in the file. If there are any, [cjio](https://github.com/cityjson/cjio) has the operator `clean` to fix this automatically.
+  1. *duplicate_vertices*: duplicated vertices in `"vertices"` are allowed, but they take up space and decrease the topological relationships explicitly in the file. If there are any, [cjio](https://github.com/cityjson/cjio) has the operator `clean` to fix this automatically.
   1. *unused_vertices*: vertices that are not referenced in the file, they take extra space. If there are any, [cjio](https://github.com/cityjson/cjio) has the operator `clean` to fix this automatically.
 
 
 ## A Rust library + 2 binaries
 
-`cjval` is a library, and has 2 different binaries:
+`cjval` is a Rust library, and has 2 different binaries:
 
-  1. `cjval` to validate a CityJSON file or a CityJSONSeq stream (it downloads automatically Extensions)
+  1. `cjval` to validate a CityJSON file or a CityJSONSeq stream (it downloads Extensions automatically if the file contains some)
   2. `cjvalext` to validate a [CityJSON Extension file](https://www.cityjson.org/specs/#the-extension-file)
 
 
@@ -50,7 +50,7 @@ It also verifies the following, these are not errors but warnings since the file
 
 ## Web application
 
-The code is uses at [https://validator.cityjson.org](https://validator.cityjson.org), it is compiled as a WebAssembly ([WASM code here](https://github.com/cityjson/cjval_wasm)) and a simple GUI was built.
+The code is used at [https://validator.cityjson.org](https://validator.cityjson.org), it is compiled as a WebAssembly ([WASM code here](https://github.com/cityjson/cjval_wasm)) and a simple GUI was built.
 
 
 ## CLI Usage
@@ -65,7 +65,7 @@ cjval myfile.city.json --verbose
 
 (the latest schemas of a X.Y version will be automatically fetched)
 
-`--verbose` is used to get a detailed report per error checks.
+`--verbose` is used to get a detailed report per error check.
 
 If the file contains one or more [Extensions](https://www.cityjson.org/extensions/), eg:
 
@@ -84,9 +84,9 @@ If the file contains one or more [Extensions](https://www.cityjson.org/extension
 ...  
 ```
 
-then `cjval` will download automatically the Extension schema files.
+then `cjval` will download the Extension schema files automatically.
 
-If instead you want to use your own local Extension schema(s), you can pass them as argument with the argument `-e` and this will overwrite the automatic download:
+If instead you want to use your own local Extension schema(s), you can pass them as argument with the `-e` flag and this will overwrite the automatic download:
 
 ```sh
 cjval myfile.city.json -e ./myextensions/generic.ext.json
