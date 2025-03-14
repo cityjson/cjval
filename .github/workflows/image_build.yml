@@ -1,0 +1,23 @@
+on:
+  release:
+    types:
+      - published
+
+name: Docker image publish
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
+      - uses: elgohr/Publish-Docker-Github-Action@v5
+        env:
+          VERSION: ${{ github.ref }}
+        with:
+          name: "tudelft3d/cjval"
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          dockerfile: docker/Dockerfile
+          tag_semver: true
+          buildargs: VERSION
