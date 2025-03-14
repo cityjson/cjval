@@ -2,7 +2,6 @@ on:
   push:
     branches:
       - docker-image
-
 name: Docker image publish
 jobs:
   build:
