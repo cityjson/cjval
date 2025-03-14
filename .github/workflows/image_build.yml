@@ -1,7 +1,8 @@
 on:
-  push:
-    branches:
-      - docker-image
+  release:
+    types:
+      - published
+
 name: Docker image publish
 jobs:
   build:
