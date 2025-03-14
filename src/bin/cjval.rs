@@ -18,7 +18,7 @@ use anyhow::{anyhow, Result};
 #[derive(Parser)]
 #[command(
     about = "Schema-validation of CityJSON+CityJSONSeq datasets", 
-    override_usage = "'cjval myfile.city.json' OR 'cat mystream.city.jsonl | cvjal'", 
+    override_usage = "'cjval myfile.city.json' OR 'cat mystream.city.jsonl | cjval'", 
     version,
     long_about = None
 )]
