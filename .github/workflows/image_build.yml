@@ -19,5 +19,5 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
           dockerfile: docker/Dockerfile
-          tag_semver: true
+          tag_semver: false
           buildargs: VERSION
