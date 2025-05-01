@@ -953,6 +953,19 @@ impl CJValidator {
             //-- 0. check the version of CityJSON
             let mut v: String = self.version_file.to_string();
             v.insert(1, '.');
+            if let Some(e) = ext.as_object() {
+                if e["type"] != "CityJSONExtension" {
+                    let s: String = format!("Extension is old (v1.0) or invalid.");
+                    ls_errors.push(s);
+                    continue;
+                }
+                if e.contains_key("versionCityJSON") == false {
+                    let s: String = format!(
+                        "Extension is too old and not for v1.1+, or doesn't contain the key 'versionCityJSON'");
+                    ls_errors.push(s);
+                    continue;
+                }
+            }
             if ext["versionCityJSON"] != v {
                 let s: String = format!(
                     "Extension 'versionCityJSON' != CityJSON version of file [{} != {}]",
