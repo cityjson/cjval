@@ -8,7 +8,7 @@ fn get_data1() -> Value {
     let j_mininal = r#"
         {
             "type": "CityJSON",
-            "version": "1.1",
+            "version": "2.0",
             "CityObjects":
             {
                 "LondonTower": { 
@@ -49,7 +49,7 @@ fn get_data2() -> Value {
     let j_mininal = r#"
         {
             "type": "CityJSON",
-            "version": "1.1",
+            "version": "2.0",
             "CityObjects":
             {
                 "un": { 
