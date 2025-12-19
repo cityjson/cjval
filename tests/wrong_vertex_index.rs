@@ -8,7 +8,7 @@ fn get_data1() -> Value {
     let j_mininal = r#"
         {
             "type": "CityJSON",
-            "version": "1.1",
+            "version": "2.0",
             "CityObjects":
             {
                 "LondonTower": { 
@@ -49,7 +49,7 @@ fn get_data2() -> Value {
     let j_mininal = r#"
         {
             "type": "CityJSON",
-            "version": "1.1",
+            "version": "2.0",
             "CityObjects":
             {
                 "un": { 
@@ -95,6 +95,60 @@ fn get_data2() -> Value {
     v
 }
 
+fn get_data_geometry_templates() -> Value {
+    let j_mininal = r#"
+        {
+          "type": "CityJSON",
+          "version": "2.0",
+          "transform": {
+            "scale": [1.0, 1.0, 1.0],
+            "translate": [0.0, 0.0, 0.0]
+          },
+          "metadata": {
+            "referenceSystem": "https://www.opengis.net/def/crs/EPSG/0/2355"
+          },
+          "CityObjects": {
+            "a-tree": {
+              "type": "SolitaryVegetationObject",
+              "geometry": [
+                {
+                  "type": "GeometryInstance",
+                  "template": 0,
+                  "boundaries": [0],
+                  "transformationMatrix": [
+                    2.0, 0.0, 0.0, 0.0,
+                    0.0, 2.0, 0.0, 0.0,
+                    0.0, 0.0, 2.0, 0.0,
+                    0.0, 0.0, 0.0, 1.0
+                  ]
+                }
+              ]
+            }
+          },
+          "vertices": [
+            [102, 103, 1]
+          ],
+          "geometry-templates": {
+            "templates": [
+              {
+                "type": "MultiSurface",
+                "lod": "2.1",
+                "boundaries": [
+                   [[0, 3, 2, 1]], [[4, 5, 6, 7]], [[0, 1, 5, 4]]
+                ]
+              }
+            ],
+            "vertices-templates": [
+              [0.0, 0.5, 0.0],
+              [1.0, 1.0, 0.0],
+              [0.0, 1.0, 0.0]
+            ]
+          }
+        }
+        "#;
+    let v: Value = serde_json::from_str(&j_mininal).unwrap();
+    v
+}
 #[test]
 fn wrong_vertex_index_1() {
     let j = get_data1();
@@ -115,6 +169,14 @@ fn wrong_vertex_index_2() {
         .unwrap()
         .push(json!(77));
     v = CJValidator::from_str(&j.to_string());
+    let re = v.validate();
+    assert!(!re["wrong_vertex_index"].is_valid());
+}
+
+#[test]
+fn wrong_vertices_templates_index() {
+    let j = get_data_geometry_templates();
+    let v: CJValidator = CJValidator::from_str(&j.to_string());
     let re = v.validate();
     assert!(!re["wrong_vertex_index"].is_valid());
 }

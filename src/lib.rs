@@ -953,6 +953,19 @@ impl CJValidator {
             //-- 0. check the version of CityJSON
             let mut v: String = self.version_file.to_string();
             v.insert(1, '.');
+            if let Some(e) = ext.as_object() {
+                if e["type"] != "CityJSONExtension" {
+                    let s: String = format!("Extension is old (v1.0) or invalid.");
+                    ls_errors.push(s);
+                    continue;
+                }
+                if e.contains_key("versionCityJSON") == false {
+                    let s: String = format!(
+                        "Extension is too old and not for v1.1+, or doesn't contain the key 'versionCityJSON'");
+                    ls_errors.push(s);
+                    continue;
+                }
+            }
             if ext["versionCityJSON"] != v {
                 let s: String = format!(
                     "Extension 'versionCityJSON' != CityJSON version of file [{} != {}]",
@@ -1668,19 +1681,22 @@ impl CJValidator {
                         }
                     } else if g["type"] == "MultiSurface" || g["type"] == "CompositeSurface" {
                         let a: GeomMSu = serde_json::from_value(g.clone()).unwrap();
-                        let re = above_max_index_msu(&a.boundaries, max_index);
+                        let re =
+                            above_max_index_msu(&a.boundaries, max_index, "vertices".to_string());
                         if re.is_err() {
                             ls_errors.push(re.err().unwrap());
                         }
                     } else if g["type"] == "Solid" {
                         let a: GeomSol = serde_json::from_value(g.clone()).unwrap();
-                        let re = above_max_index_sol(&a.boundaries, max_index);
+                        let re =
+                            above_max_index_sol(&a.boundaries, max_index, "vertices".to_string());
                         if re.is_err() {
                             ls_errors.push(re.err().unwrap());
                         }
                     } else if g["type"] == "MultiSolid" || g["type"] == "CompositeSolid" {
                         let a: GeomMSol = serde_json::from_value(g.clone()).unwrap();
-                        let re = above_max_index_msol(&a.boundaries, max_index);
+                        let re =
+                            above_max_index_msol(&a.boundaries, max_index, "vertices".to_string());
                         if re.is_err() {
                             ls_errors.push(re.err().unwrap());
                         }
@@ -1710,6 +1726,76 @@ impl CJValidator {
                             let i = t.unwrap().get(0).unwrap().as_u64().unwrap();
                             if (i as usize) >= max_index {
                                 let s2 = format!("Vertices {} don't exist", i);
+                                ls_errors.push(s2);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        //-- check geometry-templates
+        let gts = self.j["geometry-templates"].as_object();
+        if gts.is_some() {
+            let max_index: usize = self.j["geometry-templates"]["vertices-templates"]
+                .as_array()
+                .unwrap()
+                .len();
+            let ts = self.j["geometry-templates"]["templates"].as_array();
+            if ts.is_some() {
+                for t in ts.unwrap() {
+                    if t["type"] == "MultiPoint" {
+                        let a: GeomMPo = serde_json::from_value(t.clone()).unwrap();
+                        for each in a.boundaries {
+                            if each >= max_index {
+                                let s2 = format!("vertices-templates {} don't exist", each);
+                                ls_errors.push(s2);
+                            }
+                        }
+                    } else if t["type"] == "MultiLineString" {
+                        let a: GeomMLS = serde_json::from_value(t.clone()).unwrap();
+                        for l in a.boundaries {
+                            for each in l {
+                                if each >= max_index {
+                                    let s2 = format!("vertices-templates {} don't exist", each);
+                                    ls_errors.push(s2);
+                                }
+                            }
+                        }
+                    } else if t["type"] == "MultiSurface" || t["type"] == "CompositeSurface" {
+                        let a: GeomMSu = serde_json::from_value(t.clone()).unwrap();
+                        let re = above_max_index_msu(
+                            &a.boundaries,
+                            max_index,
+                            "vertices-templates".to_string(),
+                        );
+                        if re.is_err() {
+                            ls_errors.push(re.err().unwrap());
+                        }
+                    } else if t["type"] == "Solid" {
+                        let a: GeomSol = serde_json::from_value(t.clone()).unwrap();
+                        let re = above_max_index_sol(
+                            &a.boundaries,
+                            max_index,
+                            "vertices-templates".to_string(),
+                        );
+                        if re.is_err() {
+                            ls_errors.push(re.err().unwrap());
+                        }
+                    } else if t["type"] == "MultiSolid" || t["type"] == "CompositeSolid" {
+                        let a: GeomMSol = serde_json::from_value(t.clone()).unwrap();
+                        let re = above_max_index_msol(
+                            &a.boundaries,
+                            max_index,
+                            "vertices-templates".to_string(),
+                        );
+                        if re.is_err() {
+                            ls_errors.push(re.err().unwrap());
+                        }
+                    } else if t["type"] == "GeometryInstance" {
+                        let a: GeomMPo = serde_json::from_value(t.clone()).unwrap();
+                        for each in a.boundaries {
+                            if each >= max_index {
+                                let s2 = format!("vertices-templates {} doesn't exist", each);
                                 ls_errors.push(s2);
                             }
                         }
@@ -1976,7 +2062,11 @@ fn collect_indices_msol(a: &Vec<Vec<Vec<Vec<Vec<usize>>>>>, uniques: &mut HashSe
     }
 }
 
-fn above_max_index_msu(a: &Vec<Vec<Vec<usize>>>, max_index: usize) -> Result<(), String> {
+fn above_max_index_msu(
+    a: &Vec<Vec<Vec<usize>>>,
+    max_index: usize,
+    whichvertex: String,
+) -> Result<(), String> {
     let mut r: Vec<usize> = vec![];
     for x in a {
         for y in x {
@@ -1996,12 +2086,16 @@ fn above_max_index_msu(a: &Vec<Vec<Vec<usize>>>, max_index: usize) -> Result<(),
             s += &each.to_string();
             s += "/";
         }
-        let s2 = format!("Vertices {} don't exist", s);
+        let s2 = format!("{} {} don't exist", whichvertex, s);
         Err(s2)
     }
 }
 
-fn above_max_index_sol(a: &Vec<Vec<Vec<Vec<usize>>>>, max_index: usize) -> Result<(), String> {
+fn above_max_index_sol(
+    a: &Vec<Vec<Vec<Vec<usize>>>>,
+    max_index: usize,
+    whichvertex: String,
+) -> Result<(), String> {
     let mut r: Vec<usize> = vec![];
     for x in a {
         for y in x {
@@ -2023,7 +2117,7 @@ fn above_max_index_sol(a: &Vec<Vec<Vec<Vec<usize>>>>, max_index: usize) -> Resul
             s += &each.to_string();
             s += "/";
         }
-        let s2 = format!("Vertices {} don't exist", s);
+        let s2 = format!("{} {} don't exist", whichvertex, s);
         Err(s2)
     }
 }
@@ -2031,6 +2125,7 @@ fn above_max_index_sol(a: &Vec<Vec<Vec<Vec<usize>>>>, max_index: usize) -> Resul
 fn above_max_index_msol(
     a: &Vec<Vec<Vec<Vec<Vec<usize>>>>>,
     max_index: usize,
+    whichvertex: String,
 ) -> Result<(), String> {
     let mut r: Vec<usize> = vec![];
     for x in a {
@@ -2055,7 +2150,7 @@ fn above_max_index_msol(
             s += &each.to_string();
             s += "/";
         }
-        let s2 = format!("Vertices {} don't exist", s);
+        let s2 = format!("{} {} don't exist", whichvertex, s);
         return Err(s2);
     }
 }

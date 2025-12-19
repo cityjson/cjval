@@ -1,6 +1,14 @@
 # Changelog
 
 
+## [0.8.3] - 2025-05-02
+### Modified
+- fix a bug where cjval crashed if the geometry-templates had boundaries to unexisting vertices.
+
+## [0.8.2] - 2025-03-14
+### Added
+- Docker image added
+
 ## [0.8.1] - 2024-08-14
 ### Modified
 - fix a bug where cjval crashed if the textures for a geom where containing `[null, null, null]` instead of one null. The specs allow several so it's fine, I guess. Now it reports valid. 
@@ -78,6 +86,12 @@
 ### Added
 - first version that works with Extensions
 
+
+
+[0.8.3]: https://github.com/hugoledoux/cjval/compare/0.8.2...0.8.3
+[0.8.2]: https://github.com/hugoledoux/cjval/compare/0.8.1...0.8.2
+[0.8.1]: https://github.com/hugoledoux/cjval/compare/0.8.0...0.8.1
+[0.8.0]: https://github.com/hugoledoux/cjval/compare/0.7.1...0.8.0
 [0.7.1]: https://github.com/hugoledoux/cjval/compare/0.7.0...0.7.1
 [0.7.0]: https://github.com/hugoledoux/cjval/compare/0.6.1...0.7.0
 [0.6.1]: https://github.com/hugoledoux/cjval/compare/0.6.0...0.6.1
