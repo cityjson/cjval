@@ -1050,7 +1050,9 @@ impl CJValidator {
                         for surf in surfs.unwrap() {
                             let tmp = surf.as_object().unwrap();
                             let thetype = tmp["type"].as_str().unwrap().to_string();
-                            if &thetype[0..1] == "+" && newss.contains(&thetype) == false {
+                            if thetype.chars().next() == Some('+')
+                                && newss.contains(&thetype) == false
+                            {
                                 let s: String =
                                     format!("Semantic Surface '{}' doesn't have a schema", thetype);
                                 ls_errors.push(s);
@@ -1078,7 +1080,7 @@ impl CJValidator {
                 let attrs = co.get("attributes").unwrap().as_object().unwrap();
                 for attr in attrs.keys() {
                     let sattr = attr.as_str();
-                    if &sattr[0..1] == "+" {
+                    if sattr.chars().next() == Some('+') {
                         // println!("attr: {:?}", sattr);
                         let a = format!("{}/{}", co.get("type").unwrap().as_str().unwrap(), sattr);
                         ls_plusattrs.insert(a);
@@ -1118,7 +1120,7 @@ impl CJValidator {
         for co in cos.keys() {
             let tmp = cos.get(co).unwrap().as_object().unwrap();
             let thetype = tmp["type"].as_str().unwrap().to_string();
-            if &thetype[0..1] == "+" && newcos.contains(&thetype) == false {
+            if thetype.chars().next() == Some('+') && newcos.contains(&thetype) == false {
                 let s: String = format!("CityObject '{}' doesn't have a schema", thetype);
                 ls_errors.push(s);
             }
@@ -1146,7 +1148,7 @@ impl CJValidator {
         let t = self.j.as_object().unwrap();
         for each in t.keys() {
             let s = each.to_string();
-            if &s[0..1] == "+" && (newrps.contains(&s) == false) {
+            if s.chars().next() == Some('+') && (newrps.contains(&s) == false) {
                 let s: String = format!("Extra root property '{}' doesn't have a schema", s);
                 ls_errors.push(s);
             }
@@ -1177,7 +1179,7 @@ impl CJValidator {
         let t = self.j.as_object().unwrap();
         for each in t.keys() {
             let s = each.to_string();
-            if &s[0..1] != "+" && (rootproperties.contains(&s.as_str()) == false) {
+            if s.chars().next() != Some('+') && (rootproperties.contains(&s.as_str()) == false) {
                 let s: String = format!("Root property '{}' is not in CityJSON schema, might be ignored by some parsers", s);
                 ls_warnings.push(s);
             }
