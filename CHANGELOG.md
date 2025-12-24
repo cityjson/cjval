@@ -1,6 +1,11 @@
 # Changelog
 
 
+## [0.8.4] - 2025-12-24
+### Modified
+- fix a bug where cjval crashed the input file has an Extension and some of the properties were in non-ascii char, eg japanese
+- updated some of the dependencies to more recent ones
+
 ## [0.8.3] - 2025-05-02
 ### Modified
 - fix a bug where cjval crashed if the geometry-templates had boundaries to unexisting vertices.
@@ -88,6 +93,7 @@
 
 
 
+[0.8.4]: https://github.com/hugoledoux/cjval/compare/0.8.3...0.8.4
 [0.8.3]: https://github.com/hugoledoux/cjval/compare/0.8.2...0.8.3
 [0.8.2]: https://github.com/hugoledoux/cjval/compare/0.8.1...0.8.2
 [0.8.1]: https://github.com/hugoledoux/cjval/compare/0.8.0...0.8.1
@@ -103,4 +109,3 @@
 [0.4.0]: https://github.com/hugoledoux/cjval/compare/0.3.1...0.4.0
 [0.3.1]: https://github.com/hugoledoux/cjval/compare/0.3.0...0.3.1
 [0.3.0]: https://github.com/hugoledoux/cjval/compare/0.2.0...0.3.0
-
