@@ -15,13 +15,13 @@ The following error checks are performed:
   1. *parents_children_consistency*: if a City Object references another in its `"children"`, this ensures that the child exists. And that the child has the parent in its `"parents"`
   1. *wrong_vertex_index*: checks if all vertex indices exist in the list of vertices
   1. *semantics_array*: checks if the arrays for the semantics in the geometries have the same shape as that of the geometry and if the values are consistent
-  1. *textures*: checks if the arrays for the textures are coherent (if the vertices exist + if the texture  exists)
+  1. *textures*: checks if the texture arrays are coherent (if the referenced vertices exist and if the texture exists)
   1. *materials*: checks if the arrays for the materials are coherent with the geometry objects and if the material exists
 
 It also verifies the following, these are not errors but warnings since the file is still considered valid and usable, but they can make the file larger and some parsers might not understand all the properties:
 
   1. *extra_root_properties*: if CityJSON has extra root properties, these should be documented in an Extension. If not this warning is returned
-  1. *duplicate_vertices*: duplicated vertices in `"vertices"` are allowed, but they take up space and decrease the topological relationships explicitly in the file. If there are any, [cjio](https://github.com/cityjson/cjio) has the operator `clean` to fix this automatically.
+  1. *duplicate_vertices*: duplicated vertices in `"vertices"` are allowed, but they take up space and reduce the explicit topological relationships in the file. If there are any, [cjio](https://github.com/cityjson/cjio) has the operator `clean` to fix this automatically.
   1. *unused_vertices*: vertices that are not referenced in the file, they take extra space. If there are any, [cjio](https://github.com/cityjson/cjio) has the operator `clean` to fix this automatically.
 
 
@@ -29,7 +29,7 @@ It also verifies the following, these are not errors but warnings since the file
 
 `cjval` is a Rust library, and has 2 different binaries:
 
-  1. `cjval` to validate a CityJSON file or a CityJSONSeq stream (it downloads Extensions automatically if the file contains some)
+  1. `cjval` to validate a CityJSON file or a CityJSONSeq stream (it downloads Extensions automatically if the file contains any)
   2. `cjvalext` to validate a [CityJSON Extension file](https://www.cityjson.org/specs/#the-extension-file)
 
 
