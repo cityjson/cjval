@@ -3,31 +3,31 @@
 [![crates.io](https://img.shields.io/crates/v/cjval.svg)](https://crates.io/crates/cjval)
 [![GitHub license](https://img.shields.io/github/license/cityjson/cjval)](https://github.com/cityjson/cjval/blob/main/LICENSE)
 
-A Rust library and binaries to validate the syntax of CityJSON objects (CityJSON + [CityJSONSeq](https://www.cityjson.org/cityjsonseq)).
+A Rust library and command-line tools to validate the syntax of CityJSON objects (CityJSON + [CityJSONSeq](https://www.cityjson.org/cityjsonseq)).
 
-It validates against the [CityJSON schemas](https://www.cityjson.org/schemas) and additional functions have been implemented (because these checks cannot be expressed with [JSON Schemas](https://json-schema.org/)).
+It validates against the [CityJSON schemas](https://www.cityjson.org/schemas) and includes additional validation functions that cannot be expressed with [JSON Schemas](https://json-schema.org/).
 
 The following error checks are performed:
 
   1. *JSON syntax*: is it a valid JSON object?
   1. *CityJSON schemas*: validation against the schemas (CityJSON v1.0 + v1.1 + v2.0)
   1. *Extension schemas*: validate against the extra schemas if there's an [Extension](https://www.cityjson.org/extensions/) (those are automatically fetched from a URL)
-  1. *parents_children_consistency*: if a City Object references another in its `"children"`, this ensures that the child exists. And that the child has the parent in its `"parents"`
+  1. *parents_children_consistency*: if a City Object references another in its `"children"`, this ensures that the child exists and that the child has the parent in its `"parents"`
   1. *wrong_vertex_index*: checks if all vertex indices exist in the list of vertices
   1. *semantics_array*: checks if the arrays for the semantics in the geometries have the same shape as that of the geometry and if the values are consistent
   1. *textures*: checks if the texture arrays are coherent (if the referenced vertices exist and if the texture exists)
   1. *materials*: checks if the arrays for the materials are coherent with the geometry objects and if the material exists
 
-It also verifies the following, these are not errors but warnings since the file is still considered valid and usable, but they can make the file larger and some parsers might not understand all the properties:
+It also verifies the following; these are not errors but warnings since the file is still considered valid and usable. However, they can make the file larger, and some parsers might not understand all the properties:
 
-  1. *extra_root_properties*: if CityJSON has extra root properties, these should be documented in an Extension. If not this warning is returned
-  1. *duplicate_vertices*: duplicated vertices in `"vertices"` are allowed, but they take up space and reduce the explicit topological relationships in the file. If there are any, [cjio](https://github.com/cityjson/cjio) has the operator `clean` to fix this automatically.
-  1. *unused_vertices*: vertices that are not referenced in the file, they take extra space. If there are any, [cjio](https://github.com/cityjson/cjio) has the operator `clean` to fix this automatically.
+  1. *extra_root_properties*: if a CityJSON file contains extra root properties, these should be documented in an Extension. If not, this warning is returned
+  1. *duplicate_vertices*: duplicated vertices in `"vertices"` are allowed, but they take up space and reduce the explicit topological relationships in the file. If found, the [`cjio`](https://github.com/cityjson/cjio) tool's `clean` operator can fix this automatically
+  1. *unused_vertices*: vertices that are not referenced in the file take up extra space. If found, the [`cjio`](https://github.com/cityjson/cjio) tool's `clean` operator can fix this automatically
 
 
-## A Rust library + 2 binaries
+## A Rust library + two binaries
 
-`cjval` is a Rust library, and has 2 different binaries:
+`cjval` is a Rust library and includes two command-line binaries:
 
   1. `cjval` to validate a CityJSON file or a CityJSONSeq stream (it downloads Extensions automatically if the file contains any)
   2. `cjvalext` to validate a [CityJSON Extension file](https://www.cityjson.org/specs/#the-extension-file)
@@ -50,7 +50,7 @@ It also verifies the following, these are not errors but warnings since the file
 
 ## Web application
 
-The code is used at [https://validator.cityjson.org](https://validator.cityjson.org), it is compiled as a WebAssembly ([WASM code here](https://github.com/cityjson/cjval_wasm)) and a simple GUI was built.
+The code is used at [https://validator.cityjson.org](https://validator.cityjson.org), where it is compiled as WebAssembly ([WASM code here](https://github.com/cityjson/cjval_wasm)) with a simple GUI.
 
 
 ## CLI Usage
@@ -86,7 +86,7 @@ If the file contains one or more [Extensions](https://www.cityjson.org/extension
 
 then `cjval` will download the Extension schema files automatically.
 
-If instead you want to use your own local Extension schema(s), you can pass them as argument with the `-e` flag and this will overwrite the automatic download:
+If instead you want to use your own local Extension schema(s), you can pass them as arguments with the `-e` flag to overwrite the automatic download:
 
 ```sh
 cjval myfile.city.json -e ./myextensions/generic.ext.json
@@ -94,21 +94,21 @@ cjval myfile.city.json -e ./myextensions/generic.ext.json
 
 ### For CityJSONSeq
 
-To validate a stream of [CityJSONFeature](https://www.cityjson.org/cityjsonseq/), you need to 'cat' the file:
+To validate a stream of [CityJSONFeature](https://www.cityjson.org/cityjsonseq/), you need to pipe the file to `cjval`:
 
 ```sh
 cat mystream.city.jsonl | cjval --verbose
 ```
 
-Or you can use [cjseq](https://github.com/cityjson/cjseq) to generate the stream from a CityJSON file:
+Alternatively, you can use [cjseq](https://github.com/cityjson/cjseq) to generate the stream from a CityJSON file:
 
 ```sh
 cjseq cat -f myfile.city.json | cjval --verbose
 ```
 
-and you'll get a short report per line (which is one `CityJSON` followed by several `CityJSONFeature`).
+You'll get a short report per line (which is one `CityJSON` followed by several `CityJSONFeature`).
 
-`--verbose` is used to get a detailed report per line, if not used then only lines with errors are reported.
+`--verbose` is used to get a detailed report per line; if not used, only lines with errors are reported.
 
 
 ## Contributors
