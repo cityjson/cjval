@@ -214,7 +214,7 @@ fn ui(frame: &mut Frame, result: &ValidationResult) {
         .direction(Direction::Vertical)
         .constraints([
             Constraint::Length(3),  // Header
-            Constraint::Length(8),  // Summary
+            Constraint::Length(10), // Summary
             Constraint::Min(10),    // Errors/Warnings
             Constraint::Length(1),  // Footer
         ])
@@ -222,8 +222,6 @@ fn ui(frame: &mut Frame, result: &ValidationResult) {
 
     // Header
     let header = Paragraph::new(Line::from(vec![
-        Span::styled("CityJSON Validator", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
-        Span::raw(" - "),
         Span::styled(&result.file_path, Style::default().fg(Color::White)),
     ]))
     .block(Block::default().borders(Borders::ALL).title("cjval"));
@@ -264,45 +262,52 @@ fn render_summary(frame: &mut Frame, area: Rect, result: &ValidationResult) {
     let error_count: usize = result.errors.iter().map(|(_, v)| v.len()).sum();
     let warning_count: usize = result.warnings.iter().map(|(_, v)| v.len()).sum();
 
-    let ext_info = if result.extensions.is_empty() {
-        "none".to_string()
-    } else {
-        result
-            .extensions
-            .iter()
-            .map(|(e, _)| e.as_str())
-            .collect::<Vec<_>>()
-            .join(", ")
-    };
-
-    let summary_text = vec![
+    let mut summary_text = vec![
         Line::from(vec![
-            Span::styled("Status: ", Style::default().add_modifier(Modifier::BOLD)),
+            Span::styled("Status:     ", Style::default().add_modifier(Modifier::BOLD)),
             Span::styled(status_text, Style::default().fg(status_color).add_modifier(Modifier::BOLD)),
         ]),
         Line::from(vec![
-            Span::styled("Schema: ", Style::default().add_modifier(Modifier::BOLD)),
+            Span::styled("Schema:     ", Style::default().add_modifier(Modifier::BOLD)),
             Span::raw(&result.schema_version),
         ]),
-        Line::from(vec![
-            Span::styled("Extensions: ", Style::default().add_modifier(Modifier::BOLD)),
-            Span::raw(&ext_info),
-        ]),
-        Line::from(vec![
-            Span::styled("Errors: ", Style::default().add_modifier(Modifier::BOLD)),
-            Span::styled(
-                error_count.to_string(),
-                Style::default().fg(if error_count > 0 { Color::Red } else { Color::Green }),
-            ),
-        ]),
-        Line::from(vec![
-            Span::styled("Warnings: ", Style::default().add_modifier(Modifier::BOLD)),
-            Span::styled(
-                warning_count.to_string(),
-                Style::default().fg(if warning_count > 0 { Color::Yellow } else { Color::Green }),
-            ),
-        ]),
     ];
+
+    if result.extensions.is_empty() {
+        summary_text.push(Line::from(vec![
+            Span::styled("Extensions: ", Style::default().add_modifier(Modifier::BOLD)),
+            Span::raw("none"),
+        ]));
+    } else {
+        summary_text.push(Line::from(Span::styled(
+            "Extensions:",
+            Style::default().add_modifier(Modifier::BOLD),
+        )));
+        for (ext, _) in &result.extensions {
+            let ext_name = ext.rsplit('/').next().unwrap_or(ext);
+            let display = if ext.contains('/') {
+                format!("  • .../{}",  ext_name)
+            } else {
+                format!("  • {}", ext_name)
+            };
+            summary_text.push(Line::from(Span::raw(display)));
+        }
+    }
+
+    summary_text.push(Line::from(vec![
+        Span::styled("Errors:     ", Style::default().add_modifier(Modifier::BOLD)),
+        Span::styled(
+            error_count.to_string(),
+            Style::default().fg(if error_count > 0 { Color::Red } else { Color::Green }),
+        ),
+    ]));
+    summary_text.push(Line::from(vec![
+        Span::styled("Warnings:   ", Style::default().add_modifier(Modifier::BOLD)),
+        Span::styled(
+            warning_count.to_string(),
+            Style::default().fg(if warning_count > 0 { Color::Yellow } else { Color::Green }),
+        ),
+    ]));
 
     let summary = Paragraph::new(summary_text)
         .block(

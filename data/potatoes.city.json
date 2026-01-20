@@ -1,18 +1,18 @@
 {
   "type": "CityJSON",
-  "version": "1.1",
+  "version": "2.0",
   "extensions": {
     "Noise": {
-      "url" : "https://someurl.org/potato.ext.json",
+      "url": "https://raw.githubusercontent.com/cityjson/specs/refs/heads/main/extensions/20/potato.ext.json",
       "version": "1.0"
     }
   },
   "CityObjects": {
     "un": {
-      "type": "+Potato", 
+      "type": "+Potato",
       "geometry": [],
-      "attributes": { 
-        "storeysAboveGround": 2      
+      "attributes": {
+        "storeysAboveGround": 2
       }
     }
   },
