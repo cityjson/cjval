@@ -142,6 +142,10 @@ impl ValSummary {
         self.errors.push(e);
         self.set_validity(false);
     }
+    /// Returns a reference to the list of errors
+    pub fn get_errors(&self) -> &Vec<String> {
+        &self.errors
+    }
 }
 
 impl fmt::Display for ValSummary {
