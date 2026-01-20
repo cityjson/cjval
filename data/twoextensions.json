@@ -1,0 +1,28 @@
+{
+  "type": "CityJSON",
+  "version": "2.0",
+  "extensions": {
+    "Noise": {
+      "url": "https://raw.githubusercontent.com/cityjson/specs/refs/heads/main/extensions/20/noise.ext.json",
+      "version": "1.0"
+    },
+    "Potatoe": {
+      "url": "https://raw.githubusercontent.com/cityjson/specs/refs/heads/main/extensions/20/potato.ext.json",
+      "version": "1.0"
+    }
+  },
+  "CityObjects": {
+    "un": {
+      "type": "+Potato",
+      "geometry": [],
+      "attributes": {
+        "storeysAboveGround": 2
+      }
+    }
+  },
+  "vertices": [],
+  "transform": {
+    "scale": [0.0, 0.0, 0.0],
+    "translate": [1.0, 1.0, 1.0]
+  }
+}
