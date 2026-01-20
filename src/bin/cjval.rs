@@ -97,10 +97,7 @@ fn main() {
     }
 }
 
-fn validate_cityjson_file(
-    ifile: &PathBuf,
-    extpaths: &Vec<PathBuf>,
-) -> Result<ValidationResult> {
+fn validate_cityjson_file(ifile: &PathBuf, extpaths: &Vec<PathBuf>) -> Result<ValidationResult> {
     let p1 = ifile.canonicalize()?;
     let s1 = std::fs::read_to_string(&p1)?;
 
@@ -221,9 +218,10 @@ fn ui(frame: &mut Frame, result: &ValidationResult) {
         .split(frame.area());
 
     // Header
-    let header = Paragraph::new(Line::from(vec![
-        Span::styled(&result.file_path, Style::default().fg(Color::White)),
-    ]))
+    let header = Paragraph::new(Line::from(vec![Span::styled(
+        &result.file_path,
+        Style::default().fg(Color::White),
+    )]))
     .block(Block::default().borders(Borders::ALL).title("cjval"));
     frame.render_widget(header, main_layout[0]);
 
@@ -242,11 +240,26 @@ fn ui(frame: &mut Frame, result: &ValidationResult) {
     // Footer
     let footer = Paragraph::new(Line::from(vec![
         Span::styled("Press ", Style::default().fg(Color::DarkGray)),
-        Span::styled("q", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+        Span::styled(
+            "q",
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        ),
         Span::styled(", ", Style::default().fg(Color::DarkGray)),
-        Span::styled("Esc", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+        Span::styled(
+            "Esc",
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        ),
         Span::styled(", or ", Style::default().fg(Color::DarkGray)),
-        Span::styled("Enter", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+        Span::styled(
+            "Enter",
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        ),
         Span::styled(" to exit", Style::default().fg(Color::DarkGray)),
     ]));
     frame.render_widget(footer, main_layout[3]);
@@ -264,18 +277,32 @@ fn render_summary(frame: &mut Frame, area: Rect, result: &ValidationResult) {
 
     let mut summary_text = vec![
         Line::from(vec![
-            Span::styled("Status:     ", Style::default().add_modifier(Modifier::BOLD)),
-            Span::styled(status_text, Style::default().fg(status_color).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                "Status:     ",
+                Style::default().add_modifier(Modifier::BOLD),
+            ),
+            Span::styled(
+                status_text,
+                Style::default()
+                    .fg(status_color)
+                    .add_modifier(Modifier::BOLD),
+            ),
         ]),
         Line::from(vec![
-            Span::styled("Schema:     ", Style::default().add_modifier(Modifier::BOLD)),
+            Span::styled(
+                "Schema:     ",
+                Style::default().add_modifier(Modifier::BOLD),
+            ),
             Span::raw(&result.schema_version),
         ]),
     ];
 
     if result.extensions.is_empty() {
         summary_text.push(Line::from(vec![
-            Span::styled("Extensions: ", Style::default().add_modifier(Modifier::BOLD)),
+            Span::styled(
+                "Extensions: ",
+                Style::default().add_modifier(Modifier::BOLD),
+            ),
             Span::raw("none"),
         ]));
     } else {
@@ -286,7 +313,7 @@ fn render_summary(frame: &mut Frame, area: Rect, result: &ValidationResult) {
         for (ext, _) in &result.extensions {
             let ext_name = ext.rsplit('/').next().unwrap_or(ext);
             let display = if ext.contains('/') {
-                format!("  • .../{}",  ext_name)
+                format!("  • .../{}", ext_name)
             } else {
                 format!("  • {}", ext_name)
             };
@@ -295,17 +322,31 @@ fn render_summary(frame: &mut Frame, area: Rect, result: &ValidationResult) {
     }
 
     summary_text.push(Line::from(vec![
-        Span::styled("Errors:     ", Style::default().add_modifier(Modifier::BOLD)),
+        Span::styled(
+            "Errors:     ",
+            Style::default().add_modifier(Modifier::BOLD),
+        ),
         Span::styled(
             error_count.to_string(),
-            Style::default().fg(if error_count > 0 { Color::Red } else { Color::Green }),
+            Style::default().fg(if error_count > 0 {
+                Color::Red
+            } else {
+                Color::Green
+            }),
         ),
     ]));
     summary_text.push(Line::from(vec![
-        Span::styled("Warnings:   ", Style::default().add_modifier(Modifier::BOLD)),
+        Span::styled(
+            "Warnings:   ",
+            Style::default().add_modifier(Modifier::BOLD),
+        ),
         Span::styled(
             warning_count.to_string(),
-            Style::default().fg(if warning_count > 0 { Color::Yellow } else { Color::Green }),
+            Style::default().fg(if warning_count > 0 {
+                Color::Yellow
+            } else {
+                Color::Green
+            }),
         ),
     ]));
 
@@ -369,7 +410,11 @@ fn render_errors_panel(frame: &mut Frame, area: Rect, result: &ValidationResult)
         if stopped && shown_errors < total_errors {
             let remaining = total_errors - shown_errors;
             items.push(ListItem::new(Line::from(Span::styled(
-                format!("... ({} more error{})", remaining, if remaining == 1 { "" } else { "s" }),
+                format!(
+                    "... ({} more error{})",
+                    remaining,
+                    if remaining == 1 { "" } else { "s" }
+                ),
                 Style::default().fg(Color::Red).italic(),
             ))));
         }
@@ -438,7 +483,11 @@ fn render_warnings_panel(frame: &mut Frame, area: Rect, result: &ValidationResul
         if stopped && shown_warnings < total_warnings {
             let remaining = total_warnings - shown_warnings;
             items.push(ListItem::new(Line::from(Span::styled(
-                format!("... ({} more warning{})", remaining, if remaining == 1 { "" } else { "s" }),
+                format!(
+                    "... ({} more warning{})",
+                    remaining,
+                    if remaining == 1 { "" } else { "s" }
+                ),
                 Style::default().fg(Color::Yellow).italic(),
             ))));
         }
