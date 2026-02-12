@@ -37,6 +37,9 @@ use ratatui::{
 struct Cli {
     /// CityJSON input file
     inputfile: Option<PathBuf>,
+    /// Quiet mode, the TUI (with the details) is not shown
+    #[arg(short, long)]
+    quiet: bool,
     /// Read the CityJSON Extensions files locally instead of downloading them.
     /// More than one can be given.
     #[arg(short, long)]
@@ -74,13 +77,17 @@ fn main() {
                     let result = validate_cityjson_file(&ifile, &cli.extensionfiles);
                     match result {
                         Ok(vr) => {
-                            if let Err(e) = run_tui(vr) {
-                                eprintln!("TUI error: {}", e);
-                                std::process::exit(1);
+                            if cli.quiet == true {
+                                print_summary(&vr);
+                            } else {
+                                if let Err(e) = run_tui(vr) {
+                                    eprintln!("TUI error: {}", e);
+                                    std::process::exit(1);
+                                }
                             }
                         }
                         Err(e) => {
-                            eprintln!("Validation error: {}", e);
+                            eprintln!("Unknown error: {}", e);
                             std::process::exit(1);
                         }
                     }
@@ -186,22 +193,25 @@ fn run_tui(result: ValidationResult) -> Result<()> {
         }
     }
 
+    terminal.show_cursor()?;
     disable_raw_mode()?;
     execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
 
     // Print final summary to stdout after TUI closes
+    print_summary(&result);
+    std::process::exit(0);
+}
+
+fn print_summary(result: &ValidationResult) {
     match result.validity {
         Validity::Valid => {
             println!("✅ File is valid");
-            std::process::exit(0);
         }
         Validity::ValidWithWarnings => {
             println!("🟡 File is valid but has warnings");
-            std::process::exit(0);
         }
         Validity::Invalid => {
             println!("❌ File is invalid");
-            std::process::exit(1);
         }
     }
 }
