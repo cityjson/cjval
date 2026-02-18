@@ -122,14 +122,14 @@ fn validate_cityjson_file(ifile: &PathBuf, extpaths: &Vec<PathBuf>) -> Result<Va
     let re = fetch_extensions(&mut val, extpaths);
     match re {
         Ok(x) => {
-            for (ext, s) in x {
-                extensions.push((ext, s));
+            for (ext, d) in x {
+                extensions.push((ext, d.0));
             }
         }
         Err(x) => {
-            for (ext, s) in x {
-                if s != "ok" {
-                    ext_errors.push(format!("{}: {}", ext, s));
+            for (ext, d) in x {
+                if !d.1.is_empty() {
+                    ext_errors.push(format!("{}: {}", ext, d.1));
                 }
             }
         }
@@ -320,13 +320,8 @@ fn render_summary(frame: &mut Frame, area: Rect, result: &ValidationResult) {
             "Extensions:",
             Style::default().add_modifier(Modifier::BOLD),
         )));
-        for (ext, _) in &result.extensions {
-            let ext_name = ext.rsplit('/').next().unwrap_or(ext);
-            let display = if ext.contains('/') {
-                format!("  • .../{}", ext_name)
-            } else {
-                format!("  • {}", ext_name)
-            };
+        for (name, ext) in &result.extensions {
+            let display = format!("  [{}]\t{}", name, ext);
             summary_text.push(Line::from(Span::raw(display)));
         }
     }
@@ -583,8 +578,8 @@ fn process_cjseq_stream(extpaths: &Vec<PathBuf>) {
                 Err(e) => {
                     finalresult = -1;
                     let mut s = String::from("");
-                    for (_ext, s2) in &e {
-                        s = s + " | " + s2;
+                    for (_ext, d) in &e {
+                        s = s + " | " + &d.1;
                     }
                     println!("{}\t❌\t[1st-line for metadata]\t{}", i + 1, s);
                 }
@@ -651,41 +646,44 @@ fn process_cjseq_stream(extpaths: &Vec<PathBuf>) {
 fn fetch_extensions(
     val: &mut CJValidator,
     extpaths: &Vec<PathBuf>,
-) -> Result<HashMap<String, String>, HashMap<String, String>> {
+) -> Result<HashMap<String, (String, String)>, HashMap<String, (String, String)>> {
     let mut b_valid = true;
-    let mut d_errors: HashMap<String, String> = HashMap::new();
+    let mut extdetails: HashMap<String, (String, String)> = HashMap::new();
 
     if val.get_input_cityjson_version() >= 11 {
         if extpaths.len() > 0 {
-            for fext in extpaths {
-                let s = format!("{}", fext.to_str().unwrap());
-                d_errors.insert(s, "ok".to_string());
-            }
+            // for fext in extpaths {
+            // let s = format!("{}", fext.to_str().unwrap());
+            // extdetails.insert(s, "".to_string());
+            // }
             for fext in extpaths {
                 let sf = format!("{}", fext.to_str().unwrap());
+                // Extract filename without extension from the path
+                let file_name = fext
+                    .file_stem()
+                    .and_then(|s| s.to_str())
+                    .unwrap_or_else(|| fext.to_str().unwrap());
                 if fext.exists() {
                     let fexts =
                         std::fs::read_to_string(&fext).expect("Couldn't read Extension file");
                     let re = val.add_one_extension_from_str(&fexts);
                     match re {
-                        Ok(_) => (),
+                        Ok(_) => {
+                            extdetails.insert(file_name.to_string(), (sf, String::new()));
+                        }
                         Err(e) => {
                             let s = format!(
                                 "Error with Extension file: {} ({})",
                                 fext.to_str().unwrap(),
                                 e
                             );
-                            if let Some(x) = d_errors.get_mut(&sf) {
-                                *x = s;
-                            }
+                            extdetails.insert(file_name.to_string(), (sf, s));
                             b_valid = false;
                         }
                     }
                 } else {
                     let s = format!("Extension file: {} doesn't exist", fext.to_str().unwrap());
-                    if let Some(x) = d_errors.get_mut(&sf) {
-                        *x = s;
-                    }
+                    extdetails.insert(file_name.to_string(), (String::new(), s));
                     b_valid = false;
                 }
             }
@@ -693,32 +691,29 @@ fn fetch_extensions(
             let re = val.get_extensions_urls();
             if re.is_some() {
                 let lexts = re.unwrap();
-                for ext in &lexts {
-                    let s = format!("{}", ext);
-                    d_errors.insert(s, "ok".to_string());
-                }
-                for ext in lexts {
-                    let s2 = format!("{}", ext);
+                // for (name, ext) in &lexts {
+                //     let s = format!("{}", ext);
+                //     extdetails.insert(s, "".to_string());
+                // }
+                for (name, ext) in lexts {
+                    let ext2 = format!("{}", ext);
                     let o = download_extension(&ext);
                     match o {
                         Ok(l) => {
                             let re = val.add_one_extension_from_str(&l);
                             match re {
-                                Ok(_) => (),
+                                Ok(_) => {
+                                    extdetails.insert(name, (ext2, "".to_string()));
+                                }
                                 Err(error) => {
                                     b_valid = false;
-                                    let s: String = format!("{}", error);
-                                    if let Some(x) = d_errors.get_mut(&s2) {
-                                        *x = s;
-                                    }
+                                    extdetails.insert(name, (ext2, format!("{}", error)));
                                 }
                             }
                         }
                         Err(error) => {
-                            let s: String = format!("{}", error);
-                            if let Some(x) = d_errors.get_mut(&s2) {
-                                *x = s;
-                            }
+                            // let s: String = format!("{}", error);
+                            extdetails.insert(name, (ext2, format!("{}", error)));
                             b_valid = false;
                         }
                     }
@@ -727,9 +722,9 @@ fn fetch_extensions(
         }
     }
     if b_valid {
-        Ok(d_errors)
+        Ok(extdetails)
     } else {
-        Err(d_errors)
+        Err(extdetails)
     }
 }
 

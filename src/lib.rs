@@ -578,13 +578,16 @@ impl CJValidator {
         return vsum;
     }
 
-    pub fn get_extensions_urls(&self) -> Option<Vec<String>> {
-        let mut re: Vec<String> = Vec::new();
+    pub fn get_extensions_urls(&self) -> Option<HashMap<String, String>> {
+        let mut re: HashMap<String, String> = HashMap::new();
         let v = self.j.as_object().unwrap();
         if v.contains_key("extensions") {
             let exts = self.j.get("extensions").unwrap().as_object().unwrap();
             for key in exts.keys() {
-                re.push(exts[key]["url"].as_str().unwrap().to_string());
+                re.insert(
+                    key.to_string(),
+                    exts[key]["url"].as_str().unwrap().to_string(),
+                );
             }
         }
         if re.is_empty() {
