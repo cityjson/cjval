@@ -1096,14 +1096,19 @@ impl CJValidator {
             }
         }
         // println!("{:?}", ls_plusattrs);
+        // println!("{:?}", self.jexts);
         for each in ls_plusattrs {
+            let mut found = false;
             for jext in &self.jexts {
                 let s = format!("/extraAttributes/{}", each);
-                let re = jext.pointer(s.as_str());
-                if re.is_none() {
-                    let s: String = format!("Attribute '{}' doesn't have a schema", each);
-                    ls_errors.push(s);
+                if jext.pointer(s.as_str()).is_some() {
+                    found = true;
+                    break;
                 }
+            }
+            if !found {
+                let s: String = format!("Attribute '{}' doesn't have a schema", each);
+                ls_errors.push(s);
             }
         }
         if ls_errors.is_empty() {

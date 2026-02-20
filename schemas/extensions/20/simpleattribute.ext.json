@@ -1,0 +1,18 @@
+{
+  "type": "CityJSONExtension",
+  "name": "SimpleAttribute",
+  "uri": "",
+  "version": "1.0",
+  "versionCityJSON": "2.0",
+  "description": "",
+  "extraRootProperties": {},
+  "extraAttributes": {
+    "Building": {
+      "+building-type": {
+        "enum": ["residential", "school", "commercial"]
+      }
+    }
+  },
+  "extraSemanticSurfaces": {},
+  "extraCityObjects": {}
+}
