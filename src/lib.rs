@@ -8,11 +8,11 @@
 //! The following error checks are performed:
 //!
 //!   1. *JSON syntax*: is it a valid JSON object?
-//!   1. *CityJSON schemas*: validation against the schemas (CityJSON v1.0 + v1.1 + v2.0)
+//!   1. *CityJSON schemas*: validation against the schemas (CityJSON v1.0, v1.1, and v2.0)
 //!   1. *Extension schemas*: validate against the extra schemas if there's an [Extension](https://www.cityjson.org/extensions/) (those are automatically fetched from a URL)
 //!   1. *parents_children_consistency*: if a City Object references another in its `"children"`, this ensures that the child exists. And that the child has the parent in its `"parents"`
 //!   1. *wrong_vertex_index*: checks if all vertex indices exist in the list of vertices
-//!   1. *semantics_array*: checks if the arrays for the semantics in the geometries have the same shape as that of the geometry and if the values are consistent
+//!   1. *semantics_arrays*: checks if the arrays for the semantics in the geometries have the same shape as that of the geometry and if the values are consistent
 //!   1. *textures*: checks if the arrays for the textures are coherent (if the vertices exist + if the texture  exists)
 //!   1. *materials*: checks if the arrays for the materials are coherent with the geometry objects and if the material exists
 //!
