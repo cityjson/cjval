@@ -1,5 +1,3 @@
-use std::slice::GetDisjointMutError;
-
 use crate::cjval::CJValidator;
 use cjval;
 
