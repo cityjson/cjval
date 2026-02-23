@@ -1,6 +1,15 @@
 # Changelog
 
 
+## [0.9.0] - 2026-XX-XX
+### Added
+- TUI (terminal user interface) output using ratatui
+- `--quiet` option to suppress output
+- unit tests for Extensions with semantic surfaces and attributes
+### Modified
+- fix a bug where attributes starting with "+" were not reported as errors when no Extension schema was provided
+- the name of Extensions is now kept and displayed in the output
+
 ## [0.8.4] - 2025-12-24
 ### Modified
 - fix a bug where cjval crashed the input file has an Extension and some of the properties were in non-ascii char, eg japanese
@@ -93,6 +102,7 @@
 
 
 
+[0.9.0]: https://github.com/hugoledoux/cjval/compare/0.8.4...0.9.0
 [0.8.4]: https://github.com/hugoledoux/cjval/compare/0.8.3...0.8.4
 [0.8.3]: https://github.com/hugoledoux/cjval/compare/0.8.2...0.8.3
 [0.8.2]: https://github.com/hugoledoux/cjval/compare/0.8.1...0.8.2
