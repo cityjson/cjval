@@ -148,7 +148,7 @@ fn cjfeature_valid() {
 }
 
 #[test]
-fn cjfeature_invalid() {
+fn cjfeature_a_few_cases() {
     let mut j = get_first_line();
     let mut v: CJValidator = CJValidator::from_str(&j.to_string());
     let mut re = v.validate();
@@ -158,6 +158,18 @@ fn cjfeature_invalid() {
     let _ = v.from_str_cjfeature(&j.to_string());
     re = v.validate();
     assert!(re["schema"].is_valid());
+
+    //-- this is valid as other root properties are valid
+    j["version2"] = json!("2.0");
+    let _ = v.from_str_cjfeature(&j.to_string());
+    re = v.validate();
+    assert!(re["schema"].is_valid());
+
+    //-- this is invalid, "version" is not allowe
+    j["version"] = json!("2.0");
+    let _ = v.from_str_cjfeature(&j.to_string());
+    re = v.validate();
+    assert!(!re["schema"].is_valid());
 
     *j.pointer_mut("/CityObjects/id-1/geometry/0/lod").unwrap() = json!("1.5");
     let _ = v.from_str_cjfeature(&j.to_string());
