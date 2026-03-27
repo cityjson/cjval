@@ -1,19 +1,15 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://www.cityjson.org/schemas/2.0.1/cityjson.schema.json",
-  "title": "CityJSON v2.0.1",
-  "description": "CityJSON specifications v2.0.1",
+  "$id": "https://www.cityjson.org/schemas/2.0.2/cityjson.schema.json",
+  "title": "CityJSON v2.0.2",
+  "description": "CityJSON specifications v2.0.2",
   "type": "object",
   "properties": {
     "type": {
-      "enum": [
-        "CityJSON"
-      ]
+      "const": "CityJSON"
     },
     "version": {
-      "enum": [
-        "2.0"
-      ]
+      "const": "2.0"
     },
     "metadata": {
       "type": "object",
@@ -30,7 +26,7 @@
           },
           "version": {
             "type": "string",
-            "pattern": "^(\\d+\\.)(\\d+)$"
+            "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:\\.(0|[1-9]\\d*))?$"
           }
         },
         "required": [

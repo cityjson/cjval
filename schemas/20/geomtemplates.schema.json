@@ -1,14 +1,12 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://www.cityjson.org/schemas/2.0.1/geomtemplates.schema.json",
-  "title": "CityJSON geometry templates schema v2.0.1",
+  "$id": "https://www.cityjson.org/schemas/2.0.2/geomtemplates.schema.json",
+  "title": "CityJSON geometry templates schema v2.0.2",
   "GeometryInstance": {
     "type": "object",
     "properties": {
       "type": {
-        "enum": [
-          "GeometryInstance"
-        ]
+        "const": "GeometryInstance"
       },
       "template": {
         "type": "integer"
