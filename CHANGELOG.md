@@ -1,14 +1,15 @@
 # Changelog
 
 
-## [0.9.0] - 2026-XX-XX
+## [0.9.0] - 2026-03-27
 ### Added
 - TUI (terminal user interface) output using ratatui
-- `--quiet` option to suppress output
+- `--quiet` option to suppress TUI output and just get the valid/invalid
 - unit tests for Extensions with semantic surfaces and attributes
 ### Modified
 - fix a bug where attributes starting with "+" were not reported as errors when no Extension schema was provided
 - the name of Extensions is now kept and displayed in the output
+- schemas upgraded to latest v2.0.2
 
 ## [0.8.4] - 2025-12-24
 ### Modified
