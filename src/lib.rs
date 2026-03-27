@@ -31,11 +31,11 @@
 //!
 //! ## Example use
 //!
-//! ```rust
+//! ```rust,no_run
 //! extern crate cjval;
 //!
 //! fn main() {
-//!     let s1 = std::fs::read_to_string("/Users/hugo/projects/cjval/data/cube.city.json")
+//!     let s1 = std::fs::read_to_string("./data/cube.city.json")
 //!         .expect("Couldn't read CityJSON file");
 //!     let v = cjval::CJValidator::from_str(&s1);
 //!     let re = v.validate();
@@ -635,6 +635,7 @@ impl CJValidator {
         self.version_schema.to_owned()
     }
 
+
     fn schema(&self) -> Result<(), Vec<String>> {
         let mut ls_errors: Vec<String> = Vec::new();
         //-- if type == CityJSON
@@ -808,7 +809,10 @@ impl CJValidator {
                             compiled.validate(&self.j["CityObjects"][oneco]["attributes"][eatt]);
                         if let Err(errors) = result {
                             for error in errors {
-                                let s: String = format!("{} [path:{}]", error, error.instance_path);
+                                let s: String = format!(
+                                    "/CityObjects/{}/{} -- {} [path:{}]",
+                                    oneco, eatt, error, error.instance_path
+                                );
                                 ls_errors.push(s);
                             }
                         }
@@ -869,8 +873,10 @@ impl CJValidator {
                                     );
                                     if let Err(errors) = result {
                                         for error in errors {
-                                            let s: String =
-                                                format!("{} [path:{}]", error, error.instance_path);
+                                            let s: String = format!(
+                                                "/CityObjects/{} -- {} [path:{}]",
+                                                key, error, error.instance_path
+                                            );
                                             ls_errors.push(s);
                                         }
                                     }
@@ -1060,8 +1066,10 @@ impl CJValidator {
                             if thetype.chars().next() == Some('+')
                                 && newss.contains(&thetype) == false
                             {
-                                let s: String =
-                                    format!("Semantic Surface '{}' doesn't have a schema", thetype);
+                                let s: String = format!(
+                                    "/CityObjects/{} -- Semantic Surface '{}' doesn't have a schema",
+                                    key, thetype
+                                );
                                 ls_errors.push(s);
                             }
                         }
@@ -1133,7 +1141,10 @@ impl CJValidator {
             let tmp = cos.get(co).unwrap().as_object().unwrap();
             let thetype = tmp["type"].as_str().unwrap().to_string();
             if thetype.chars().next() == Some('+') && newcos.contains(&thetype) == false {
-                let s: String = format!("CityObject '{}' doesn't have a schema", thetype);
+                let s: String = format!(
+                    "/CityObjects/{} -- CityObject '{}' doesn't have a schema",
+                    co, thetype
+                );
                 ls_errors.push(s);
             }
         }
