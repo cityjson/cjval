@@ -60,12 +60,12 @@ The code is used at [https://validator.cityjson.org](https://validator.cityjson.
 The [CityJSON schemas](https://www.cityjson.org/schemas/) are packaged with the binary, so it suffices to:
   
 ```sh
-cjval myfile.city.json --verbose
+cjval myfile.city.json 
 ```
 
 (the latest schemas of a X.Y version will be automatically fetched)
 
-`--verbose` is used to get a detailed report per error check.
+`--quiet` to suppress the TUI (graphical summary)
 
 If the file contains one or more [Extensions](https://www.cityjson.org/extensions/), eg:
 
@@ -75,10 +75,10 @@ If the file contains one or more [Extensions](https://www.cityjson.org/extension
   "version": "2.0",
   "extensions":
   {
-    "Potato":
+    "shed":
     {
-      "url": "https://www.cityjson.org/extensions/potato.ext.json",
-      "version": "1.0"
+      "url": "https://cityjson.github.io/extensions/shed/0.1.1/shed.ext.json",
+      "version": "0.1.1"
     }
   }
 ...  
@@ -89,7 +89,7 @@ then `cjval` will download the Extension schema files automatically.
 If instead you want to use your own local Extension schema(s), you can pass them as arguments with the `-e` flag to overwrite the automatic download:
 
 ```sh
-cjval myfile.city.json -e ./myextensions/generic.ext.json
+cjval myfile.city.json -e ./myextensions/shed.ext.json
 ```
 
 ### For CityJSONSeq
