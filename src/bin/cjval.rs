@@ -518,8 +518,10 @@ fn process_cjseq_stream(extpaths: &Vec<PathBuf>) {
     let mut b_metadata = false;
     let mut val = CJValidator::from_str("{}");
     let stdin = std::io::stdin();
-    let mut finalresult: i8 = 1;
     let mut linetotal: u64 = 0;
+    let mut count_valid: u64 = 0;
+    let mut count_warnings: u64 = 0;
+    let mut count_invalid: u64 = 0;
 
     for (i, line) in stdin.lock().lines().enumerate() {
         let l = line.unwrap();
@@ -535,7 +537,6 @@ fn process_cjseq_stream(extpaths: &Vec<PathBuf>) {
                     i + 1,
                     "ERROR: 1st line should be a CityJSON object, see https://www.cityjson.org/cityjsonseq/"
                 );
-                finalresult = -1;
                 break;
             }
             if !val.is_empty_cityjson() {
@@ -544,7 +545,6 @@ fn process_cjseq_stream(extpaths: &Vec<PathBuf>) {
                     i + 1,
                     "ERROR: 1st line should be an CityJSON object with empty \"CityObjects\" and \"vertices\", see https://www.cityjson.org/cityjsonseq/"
                 );
-                finalresult = -1;
                 break;
             }
             let re = fetch_extensions(&mut val, extpaths);
@@ -554,10 +554,11 @@ fn process_cjseq_stream(extpaths: &Vec<PathBuf>) {
                     let status = get_status(&valsumm);
                     match status {
                         1 => {
+                            count_valid += 1;
                             println!("{}\t✅\t[1st-line for metadata]", i + 1);
                         }
                         0 => {
-                            finalresult = 0;
+                            count_warnings += 1;
                             println!(
                                 "{}\t🟡\t[1st-line for metadata]\t{}",
                                 i + 1,
@@ -565,7 +566,7 @@ fn process_cjseq_stream(extpaths: &Vec<PathBuf>) {
                             );
                         }
                         -1 => {
-                            finalresult = -1;
+                            count_invalid += 1;
                             println!(
                                 "{}\t❌\t[1st-line for metadata]\t{}",
                                 i + 1,
@@ -576,7 +577,7 @@ fn process_cjseq_stream(extpaths: &Vec<PathBuf>) {
                     }
                 }
                 Err(e) => {
-                    finalresult = -1;
+                    count_invalid += 1;
                     let mut s = String::from("");
                     for (_ext, d) in &e {
                         s = s + " | " + &d.1;
@@ -593,12 +594,11 @@ fn process_cjseq_stream(extpaths: &Vec<PathBuf>) {
                     let status = get_status(&valsumm);
                     match status {
                         1 => {
+                            count_valid += 1;
                             println!("{}\t✅\t[{}]", i + 1, val.get_cjseq_feature_id());
                         }
                         0 => {
-                            if finalresult == 1 {
-                                finalresult = 0;
-                            }
+                            count_warnings += 1;
                             println!(
                                 "{}\t🟡\t[{}]\t{}",
                                 i + 1,
@@ -607,7 +607,7 @@ fn process_cjseq_stream(extpaths: &Vec<PathBuf>) {
                             );
                         }
                         -1 => {
-                            finalresult = -1;
+                            count_invalid += 1;
                             println!(
                                 "{}\t❌\t[{}]\t{}",
                                 i + 1,
@@ -619,7 +619,7 @@ fn process_cjseq_stream(extpaths: &Vec<PathBuf>) {
                     }
                 }
                 Err(e) => {
-                    finalresult = -1;
+                    count_invalid += 1;
                     println!(
                         "{}\t❌\t[{}]\t{}",
                         i + 1,
@@ -633,13 +633,9 @@ fn process_cjseq_stream(extpaths: &Vec<PathBuf>) {
     println!("\n");
     println!("============= SUMMARY =============");
     println!("Total lines: {:?}", linetotal);
-    if finalresult == -1 {
-        println!("❌ CityJSONSeq has invalid objects");
-    } else if finalresult == 0 {
-        println!("🟡 CityJSONSeq is valid but has warnings");
-    } else {
-        println!("✅ CityJSONSeq is valid");
-    }
+    println!("✅ valid:    {}/{}", count_valid, linetotal);
+    println!("🟡 warnings: {}/{}", count_warnings, linetotal);
+    println!("❌ invalid:  {}/{}", count_invalid, linetotal);
     println!("===================================");
 }
 
