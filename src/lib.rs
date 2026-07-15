@@ -91,11 +91,13 @@ static EXTENSION_FIXED_NAMES: [&str; 6] = [
 /// Summary of a validation. It is possible that a validation check has not
 /// been performed because other checks returned errors (we do not want to
 /// have cascading errors).
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct ValSummary {
-    status: Option<bool>,
-    errors: Vec<String>,
-    warning: bool,
+    #[serde(rename = "valid")]
+    pub status: Option<bool>,
+    pub errors: Vec<String>,
+    #[serde(skip)]
+    pub warning: bool,
 }
 
 impl ValSummary {
@@ -162,6 +164,26 @@ impl fmt::Display for ValSummary {
         }
         Ok(())
     }
+}
+
+/// Groups errors and warnings from a validation run.
+#[derive(Serialize)]
+pub struct CheckResults {
+    pub errors: IndexMap<String, ValSummary>,
+    pub warnings: IndexMap<String, ValSummary>,
+}
+
+/// A serializable report of a full validation run.
+#[derive(Serialize)]
+pub struct CJReport {
+    #[serde(rename = "type")]
+    pub report_type: String,
+    pub cjval_version: String,
+    pub file: String,
+    pub timestamp: String,
+    pub valid: bool,
+    pub has_warnings: bool,
+    pub checks: CheckResults,
 }
 
 static CITYJSON_V10_VERSION: &str = "1.0.3";
@@ -391,6 +413,55 @@ impl CJValidator {
             return false;
         }
         true
+    }
+
+    /// Returns a serializable report of all validation checks.
+    pub fn get_report(&self, file: &str) -> CJReport {
+        let categories = self.validate();
+        let mut has_errors = false;
+        let mut has_warnings = false;
+        let mut errors_map = IndexMap::new();
+        let mut warnings_map = IndexMap::new();
+        let warning_keys = [
+            "extra_root_properties",
+            "duplicate_vertices",
+            "unused_vertices",
+        ];
+        for (key, summ) in categories {
+            if summ.has_errors() {
+                if summ.warning {
+                    has_warnings = true;
+                } else {
+                    has_errors = true;
+                }
+            }
+            if warning_keys.contains(&key.as_str()) {
+                warnings_map.insert(key, summ);
+            } else {
+                errors_map.insert(key, summ);
+            }
+        }
+        let fmt = time::format_description::parse(
+            "[year]-[month]-[day]T[hour]:[minute]:[second][offset_hour sign:mandatory]:[offset_minute]",
+        )
+        .unwrap();
+        let offset = time::UtcOffset::current_local_offset().unwrap();
+        let timestamp = time::OffsetDateTime::now_utc()
+            .to_offset(offset)
+            .format(&fmt)
+            .unwrap();
+        CJReport {
+            report_type: "cjval_report".to_string(),
+            cjval_version: env!("CARGO_PKG_VERSION").to_string(),
+            file: file.to_string(),
+            timestamp,
+            valid: !has_errors,
+            has_warnings,
+            checks: CheckResults {
+                errors: errors_map,
+                warnings: warnings_map,
+            },
+        }
     }
 
     /// The function to performs all the checks (errors+warnings).
@@ -634,7 +705,6 @@ impl CJValidator {
     pub fn get_cityjson_schema_version(&self) -> String {
         self.version_schema.to_owned()
     }
-
 
     fn schema(&self) -> Result<(), Vec<String>> {
         let mut ls_errors: Vec<String> = Vec::new();

@@ -1,3 +1,5 @@
+use cjval::CheckResults;
+use cjval::CJReport;
 use cjval::CJValidator;
 use cjval::ValSummary;
 use indexmap::IndexMap;
@@ -37,13 +39,16 @@ use ratatui::{
 struct Cli {
     /// CityJSON input file
     inputfile: Option<PathBuf>,
-    /// Quiet mode, the TUI (with the details) is not shown
+    /// Output a one-line summary (suppresses the TUI).
     #[arg(short, long)]
-    quiet: bool,
+    summary: bool,
     /// Read the CityJSON Extensions files locally instead of downloading them.
     /// More than one can be given.
     #[arg(short, long)]
     extensionfiles: Vec<PathBuf>,
+    /// Output a JSON report to stdout (suppresses the TUI).
+    #[arg(short, long)]
+    report: bool,
 }
 
 struct ValidationResult {
@@ -74,10 +79,20 @@ fn main() {
             let fext = ifile.extension().unwrap().to_str().unwrap();
             match fext {
                 "json" | "JSON" => {
+                    if cli.report {
+                        let p1 = ifile.canonicalize().unwrap();
+                        let s1 = std::fs::read_to_string(&p1).unwrap();
+                        let mut val = CJValidator::from_str(&s1);
+                        let _ = fetch_extensions(&mut val, &cli.extensionfiles);
+                        let file_name = ifile.file_name().unwrap().to_str().unwrap();
+                        let report = val.get_report(file_name);
+                        println!("{}", serde_json::to_string_pretty(&report).unwrap());
+                        std::process::exit(0);
+                    }
                     let result = validate_cityjson_file(&ifile, &cli.extensionfiles);
                     match result {
                         Ok(vr) => {
-                            if cli.quiet == true {
+                            if cli.summary == true {
                                 print_summary(&vr);
                             } else {
                                 if let Err(e) = run_tui(vr) {
@@ -99,7 +114,7 @@ fn main() {
             }
         }
         None => {
-            process_cjseq_stream(&cli.extensionfiles);
+            process_cjseq_stream(&cli.extensionfiles, cli.report);
         }
     }
 }
@@ -514,7 +529,7 @@ fn render_warnings_panel(frame: &mut Frame, area: Rect, result: &ValidationResul
 }
 
 // Stream processing for CityJSONSeq
-fn process_cjseq_stream(extpaths: &Vec<PathBuf>) {
+fn process_cjseq_stream(extpaths: &Vec<PathBuf>, report_mode: bool) {
     let mut b_metadata = false;
     let mut val = CJValidator::from_str("{}");
     let stdin = std::io::stdin();
@@ -532,57 +547,147 @@ fn process_cjseq_stream(extpaths: &Vec<PathBuf>) {
         if !b_metadata {
             val = CJValidator::from_str(&l);
             if !val.is_cityjson() {
-                println!(
-                    "{}\t❌\t[1st-line for metadata]\t{}",
-                    i + 1,
-                    "ERROR: 1st line should be a CityJSON object, see https://www.cityjson.org/cityjsonseq/"
-                );
+                if report_mode {
+                    let report = CJReport {
+                        report_type: "cjval_report".to_string(),
+                        cjval_version: env!("CARGO_PKG_VERSION").to_string(),
+                        file: format!("line-{}", i + 1),
+                        timestamp: {
+                            let fmt = time::format_description::parse(
+                                "[year]-[month]-[day]T[hour]:[minute]:[second][offset_hour sign:mandatory]:[offset_minute]",
+                            )
+                            .unwrap();
+                            let offset = time::UtcOffset::current_local_offset().unwrap();
+                            time::OffsetDateTime::now_utc()
+                                .to_offset(offset)
+                                .format(&fmt)
+                                .unwrap()
+                        },
+                        valid: false,
+                        has_warnings: false,
+                        checks: CheckResults {
+                            errors: indexmap::IndexMap::new(),
+                            warnings: indexmap::IndexMap::new(),
+                        },
+                    };
+                    println!("{}", serde_json::to_string(&report).unwrap());
+                } else {
+                    println!(
+                        "{}\t❌\t[1st-line for metadata]\t{}",
+                        i + 1,
+                        "ERROR: 1st line should be a CityJSON object, see https://www.cityjson.org/cityjsonseq/"
+                    );
+                }
                 break;
             }
             if !val.is_empty_cityjson() {
-                println!(
-                    "{}\t❌\t[1st-line for metadata]\t{}",
-                    i + 1,
-                    "ERROR: 1st line should be an CityJSON object with empty \"CityObjects\" and \"vertices\", see https://www.cityjson.org/cityjsonseq/"
-                );
+                if report_mode {
+                    let report = CJReport {
+                        report_type: "cjval_report".to_string(),
+                        cjval_version: env!("CARGO_PKG_VERSION").to_string(),
+                        file: format!("line-{}", i + 1),
+                        timestamp: {
+                            let fmt = time::format_description::parse(
+                                "[year]-[month]-[day]T[hour]:[minute]:[second][offset_hour sign:mandatory]:[offset_minute]",
+                            )
+                            .unwrap();
+                            let offset = time::UtcOffset::current_local_offset().unwrap();
+                            time::OffsetDateTime::now_utc()
+                                .to_offset(offset)
+                                .format(&fmt)
+                                .unwrap()
+                        },
+                        valid: false,
+                        has_warnings: false,
+                        checks: CheckResults {
+                            errors: indexmap::IndexMap::new(),
+                            warnings: indexmap::IndexMap::new(),
+                        },
+                    };
+                    println!("{}", serde_json::to_string(&report).unwrap());
+                } else {
+                    println!(
+                        "{}\t❌\t[1st-line for metadata]\t{}",
+                        i + 1,
+                        "ERROR: 1st line should be an CityJSON object with empty \"CityObjects\" and \"vertices\", see https://www.cityjson.org/cityjsonseq/"
+                    );
+                }
                 break;
             }
             let re = fetch_extensions(&mut val, extpaths);
             match re {
                 Ok(_) => {
-                    let valsumm = val.validate();
-                    let status = get_status(&valsumm);
-                    match status {
-                        1 => {
+                    if report_mode {
+                        let report = val.get_report("[metadata]");
+                        if report.valid && !report.has_warnings {
                             count_valid += 1;
-                            println!("{}\t✅\t[1st-line for metadata]", i + 1);
-                        }
-                        0 => {
+                        } else if report.valid && report.has_warnings {
                             count_warnings += 1;
-                            println!(
-                                "{}\t🟡\t[1st-line for metadata]\t{}",
-                                i + 1,
-                                get_errors_string(&valsumm)
-                            );
-                        }
-                        -1 => {
+                        } else {
                             count_invalid += 1;
-                            println!(
-                                "{}\t❌\t[1st-line for metadata]\t{}",
-                                i + 1,
-                                get_errors_string(&valsumm)
-                            );
                         }
-                        _ => (),
+                        println!("{}", serde_json::to_string(&report).unwrap());
+                    } else {
+                        let valsumm = val.validate();
+                        let status = get_status(&valsumm);
+                        match status {
+                            1 => {
+                                count_valid += 1;
+                                println!("{}\t✅\t[1st-line for metadata]", i + 1);
+                            }
+                            0 => {
+                                count_warnings += 1;
+                                println!(
+                                    "{}\t🟡\t[1st-line for metadata]\t{}",
+                                    i + 1,
+                                    get_errors_string(&valsumm)
+                                );
+                            }
+                            -1 => {
+                                count_invalid += 1;
+                                println!(
+                                    "{}\t❌\t[1st-line for metadata]\t{}",
+                                    i + 1,
+                                    get_errors_string(&valsumm)
+                                );
+                            }
+                            _ => (),
+                        }
                     }
                 }
                 Err(e) => {
                     count_invalid += 1;
-                    let mut s = String::from("");
-                    for (_ext, d) in &e {
-                        s = s + " | " + &d.1;
+                    if report_mode {
+                        let report = CJReport {
+                            report_type: "cjval_report".to_string(),
+                        cjval_version: env!("CARGO_PKG_VERSION").to_string(),
+                            file: "[metadata]".to_string(),
+                            timestamp: {
+                                let fmt = time::format_description::parse(
+                                    "[year]-[month]-[day]T[hour]:[minute]:[second][offset_hour sign:mandatory]:[offset_minute]",
+                                )
+                                .unwrap();
+                                let offset = time::UtcOffset::current_local_offset().unwrap();
+                                time::OffsetDateTime::now_utc()
+                                    .to_offset(offset)
+                                    .format(&fmt)
+                                    .unwrap()
+                            },
+                            valid: false,
+                            has_warnings: false,
+                            checks: CheckResults {
+                                errors: indexmap::IndexMap::new(),
+                                warnings: indexmap::IndexMap::new(),
+                            },
+                        };
+                        println!("{}", serde_json::to_string(&report).unwrap());
+                    } else {
+                        let mut s = String::from("");
+                        for (_ext, d) in &e {
+                            s = s + " | " + &d.1;
+                        }
+                        println!("{}\t❌\t[1st-line for metadata]\t{}", i + 1, s);
                     }
-                    println!("{}\t❌\t[1st-line for metadata]\t{}", i + 1, s);
                 }
             }
             b_metadata = true;
@@ -590,53 +695,94 @@ fn process_cjseq_stream(extpaths: &Vec<PathBuf>) {
             let re = val.from_str_cjfeature(&l);
             match re {
                 Ok(_) => {
-                    let valsumm = val.validate();
-                    let status = get_status(&valsumm);
-                    match status {
-                        1 => {
+                    if report_mode {
+                        let fid = val.get_cjseq_feature_id();
+                        let report = val.get_report(&fid);
+                        if report.valid && !report.has_warnings {
                             count_valid += 1;
-                            println!("{}\t✅\t[{}]", i + 1, val.get_cjseq_feature_id());
-                        }
-                        0 => {
+                        } else if report.valid && report.has_warnings {
                             count_warnings += 1;
-                            println!(
-                                "{}\t🟡\t[{}]\t{}",
-                                i + 1,
-                                val.get_cjseq_feature_id(),
-                                get_errors_string(&valsumm)
-                            );
-                        }
-                        -1 => {
+                        } else {
                             count_invalid += 1;
-                            println!(
-                                "{}\t❌\t[{}]\t{}",
-                                i + 1,
-                                val.get_cjseq_feature_id(),
-                                get_errors_string(&valsumm)
-                            );
                         }
-                        _ => (),
+                        println!("{}", serde_json::to_string(&report).unwrap());
+                    } else {
+                        let valsumm = val.validate();
+                        let status = get_status(&valsumm);
+                        match status {
+                            1 => {
+                                count_valid += 1;
+                                println!("{}\t✅\t[{}]", i + 1, val.get_cjseq_feature_id());
+                            }
+                            0 => {
+                                count_warnings += 1;
+                                println!(
+                                    "{}\t🟡\t[{}]\t{}",
+                                    i + 1,
+                                    val.get_cjseq_feature_id(),
+                                    get_errors_string(&valsumm)
+                                );
+                            }
+                            -1 => {
+                                count_invalid += 1;
+                                println!(
+                                    "{}\t❌\t[{}]\t{}",
+                                    i + 1,
+                                    val.get_cjseq_feature_id(),
+                                    get_errors_string(&valsumm)
+                                );
+                            }
+                            _ => (),
+                        }
                     }
                 }
                 Err(e) => {
                     count_invalid += 1;
-                    println!(
-                        "{}\t❌\t[{}]\t{}",
-                        i + 1,
-                        val.get_cjseq_feature_id(),
-                        format!("Invalid JSON object: {:?}", e)
-                    );
+                    if report_mode {
+                        let report = CJReport {
+                            report_type: "cjval_report".to_string(),
+                        cjval_version: env!("CARGO_PKG_VERSION").to_string(),
+                            file: format!("line-{}", i + 1),
+                            timestamp: {
+                                let fmt = time::format_description::parse(
+                                    "[year]-[month]-[day]T[hour]:[minute]:[second][offset_hour sign:mandatory]:[offset_minute]",
+                                )
+                                .unwrap();
+                                let offset = time::UtcOffset::current_local_offset().unwrap();
+                                time::OffsetDateTime::now_utc()
+                                    .to_offset(offset)
+                                    .format(&fmt)
+                                    .unwrap()
+                            },
+                            valid: false,
+                            has_warnings: false,
+                            checks: CheckResults {
+                                errors: indexmap::IndexMap::new(),
+                                warnings: indexmap::IndexMap::new(),
+                            },
+                        };
+                        println!("{}", serde_json::to_string(&report).unwrap());
+                    } else {
+                        println!(
+                            "{}\t❌\t[{}]\t{}",
+                            i + 1,
+                            val.get_cjseq_feature_id(),
+                            format!("Invalid JSON object: {:?}", e)
+                        );
+                    }
                 }
             }
         }
     }
-    println!("\n");
-    println!("============= SUMMARY =============");
-    println!("Total lines: {:?}", linetotal);
-    println!("✅ valid:    {}/{}", count_valid, linetotal);
-    println!("🟡 warnings: {}/{}", count_warnings, linetotal);
-    println!("❌ invalid:  {}/{}", count_invalid, linetotal);
-    println!("===================================");
+    if !report_mode {
+        println!("\n");
+        println!("============= SUMMARY =============");
+        println!("Total lines: {:?}", linetotal);
+        println!("✅ valid:    {}/{}", count_valid, linetotal);
+        println!("🟡 warnings: {}/{}", count_warnings, linetotal);
+        println!("❌ invalid:  {}/{}", count_invalid, linetotal);
+        println!("===================================");
+    }
 }
 
 fn fetch_extensions(

@@ -65,7 +65,49 @@ cjval myfile.city.json
 
 (the latest schemas of a X.Y version will be automatically fetched)
 
-`--quiet` to suppress the TUI (graphical summary)
+`--summary` to suppress the TUI and get a one-line summary
+
+`--report` outputs a JSON report to stdout (suppresses the TUI):
+
+```sh
+cjval --report myfile.city.json > report.json
+```
+
+For CityJSONSeq, one JSON object per line is output (JSONL):
+
+```sh
+cat mystream.city.jsonl | cjval --report > report.jsonl
+```
+
+The report has the following structure:
+
+```json
+{
+  "type": "cjval_report",
+  "cjval_version": "0.9.0",
+  "file": "myfile.city.json",
+  "timestamp": "2026-07-15T14:55:06+02:00",
+  "valid": true,
+  "has_warnings": false,
+  "checks": {
+    "errors": {
+      "json_syntax":                { "valid": true, "errors": [] },
+      "schema":                     { "valid": true, "errors": [] },
+      "extensions":                 { "valid": true, "errors": [] },
+      "parents_children_consistency": { "valid": true, "errors": [] },
+      "wrong_vertex_index":         { "valid": true, "errors": [] },
+      "semantics_arrays":           { "valid": true, "errors": [] },
+      "textures":                   { "valid": true, "errors": [] },
+      "materials":                  { "valid": true, "errors": [] }
+    },
+    "warnings": {
+      "extra_root_properties":      { "valid": true, "errors": [] },
+      "duplicate_vertices":         { "valid": true, "errors": [] },
+      "unused_vertices":            { "valid": true, "errors": [] }
+    }
+  }
+}
+```
 
 If the file contains one or more [Extensions](https://www.cityjson.org/extensions/), eg:
 
