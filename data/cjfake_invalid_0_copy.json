@@ -1,0 +1,115 @@
+{
+	"type": "CityJSON",
+	"version": "1.1",
+	"transform": {
+		"scale": [1.0, 1.0, 1.0],
+		"translate": [0.0, 0.0, 0.0]
+	},
+	"CityObjects": {
+		"maiores": {
+			"type": "CityFurniture",
+			"geometry": [
+				{
+					"type": "CompositeSurface",
+					"lod": "1",
+					"boundaries": [
+						[[]],
+						[[0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0]]
+					],
+					"material": {
+						"autem": {
+							"value": 1
+						},
+						"eveniet": {
+							"value": 2
+						}
+					},
+					"texture": {
+						"autem": {
+							"values": [
+								[[null]],
+								[[0, 2, 0, 0, 0, 1], [1, null, 2, 0, 0, 0, 1], [2, 2, 2, 0, 0, 0, 2, 2, 1]]
+							]
+						}
+					}
+				}
+			],
+			"attributes": {
+				"array_bool": [true, false],
+				"array_null": [null, null],
+				"array_number": [42, 42.0],
+				"array_string": ["", "äáßüóíéöűőú"],
+				"bool": true,
+				"null": null,
+				"number_float": 42.0,
+				"number_int": 42,
+				"object": {
+					"array_bool": [true, false],
+					"array_null": [null, null],
+					"array_number": [42, 42.0],
+					"array_string": ["", "äáßüóíéöűőú"],
+					"bool": true,
+					"null": null,
+					"number_float": 42.0,
+					"number_int": 42,
+					"string": "äáßüóíéöűőú"
+				},
+				"string": "äáßüóíéöűőú"
+			}
+		}
+	},
+	"vertices": [[1.0, 2.0, 3.0]],
+	"appearance": {
+		"materials": [
+			{
+				"name": "molestiae",
+				"ambientIntensity": 0.08587583,
+				"diffuseColor": [0.26366273, 0.7784178, 0.23596397],
+				"emissiveColor": [0.7278852, 0.2710413, 0.5101971],
+				"shininess": 0.08130918,
+				"transparency": 0.049306665,
+				"isSmooth": false
+			}, {
+				"name": "enim",
+				"ambientIntensity": 0.033857305,
+				"diffuseColor": [0.7427097, 0.78386927, 0.9581634],
+				"emissiveColor": [0.7821374, 0.2655212, 0.26754156],
+				"shininess": 0.03361704,
+				"transparency": 0.09106441,
+				"isSmooth": true
+			}, {
+				"name": "ipsum",
+				"ambientIntensity": 0.01604283,
+				"diffuseColor": [0.46241015, 0.89072406, 0.050514467],
+				"emissiveColor": [0.6582747, 0.49663168, 0.41229087],
+				"shininess": 0.025391536,
+				"transparency": 0.045218453,
+				"isSmooth": true
+			}
+		],
+		"textures": [
+			{
+				"type": "PNG",
+				"image": "/tmp/liam/logan/important.png",
+				"wrapMode": "border",
+				"textureType": "typical",
+				"borderColor": [0.5265917, 0.25929752, 0.6169091, 0.37765795]
+			}, {
+				"type": "PNG",
+				"image": "/bin/emma/little.png",
+				"wrapMode": "mirror",
+				"textureType": "specific",
+				"borderColor": [0.33081248, 0.65581363, 0.2910749, 0.86267495]
+			}, {
+				"type": "JPG",
+				"image": "/sbin/bad.jpg",
+				"wrapMode": "border",
+				"textureType": "typical",
+				"borderColor": [0.12187375, 0.72447556, 0.023948435, 0.88100207]
+			}
+		],
+		"vertices-texture": [[0.28579012, 0.7477338], [0.64060146, 0.43029267], [0.48480195, 0.18282224]],
+		"default-theme-texture": "autem",
+		"default-theme-material": "autem"
+	}
+}

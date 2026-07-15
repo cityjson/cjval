@@ -1596,11 +1596,18 @@ impl CJValidator {
                                         }
                                         y.remove(0);
                                         for each in y {
-                                            if each.unwrap() > (max_i_v - 1) {
-                                                ls_errors.push(format!(
+                                            if let Some(each) = each {
+                                                if each > (max_i_v - 1) {
+                                                    ls_errors.push(format!(
                                                         "/texture/values/ \"{}\" overflows for texture-vertices (max={}); #{} and geom-#{}",
-                                                        each.unwrap(), (max_i_v - 1), theid, gi
+                                                        each, (max_i_v - 1), theid, gi
                                                     ));
+                                                }
+                                            } else {
+                                                ls_errors.push(format!(
+                                                    "/texture/values/ null found in ring — expected integer index; #{} and geom-#{}",
+                                                    theid, gi
+                                                ));
                                             }
                                         }
                                     }
@@ -1652,11 +1659,18 @@ impl CJValidator {
                                             }
                                             z.remove(0);
                                             for each in z {
-                                                if each.unwrap() > (max_i_v - 1) {
+                                                if let Some(each) = each {
+                                                    if each > (max_i_v - 1) {
+                                                        ls_errors.push(format!(
+                                                        "/texture/values/ \"{}\" overflows for texture-vertices (max={}); #{} and geom-#{}",
+                                                        each, (max_i_v - 1), theid, gi
+                                                    ));
+                                                    }
+                                                } else {
                                                     ls_errors.push(format!(
-                                                    "/texture/values/ \"{}\" overflows for texture-vertices (max={}); #{} and geom-#{}",
-                                                    each.unwrap(), (max_i_v - 1), theid, gi
-                                                ));
+                                                        "/texture/values/ null found in ring — expected integer index; #{} and geom-#{}",
+                                                        theid, gi
+                                                    ));
                                                 }
                                             }
                                         }
@@ -1712,11 +1726,18 @@ impl CJValidator {
                                                 }
                                                 w.remove(0);
                                                 for each in w {
-                                                    if each.unwrap() > (max_i_v - 1) {
+                                                    if let Some(each) = each {
+                                                        if each > (max_i_v - 1) {
+                                                            ls_errors.push(format!(
+                                                            "/texture/values/ \"{}\" overflows for texture-vertices (max={}); #{} and geom-#{}",
+                                                            each, (max_i_v - 1), theid, gi
+                                                        ));
+                                                        }
+                                                    } else {
                                                         ls_errors.push(format!(
-                                                        "/texture/values/ \"{}\" overflows for texture-vertices (max={}); #{} and geom-#{}",
-                                                        each.unwrap(), (max_i_v - 1), theid, gi
-                                                    ));
+                                                            "/texture/values/ null found in ring — expected integer index; #{} and geom-#{}",
+                                                            theid, gi
+                                                        ));
                                                     }
                                                 }
                                             }

@@ -55,3 +55,11 @@ fn valid_with_many_null() {
     let re = v.validate();
     assert!(re["textures"].is_valid());
 }
+
+#[test]
+fn null_in_texture_values_should_not_panic() {
+    let sdata = std::fs::read_to_string("data/cjfake_invalid_0_copy.json").unwrap();
+    let v: CJValidator = CJValidator::from_str(&sdata);
+    let re = v.validate();
+    assert!(!re["textures"].is_valid());
+}
