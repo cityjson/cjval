@@ -1,11 +1,12 @@
 # Changelog
 
-## [0.10.0] - 2026-08-XX
+## [0.10.0] - 2026-08-10
 ### Added
-- added a structured report in json as output. The schema is provided also. It is option `--report` and it outputs to stdout.
+- added a structured report in JSON as output. The schema is provided also. It is option `--report` and it outputs to stdout.
 ### Modified
 - argument `--quiet` is gone, replaced by `--summary`
 - fix some bug
+- fix the Docker version for each release
 
 
 ## [0.9.0] - 2026-03-27
@@ -110,6 +111,7 @@
 
 
 
+[0.10.0]: https://github.com/hugoledoux/cjval/compare/0.9.0...0.10.0
 [0.9.0]: https://github.com/hugoledoux/cjval/compare/0.8.4...0.9.0
 [0.8.4]: https://github.com/hugoledoux/cjval/compare/0.8.3...0.8.4
 [0.8.3]: https://github.com/hugoledoux/cjval/compare/0.8.2...0.8.3
