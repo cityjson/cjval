@@ -1,0 +1,133 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "cjval report",
+  "description": "Schema for the JSON validation report produced by cjval.",
+  "type": "object",
+  "required": [
+    "type",
+    "cjval_version",
+    "file",
+    "timestamp",
+    "valid",
+    "has_warnings",
+    "checks"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "type": {
+      "description": "Identifies this as a cjval report document.",
+      "type": "string",
+      "enum": ["cjval_report"]
+    },
+    "cjval_version": {
+      "description": "Version of cjval that produced the report.",
+      "type": "string"
+    },
+    "file": {
+      "description": "Path to the validated file.",
+      "type": "string"
+    },
+    "timestamp": {
+      "description": "ISO-8601 timestamp of the validation run.",
+      "type": "string",
+      "format": "date-time"
+    },
+    "valid": {
+      "description": "Whether the file is valid (no error-level checks failed).",
+      "type": "boolean"
+    },
+    "has_warnings": {
+      "description": "Whether any warning-level checks produced errors.",
+      "type": "boolean"
+    },
+    "checks": {
+      "description": "Grouped results of all validation checks.",
+      "type": "object",
+      "required": ["errors", "warnings"],
+      "additionalProperties": false,
+      "properties": {
+        "errors": {
+          "type": "object",
+          "required": [
+            "json_syntax",
+            "schema",
+            "extensions",
+            "parents_children_consistency",
+            "wrong_vertex_index",
+            "semantics_arrays",
+            "textures",
+            "materials"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "json_syntax": {
+              "$ref": "#/definitions/ValSummary"
+            },
+            "schema": {
+              "$ref": "#/definitions/ValSummary"
+            },
+            "extensions": {
+              "$ref": "#/definitions/ValSummary"
+            },
+            "parents_children_consistency": {
+              "$ref": "#/definitions/ValSummary"
+            },
+            "wrong_vertex_index": {
+              "$ref": "#/definitions/ValSummary"
+            },
+            "semantics_arrays": {
+              "$ref": "#/definitions/ValSummary"
+            },
+            "textures": {
+              "$ref": "#/definitions/ValSummary"
+            },
+            "materials": {
+              "$ref": "#/definitions/ValSummary"
+            }
+          }
+        },
+        "warnings": {
+          "type": "object",
+          "required": [
+            "extra_root_properties",
+            "duplicate_vertices",
+            "unused_vertices"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "extra_root_properties": {
+              "$ref": "#/definitions/ValSummary"
+            },
+            "duplicate_vertices": {
+              "$ref": "#/definitions/ValSummary"
+            },
+            "unused_vertices": {
+              "$ref": "#/definitions/ValSummary"
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "ValSummary": {
+      "description": "Result of a single validation check.",
+      "type": "object",
+      "required": ["valid", "errors"],
+      "additionalProperties": false,
+      "properties": {
+        "valid": {
+          "description": "true if passed, false if failed, null if check was skipped.",
+          "type": ["boolean", "null"]
+        },
+        "errors": {
+          "description": "Error messages for this check; empty if passed.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

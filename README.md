@@ -79,7 +79,7 @@ For CityJSONSeq, one JSON object per line is output (JSONL):
 cat mystream.city.jsonl | cjval --report > report.jsonl
 ```
 
-The report has the following structure:
+The report has the following structure (the JSON Schema is [/schemas/cjval_report.schema.json](./schemas/cjval_report.schema.json)):
 
 ```json
 {
