@@ -109,6 +109,27 @@ The report has the following structure:
 }
 ```
 
+### For CityJSONSeq
+
+To validate a stream of [CityJSONFeature](https://www.cityjson.org/cityjsonseq/), you need to pipe the file to `cjval`:
+
+```sh
+cat mystream.city.jsonl | cjval --verbose
+```
+
+Alternatively, you can use [cjseq](https://github.com/cityjson/cjseq) to generate the stream from a CityJSON file:
+
+```sh
+cjseq cat -f myfile.city.json | cjval --verbose
+```
+
+You'll get a short report per line (which is one `CityJSON` followed by several `CityJSONFeature`).
+
+`--verbose` is used to get a detailed report per line; if not used, only lines with errors are reported.
+
+
+## CityJSON Extensions
+
 If the file contains one or more [Extensions](https://www.cityjson.org/extensions/), eg:
 
 ```json
@@ -133,24 +154,6 @@ If instead you want to use your own local Extension schema(s), you can pass them
 ```sh
 cjval myfile.city.json -e ./myextensions/shed.ext.json
 ```
-
-### For CityJSONSeq
-
-To validate a stream of [CityJSONFeature](https://www.cityjson.org/cityjsonseq/), you need to pipe the file to `cjval`:
-
-```sh
-cat mystream.city.jsonl | cjval --verbose
-```
-
-Alternatively, you can use [cjseq](https://github.com/cityjson/cjseq) to generate the stream from a CityJSON file:
-
-```sh
-cjseq cat -f myfile.city.json | cjval --verbose
-```
-
-You'll get a short report per line (which is one `CityJSON` followed by several `CityJSONFeature`).
-
-`--verbose` is used to get a detailed report per line; if not used, only lines with errors are reported.
 
 
 ## Contributors
