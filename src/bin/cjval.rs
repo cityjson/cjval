@@ -1,6 +1,6 @@
-use cjval::CheckResults;
 use cjval::CJReport;
 use cjval::CJValidator;
+use cjval::CheckResults;
 use cjval::ValSummary;
 use indexmap::IndexMap;
 
@@ -660,7 +660,7 @@ fn process_cjseq_stream(extpaths: &Vec<PathBuf>, report_mode: bool) {
                     if report_mode {
                         let report = CJReport {
                             report_type: "cjval_report".to_string(),
-                        cjval_version: env!("CARGO_PKG_VERSION").to_string(),
+                            cjval_version: env!("CARGO_PKG_VERSION").to_string(),
                             file: "[metadata]".to_string(),
                             timestamp: {
                                 let fmt = time::format_description::parse(
@@ -741,7 +741,7 @@ fn process_cjseq_stream(extpaths: &Vec<PathBuf>, report_mode: bool) {
                     if report_mode {
                         let report = CJReport {
                             report_type: "cjval_report".to_string(),
-                        cjval_version: env!("CARGO_PKG_VERSION").to_string(),
+                            cjval_version: env!("CARGO_PKG_VERSION").to_string(),
                             file: format!("line-{}", i + 1),
                             timestamp: {
                                 let fmt = time::format_description::parse(
