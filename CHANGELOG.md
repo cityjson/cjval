@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.0] - 2026-08-XX
+### Added
+- added a structured report in json as output. The schema is provided also. It is option `--report` and it outputs to stdout.
+### Modified
+- argument `--quiet` is gone, replaced by `--summary`
+- fix some bug
+
 
 ## [0.9.0] - 2026-03-27
 ### Added
