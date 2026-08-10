@@ -39,6 +39,9 @@ use ratatui::{
 struct Cli {
     /// CityJSON input file
     inputfile: Option<PathBuf>,
+    /// Output a JSON report to stdout (suppresses the TUI).
+    #[arg(short, long)]
+    report: bool,
     /// Output a one-line summary (suppresses the TUI).
     #[arg(short, long)]
     summary: bool,
@@ -46,9 +49,6 @@ struct Cli {
     /// More than one can be given.
     #[arg(short, long)]
     extensionfiles: Vec<PathBuf>,
-    /// Output a JSON report to stdout (suppresses the TUI).
-    #[arg(short, long)]
-    report: bool,
 }
 
 struct ValidationResult {
