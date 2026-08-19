@@ -9,7 +9,9 @@
 
 ## Test
 
-- `cargo test` — 14 integration tests in `tests/`, run from project root (tests use relative paths to `data/` and `schemas/`)
+- `cargo test` — 44 tests across 14 test files in `tests/`, run from project root
+- Tests use relative paths to `data/` and `schemas/` from project root
+- Run a single test: `cargo test --test extensions extension_missing_url`
 - No CI test suite — the only workflow builds Docker on release
 
 ## Architecture
