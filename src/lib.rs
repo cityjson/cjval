@@ -655,10 +655,14 @@ impl CJValidator {
         if v.contains_key("extensions") {
             let exts = self.j.get("extensions").unwrap().as_object().unwrap();
             for key in exts.keys() {
-                re.insert(
-                    key.to_string(),
-                    exts[key]["url"].as_str().unwrap().to_string(),
-                );
+                let ext_obj = exts[key].as_object();
+                if ext_obj.is_none() {
+                    continue;
+                }
+                let ext_obj = ext_obj.unwrap();
+                if let Some(url) = ext_obj.get("url").and_then(|u| u.as_str()) {
+                    re.insert(key.to_string(), url.to_string());
+                }
             }
         }
         if re.is_empty() {

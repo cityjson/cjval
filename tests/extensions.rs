@@ -174,3 +174,11 @@ fn extension_20() {
     assert!(re["schema"].is_valid());
     assert!(!re["extensions"].is_valid());
 }
+
+#[test]
+fn extension_missing_url() {
+    let sdata = std::fs::read_to_string("data/extension_1.json").unwrap();
+    let v: CJValidator = CJValidator::from_str(&sdata);
+    let re = v.validate();
+    assert!(!re["schema"].is_valid());
+}
